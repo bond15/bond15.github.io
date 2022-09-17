@@ -7,7 +7,7 @@
 
 # Site Settings
 locale                   : "en-US"
-title                    : "Eric Bond"
+title                    : "About Me"
 title_separator          : "-"
 name                     : &name "Eric Bond"
 description              : &description "personal description"
@@ -84,7 +84,7 @@ author:
   avatar           : "Eric-Bond.png"
   bio              : "Lead Research Scientist - Formal Methods/Applied Math"
   location         : "Seattle, WA"
-  employer         : "Two Six Technologies"
+  employer         : 
   pubmed           : 
   googlescholar    : 
   email            : "bond.eric.23@gmail.com"
