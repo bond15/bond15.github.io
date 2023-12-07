@@ -10,6 +10,9 @@ author_profile: true
 ## Implicit Complexity Theory Survey
 EECS 574 (Complexity Theory) survey on type theories which are sound and complete for various complexity classes.
 
+[Paper](https://externalhom.com/files/EECS_574_Project.pdf) / 
+[Video](https://youtu.be/pKjsa0kSsmI)
+
 ## DARPA Programs
 As a Research Scientist at Two Six Technologies, I performed on the following DARPA programs: 
 DPRIVE, SafeDocs, V-SPELLS, HARDEN, and PEARLS.
