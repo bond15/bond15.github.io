@@ -13,6 +13,12 @@ EECS 574 (Complexity Theory) survey on type theories which are sound and complet
 [Paper](https://externalhom.com/files/EECS_574_Project.pdf) / 
 [Video](https://youtu.be/pKjsa0kSsmI)
 
+## Interaction Trees & VeLLVM Tutorial
+EECS 583 (Compilers) project demonstrating how to prove correctness of assembly/LLVM transformations using Interaction trees. I ran out of time to verify a full transformation but I did manage to write up a decent tutorial.
+
+
+Paper
+/[Video](https://www.youtube.com/watch?v=4YStGQrIEAQ)
 ## DARPA Programs
 As a Research Scientist at Two Six Technologies, I performed on the following DARPA programs: 
 DPRIVE, SafeDocs, V-SPELLS, HARDEN, and PEARLS.
