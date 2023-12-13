@@ -17,7 +17,7 @@ EECS 574 (Complexity Theory) survey on type theories which are sound and complet
 EECS 583 (Compilers) project demonstrating how to prove correctness of assembly/LLVM transformations using Interaction trees. I ran out of time to verify a full transformation but I did manage to write up a decent tutorial.
 
 
-Paper
+[Paper](https://externalhom.com/files/583_Project.pdf) 
 /[Code](https://github.com/bond15/VeLLVM-Exploration)
 /[Video](https://www.youtube.com/watch?v=4YStGQrIEAQ)
 ## DARPA Programs
