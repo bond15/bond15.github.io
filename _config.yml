@@ -209,6 +209,11 @@ defaults:
     values:
       layout: single
       author_profile: true
+  # unlisted pages: keep out of the sitemap
+  - scope:
+      path: "991ba7bfd2ff5a95"
+    values:
+      sitemap: false
   # _teaching
   #- scope:
   #    path: ""
