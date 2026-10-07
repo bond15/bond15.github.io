@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<html><head><meta name="robots" content="noindex, nofollow"><meta charset="utf-8"><title>Everything</title><link rel="stylesheet" href="Agda.css"></head><body><pre class="Agda"><a id="1" class="Comment">{-
+  The formalization of the POPL&#39;27 paper (popl27/popl27.tex), module by
+  module in paper order.  See DEVIATIONS.md for every departure from the
+  paper.
+-}</a>
+<a id="161" class="Keyword">module</a> <a id="168" href="Everything.html" class="Module">Everything</a> <a id="179" class="Keyword">where</a>
+
+<a id="186" class="Comment">-- §2.1–2.2  Algebraic theories, free model monads</a>
+<a id="237" class="Keyword">import</a> <a id="244" href="POPL.Theory.html" class="Module">POPL.Theory</a>
+<a id="256" class="Keyword">import</a> <a id="263" href="POPL.FreeModel.html" class="Module">POPL.FreeModel</a>
+<a id="278" class="Keyword">import</a> <a id="285" href="POPL.Models.html" class="Module">POPL.Models</a>
+
+<a id="298" class="Comment">-- §2.3  CBPV(𝒯) and CBPV⁺(𝒯): syntax and its operations</a>
+<a id="355" class="Keyword">import</a> <a id="362" href="POPL.Types.html" class="Module">POPL.Types</a>
+<a id="373" class="Keyword">import</a> <a id="380" href="POPL.Syntax.html" class="Module">POPL.Syntax</a>
+<a id="392" class="Keyword">import</a> <a id="399" href="POPL.Renaming.html" class="Module">POPL.Renaming</a>
+<a id="413" class="Keyword">import</a> <a id="420" href="POPL.Substitution.html" class="Module">POPL.Substitution</a>
+<a id="438" class="Keyword">import</a> <a id="445" href="POPL.Plug.html" class="Module">POPL.Plug</a>
+
+<a id="456" class="Comment">-- §3  Denotational semantics and equational canonicity</a>
+<a id="512" class="Keyword">import</a> <a id="519" href="POPL.Denotation.html" class="Module">POPL.Denotation</a>
+<a id="535" class="Keyword">import</a> <a id="542" href="POPL.DenotationLemmas.html" class="Module">POPL.DenotationLemmas</a>
+<a id="564" class="Keyword">import</a> <a id="571" href="POPL.Equational.html" class="Module">POPL.Equational</a>
+<a id="587" class="Keyword">import</a> <a id="594" href="POPL.EquationalSoundness.html" class="Module">POPL.EquationalSoundness</a>
+<a id="619" class="Keyword">import</a> <a id="626" href="POPL.EqLogicalRelation.html" class="Module">POPL.EqLogicalRelation</a>
+<a id="649" class="Keyword">import</a> <a id="656" href="POPL.EqCanonicity.html" class="Module">POPL.EqCanonicity</a>
+
+<a id="675" class="Comment">-- §4  Tree reduction</a>
+<a id="697" class="Keyword">import</a> <a id="704" href="POPL.Fin.html" class="Module">POPL.Fin</a>
+<a id="713" class="Keyword">import</a> <a id="720" href="POPL.TreeReduction.html" class="Module">POPL.TreeReduction</a>
+<a id="739" class="Keyword">import</a> <a id="746" href="POPL.TreeSoundness.html" class="Module">POPL.TreeSoundness</a>
+<a id="765" class="Keyword">import</a> <a id="772" href="POPL.OpLogicalRelation.html" class="Module">POPL.OpLogicalRelation</a>
+<a id="795" class="Keyword">import</a> <a id="802" href="POPL.TreeNormalization.html" class="Module">POPL.TreeNormalization</a>
+<a id="825" class="Keyword">import</a> <a id="832" href="POPL.TreeCanonicity.html" class="Module">POPL.TreeCanonicity</a>
+
+<a id="853" class="Comment">-- §5  Configuration reduction</a>
+<a id="884" class="Keyword">import</a> <a id="891" href="POPL.Polynomial.html" class="Module">POPL.Polynomial</a>
+<a id="907" class="Keyword">import</a> <a id="914" href="POPL.OperationalModel.html" class="Module">POPL.OperationalModel</a>
+<a id="936" class="Keyword">import</a> <a id="943" href="POPL.ConfigReduction.html" class="Module">POPL.ConfigReduction</a>
+<a id="964" class="Keyword">import</a> <a id="971" href="POPL.ConfigNormalization.html" class="Module">POPL.ConfigNormalization</a>
+
+<a id="997" class="Comment">-- §2.2 / §5.3 instances</a>
+<a id="1022" class="Keyword">import</a> <a id="1029" href="POPL.Instances.Common.html" class="Module">POPL.Instances.Common</a>
+<a id="1051" class="Keyword">import</a> <a id="1058" href="POPL.Instances.Writer.html" class="Module">POPL.Instances.Writer</a>
+<a id="1080" class="Keyword">import</a> <a id="1087" href="POPL.Instances.Errors.html" class="Module">POPL.Instances.Errors</a>
+<a id="1109" class="Keyword">import</a> <a id="1116" href="POPL.Instances.State.html" class="Module">POPL.Instances.State</a>
+<a id="1137" class="Keyword">import</a> <a id="1144" href="POPL.Instances.WeightedMonoid.html" class="Module">POPL.Instances.WeightedMonoid</a>
+<a id="1174" class="Keyword">import</a> <a id="1181" href="POPL.Instances.WeightedMonoidAffine.html" class="Module">POPL.Instances.WeightedMonoidAffine</a>
+<a id="1217" class="Keyword">import</a> <a id="1224" href="POPL.Instances.WeightedMonoidRules.html" class="Module">POPL.Instances.WeightedMonoidRules</a>
+</pre></body></html>
