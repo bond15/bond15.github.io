@@ -80,6 +80,16 @@ nav.toc .sub { padding-left: 1.2em; color: var(--muted); }
 .flow div { display: grid; grid-template-columns: minmax(140px, 30%) 1fr; gap: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--rule); }
 .flow div > * { min-width: 0; }
 @media (max-width: 520px) { .flow div { grid-template-columns: 1fr; gap: 2px; } }
+details.more { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+details.more > summary { cursor: pointer; padding: 9px 14px; font-family: var(--font-label); font-size: 13px; color: var(--accent); list-style: none; }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::before { content: "▸ "; }
+details.more[open] > summary::before { content: "▾ "; }
+details.more > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+details.more > .inner { padding: 4px 16px 14px; display: grid; gap: 10px; overflow-x: auto; }
+.thread { border: 2px solid var(--ls); border-radius: 8px; padding: 12px 16px; display: grid; gap: 8px; background: var(--surface); }
+.thread > .tag { font-family: var(--font-label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ls); }
+.point { font-size: 1.08rem; }
 mjx-container[display="true"] { margin: .3em 0 !important; overflow-x: auto; overflow-y: hidden; max-width: 100%; }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap">
@@ -108,640 +118,398 @@ window.MathJax = {
 <header>
   <div class="eyebrow">A self-contained tutorial</div>
   <h1>PRACBPV from three ingredients</h1>
-  <p class="lede">PRACBPV is call-by-push-value (CBPV) with algebraic effects, in which every computation runs at a <em>world</em>, and some effects move the computation to a different world: allocating a memory cell, or letting one step of time pass. This tutorial derives its syntax and its denotational semantics from three pieces of existing mathematics.</p>
+  <p class="lede">PRACBPV is call-by-push-value (CBPV) with algebraic effects, where every computation runs at a <em>world</em>, and some effects move to a different world: allocating a memory cell, or letting a step of time pass. This page builds its syntax and its semantics from three ingredients.</p>
   <div class="flow">
-    <div><b>Parameterized algebraic theories</b><span>say what an <em>operation</em> looks like: it takes parameters (such as a memory cell) and continuations, and a continuation may bind new parameters. (Part I)</span></div>
-    <div><b>Presheaf polynomials</b><span>say what operations and binders <em>denote</em>: functors on presheaves built from sums and products, where every position remembers which world it lives at. (Part II)</span></div>
-    <div><b>Parametric right adjoints</b><span>are the universal property of those polynomials. That property is what turns "work behind a binder" into a well-behaved typing rule, and what makes substitution work. (Part III)</span></div>
+    <div><b>I · Parameterized algebraic theories</b><span>What an operation looks like: parameters, and continuations that may bind new ones.</span></div>
+    <div><b>II · Presheaf polynomials</b><span>What an operation denotes: one layer of a program, each continuation at its own world.</span></div>
+    <div><b>III · Parametric right adjoints</b><span>Why that denotation gives a good typing rule: "pick the operation, then write each continuation in its own context".</span></div>
+    <div><b>IV · Syntax, V · Semantics</b><span>The three put together.</span></div>
   </div>
-  <p>Parts IV and V assemble the three into PRACBPV's syntax and its semantics. Two running examples are used throughout: <span style="color:var(--ls)">local state</span>, where a world is a set of allocated cells, and <span style="color:var(--gd)">guarded recursion</span>, where a world is a number of steps left. With only one world, everything collapses to the plain CBPV with algebraic effects of the POPL paper.</p>
+  <div class="thread">
+    <div class="tag">The running program</div>
+    <p>One small program is followed through every part:</p>
+    <p class="point"><b>$P$</b>: allocate a new cell holding <em>true</em>, then read it, and continue as $M_{\mathsf t}$ or $M_{\mathsf f}$ depending on what was read.</p>
+    <p>Each part ends with a box like this one, saying what $P$ is from that part's point of view.</p>
+  </div>
   <nav class="toc" aria-label="Contents">
-    <a href="#p0">Part 0 · Worlds and presheaves</a>
+    <a href="#p0">Part 0 · Worlds</a>
     <a href="#p1">Part I · Parameterized algebraic theories</a>
     <a href="#p2">Part II · Presheaf polynomials</a>
     <a href="#p3">Part III · Parametric right adjoints</a>
-    <span class="sub"><a href="#fitch">Interlude: Fitch-style STLC, the binder fragment alone</a></span>
-    <a href="#p4">Part IV · The syntax of PRACBPV</a>
-    <a href="#p5">Part V · The denotational semantics</a>
+    <span class="sub"><a href="#fitch">Interlude: locks without operations</a></span>
+    <a href="#p4">Part IV · The syntax</a>
+    <a href="#p5">Part V · The semantics</a>
     <a href="#refs">References and where things live</a>
   </nav>
 </header>
 
 <!-- ================================================================== -->
-<div class="part" id="p0"><span class="label">Part 0</span><h2>Worlds and presheaves</h2><p>The setting everything else lives in.</p></div>
+<div class="part" id="p0"><span class="label">Part 0</span><h2>Worlds</h2><p>Programs run at a world; things exist at a world.</p></div>
 
 <section>
-  <div class="box def">
-    <div class="tag">Worlds</div>
-    <p>Fix a category $\W$ whose objects are called <b>worlds</b>. A map $f : w \to w'$ says that $w'$ is a possible <em>future</em> of $w$: whatever makes sense at $w$ can be carried forward to $w'$ along $f$.</p>
-  </div>
+  <p class="point">A category $\W$ of <b>worlds</b>. A map $w \to w'$ says $w'$ is a possible future of $w$.</p>
   <div class="pair">
     <div class="box ls"><div class="tag">Local state: $\W = \Inj$</div>
-      <p>A world is a number $n$, read as "$n$ cells allocated", the cells being $\Fin\,n = \{0, \ldots, n-1\}$. A map $n \to m$ is an injection $\Fin\,n \hookrightarrow \Fin\,m$: old cells survive, possibly renamed, and new cells may appear. Cells are never deleted.</p>
+      <p>World $n$ means $n$ allocated cells, $\Fin\,n = \{0, \ldots, n-1\}$. Maps are injections: cells survive and new ones appear.</p>
     </div>
     <div class="box gd"><div class="tag">Guarded: $\W = \omega^{op}$</div>
-      <p>A world is a number $n$, read as "$n$ steps left". There is exactly one map $n \to m$ when $m \le n$, and none otherwise: time only runs down.</p>
+      <p>World $n$ means $n$ steps left. There is a map $n \to m$ when $m \le n$: time runs down.</p>
     </div>
   </div>
-  <div class="box def">
-    <div class="tag">Presheaves</div>
-    <p>A <b>presheaf</b> is a functor $X : \W \to \Set$. $X(w)$ is the set of things of kind $X$ that exist at world $w$, and $X(f) : X(w) \to X(w')$ carries them forward. A map of presheaves $X \to Y$ is a natural transformation: a function $X(w) \to Y(w)$ at every world, commuting with carrying forward. Presheaves form a category $\Psh$.</p>
-    <p>This development writes presheaves <em>covariantly</em>, as functors out of $\W$, so "presheaf on $\W$" here is what is often called a presheaf on $\W^{op}$.</p>
-  </div>
-  <div class="pair">
-    <div class="box ls"><div class="tag">Local state</div><p>The presheaf of cells: $X(n) = \Fin\,n$, carried forward by applying the injection.</p></div>
-    <div class="box gd"><div class="tag">Guarded</div><p>Streams of bits: $X(n)$ is the lists of length $n$ (the first $n$ bits), carried forward by truncating.</p></div>
-  </div>
-  <div class="box def">
-    <div class="tag">Representables, Yoneda, and maps out of sums</div>
-    <p>The <b>representable</b> presheaf at $w$ is $y\,w = \W[w, -]$. Its elements at $t$ are the ways $t$ is a future of $w$. Think of $y\,w$ as "a single point at world $w$". Two facts get used constantly:</p>
-    $$\Psh(y\,w, X) \cong X(w) \qquad\qquad \Psh\Big(\sum_{p \in P} y\,v_p,\ X\Big) \cong \prod_{p \in P} X(v_p)$$
-    <p class="reading">A map out of a single point at $w$ is an element at $w$ (Yoneda). A map out of several points, the first at $v_1$, the second at $v_2$, and so on, is one element at each of their worlds.</p>
-  </div>
+  <p class="point">A <b>presheaf</b> $X : \W \to \Set$ is a type that varies with the world: $X(w)$ is what exists at $w$, and it can be carried into the future. The <b>representable</b> $y\,w$ is "a single point at world $w$".</p>
+  <p>One fact is used everywhere. A map out of a few points is just an element at each of their worlds:</p>
+  $$\Psh\Big(\sum_{p} y\,v_p,\ X\Big) \;\cong\; \prod_{p} X(v_p).$$
+  <details class="more"><summary>More precisely</summary><div class="inner">
+    <p>A presheaf here is a functor $X : \W \to \Set$, written covariantly (often called a presheaf on $\W^{op}$). Maps of presheaves are natural transformations. $y\,w = \W[w, -]$, and Yoneda says $\Psh(y\,w, X) \cong X(w)$. The displayed fact is Yoneda plus "a map out of a sum is one map per summand".</p>
+    <p>Example presheaves: the cells $X(n) = \Fin\,n$ for local state; streams observed for $n$ steps for guarded recursion.</p>
+  </div></details>
 </section>
 
 <!-- ================================================================== -->
-<div class="part" id="p1"><span class="label">Part I</span><h2>Parameterized algebraic theories</h2><p>What an operation looks like, syntactically. Main source: Staton, LICS 2013.</p></div>
+<div class="part" id="p1"><span class="label">Part I</span><h2>Parameterized algebraic theories</h2><p>What an operation looks like.</p></div>
 
 <section>
-  <h3><span class="n">I.1</span> Operations in continuation-passing style</h3>
-  <p>In the algebraic approach to effects (Plotkin and Power), an effect is presented by <b>operations</b>. An operation takes one <b>continuation</b> for each possible outcome, and runs one of them. Reading a bit is a binary operation:</p>
-  $$x \mathbin{?} y \qquad \text{read a bit; continue as } x \text{ if it is 0, as } y \text{ if it is 1.}$$
-  <p>All the continuations have the same type, and so does the whole term. An operation does not return a value of its own; it decides how to continue. This is continuation-passing style.</p>
-</section>
-
-<section>
-  <h3><span class="n">I.2</span> Parameters and binders</h3>
-  <p>For local state this is not enough. Reading has to know <em>which</em> cell, and allocation has to hand its continuation a <em>new</em> cell. A parameterized algebraic theory (PAT) adds both of these.</p>
-  <div class="box def">
-    <div class="tag">Definition (Staton 2013, Def. 1), informally</div>
-    <ul>
-      <li><b>Base types</b> $\alpha, \beta, \ldots$ are kinds of parameter, such as memory cells or channel names.</li>
-      <li><b>Types</b> are $\tau ::= \alpha \mid [\tau_1, \ldots, \tau_n]$. For example $[\alpha, \alpha]$ is a computation that takes two parameters, and $[\,]$ is a computation with no parameters.</li>
-      <li>A <b>function symbol</b> $F : [\tau_1, \ldots, \tau_n]$ is an operation. Each of its arguments $\tau_i$ is one of:
-        <ul>
-          <li>$\alpha$: a <b>parameter argument</b>, e.g. the cell to read;</li>
-          <li>$[\alpha, \ldots, \alpha]$: a <b>continuation argument</b> that <b>binds</b> that many new parameters. $[\,]$ is a continuation that binds nothing.</li>
-        </ul>
-      </li>
-      <li><b>Equations</b> between terms, saying which programs are equal.</li>
-    </ul>
-  </div>
+  <p class="point">An effect is given by <b>operations</b> in continuation-passing style: an operation takes one continuation per outcome and runs one of them. Reading a bit: $x \mathbin{?} y$.</p>
+  <p class="point">Staton's <b>parameterized</b> algebraic theories add two things: operations take <b>parameters</b> (which cell to read), and a continuation may <b>bind</b> new parameters (the cell just allocated).</p>
   <div class="box ls">
-    <div class="tag">Local state (Staton §V-E), with one base type $\alpha$ of cells</div>
+    <div class="tag">Local state (Staton 2013), with $\alpha$ the type of cells</div>
     <div class="tablewrap"><table>
-      <thead><tr><th>symbol</th><th>type</th><th>reading</th></tr></thead>
+      <thead><tr><th>operation</th><th>arguments</th><th>reading</th></tr></thead>
       <tbody>
-        <tr><td>$?$</td><td>$[[\,], \alpha, [\,]]$</td><td>read cell $a$; continue in one of two branches</td></tr>
-        <tr><td>$w_i$</td><td>$[\alpha, [\,]]$</td><td>write bit $i$ to cell $a$; continue</td></tr>
-        <tr><td>$\nu_i$</td><td>$[[\alpha]]$</td><td>allocate a cell holding $i$; the continuation binds it</td></tr>
-        <tr><td>$?_{=}$</td><td>$[[\,], \alpha, \alpha, [\,]]$</td><td>compare two cells; continue in one of two branches</td></tr>
+        <tr><td>$?$</td><td>a continuation, a cell, a continuation</td><td>read the cell, continue in one of two branches</td></tr>
+        <tr><td>$w_i$</td><td>a cell, a continuation</td><td>write $i$ to the cell</td></tr>
+        <tr><td>$\nu_i$</td><td>a continuation <em>that binds a cell</em></td><td>allocate a cell holding $i$</td></tr>
       </tbody>
     </table></div>
-    <p>For example $\nu_0(a.\ ?(x, a, y))$ allocates a cell $a$ holding 0, reads it, and continues as $x$ or $y$.</p>
   </div>
-</section>
-
-<section>
-  <h3><span class="n">I.3</span> What a binder means in a PAT</h3>
-  <p>Staton interprets a PAT in presheaves on $\Ctx_0$, the category of contexts of parameters and renamings between them. A renaming is any function on variables, so it may identify two variables. A base type is interpreted as a representable presheaf, and a continuation $[\alpha]$ as an <b>exponential</b>:</p>
-  $$X^{[\![\alpha]\!]}(\Gamma) = X(\Gamma, a{:}\alpha).$$
-  <p>Because renamings may identify variables, the bound $a$ is an ordinary variable: it may turn out to equal a cell already in $\Gamma$. The fact that allocation produces a <em>fresh</em> cell is therefore not built in. It is imposed by an <b>equation</b>, using the comparison $?_=$:</p>
-  $$a{:}\alpha,\ x, y{:}[\alpha] \ \vdash\ \nu b.\,\big(x(b) \mathrel{?_{a=b}} y(b)\big) \;\equiv\; \nu b.\, y(b) \qquad (\text{new-}\nu)$$
-  <p class="reading">"Comparing the new cell with any existing cell always says they differ."</p>
-</section>
-
-<section>
-  <h3><span class="n">I.4</span> What PRACBPV takes, and what it changes</h3>
-  <p>PRACBPV keeps the <em>shape</em> of a PAT operation and changes three things about it.</p>
-  <ol>
-    <li><b>No equations.</b> PRACBPV operations are lawless. Their behaviour comes from an operational semantics, an abstract machine that runs programs, rather than from equations.</li>
-    <li><b>Freshness moves into the worlds.</b> With $\W = \Inj$, "bind a new cell" is interpreted not as the exponential but as moving to the next world, $n \mapsto n{+}1$. The new cell is the cell $n$, which differs from every old cell by construction. No $?_=$ and no (new-$\nu$) are needed.</li>
-    <li><b>Binders generalize to locks.</b> "The continuation binds a new cell" becomes one instance of a more general idea:</li>
-  </ol>
-  <div class="box def">
-    <div class="tag">Lock kinds and lock words, informally (precise version in II.3–II.4)</div>
-    <p>A <b>lock kind</b> $\kappa$ is a named way in which a continuation's world can differ from the current one. Crossing the lock moves you to a new world, possibly making some new parameters available there. Two examples:</p>
-    <ul>
-      <li>$\fresh$ (local state): the new world has one more cell, and that cell is available as a parameter;</li>
-      <li>$\tick$ (guarded): the new world has one step fewer, and nothing new is available.</li>
-    </ul>
-    <p>A <b>lock word</b> is a finite list of lock kinds, $\mu = \kappa_1 \kappa_2 \cdots \kappa_k$: the locks a continuation sits behind, crossed left to right. The empty word, written $\varepsilon$, means the continuation runs at the current world. A PAT continuation $[\alpha^m]$, which binds $m$ new cells, becomes the word $\fresh^m$, i.e. $\fresh$ repeated $m$ times.</p>
+  <p class="point">PRACBPV keeps this shape of operation, with one change: the binder becomes a <b>lock</b>, a named way in which a continuation's world differs from the current one.</p>
+  <div class="pair">
+    <div class="box ls"><div class="tag">Lock $\fresh$</div><p>Behind it there is one more cell, and that cell is available as a parameter.</p></div>
+    <div class="box gd"><div class="tag">Lock $\tick$</div><p>Behind it there is one step fewer, and nothing new is available.</p></div>
   </div>
   <div class="yields">
     <div class="tag">This part yields: the operation signature</div>
-    <p>Each operation $o$ comes with:</p>
-    <ul>
-      <li>$\params\,o$: a list of base types, its parameter arguments. PRACBPV writes $\Lc$ for the base type of cells, Staton's $\alpha$.</li>
-      <li>$\Ar\,o$: a set of <b>slots</b>, one per continuation argument.</li>
-      <li>$\slot\,o\,a$: for each slot $a$, the lock word its continuation sits behind.</li>
-    </ul>
-  </div>
-  <div class="tablewrap"><table>
-    <thead><tr><th>Staton</th><th>PRACBPV operation</th><th>$\params$</th><th>$\Ar$</th><th>$\slot$</th></tr></thead>
-    <tbody>
-      <tr><td>$? : [[\,], \alpha, [\,]]$</td><td>lookup</td><td>$[\Lc]$</td><td>$\{\mathsf{true}, \mathsf{false}\}$</td><td>$\varepsilon$, $\varepsilon$</td></tr>
-      <tr><td>$w_i : [\alpha, [\,]]$</td><td>update$_i$</td><td>$[\Lc]$</td><td>$\{\ast\}$</td><td>$\varepsilon$</td></tr>
-      <tr><td>$\nu_i : [[\alpha]]$</td><td>new$_i$</td><td>$[\,]$</td><td>$\{\ast\}$</td><td>$\fresh$</td></tr>
-    </tbody>
-  </table></div>
-  <p>Staton interleaves parameter and continuation arguments; PRACBPV lists them separately. Guarded recursion adds one operation, $\mathsf{step}$: no parameters, one slot, word $\tick$.</p>
-</section>
-
-<!-- ================================================================== -->
-<div class="part" id="p2"><span class="label">Part II</span><h2>Presheaf polynomials</h2><p>What operations and lock kinds denote: functors built from sums and products, where every position remembers which world it lives at.</p></div>
-
-<section>
-  <h3><span class="n">II.1</span> Polynomials on sets: shapes and positions</h3>
-  <p>A <b>polynomial functor</b> $\Set \to \Set$ is a sum of powers:</p>
-  $$T X = \sum_{s \in S} X^{P(s)}$$
-  <ul>
-    <li>The <b>shapes</b> $S$: what an element looks like with its data erased. Note $S = T\,1$.</li>
-    <li>The <b>positions</b> $P(s)$ of each shape: the places in an element of that shape where an $X$ goes.</li>
-  </ul>
-  <div class="tablewrap"><table>
-    <thead><tr><th>$T X$</th><th>shapes</th><th>positions</th></tr></thead>
-    <tbody>
-      <tr><td>$X \times X$</td><td>$\{\ast\}$</td><td>$\{0,1\}$</td></tr>
-      <tr><td>$\Maybe\,X = 1 + X$</td><td>$\{\mathsf{nothing}, \mathsf{just}\}$</td><td>$\varnothing$ and $\{\ast\}$</td></tr>
-      <tr><td>$\List\,X$</td><td>$\mathbb N$, the lengths</td><td>$\Fin\,n$</td></tr>
-      <tr><td>$\sum_{o} X^{\Ar\,o}$, plain operations</td><td>the operations $o$</td><td>the slots $\Ar\,o$</td></tr>
-    </tbody>
-  </table></div>
-  <p>The last row is the signature functor of an algebraic theory without parameters. An element is an operation together with one continuation per slot: one layer of a program.</p>
-</section>
-
-<section>
-  <h3><span class="n">II.2</span> Polynomials on presheaves: positions carry worlds</h3>
-  <p>On presheaves, two things change. The set of shapes may depend on the world (at $n$ cells there are $n$ different "read cell $i$" shapes). And each position says <em>which world</em> its $X$ lives at.</p>
-  <div class="box def">
-    <div class="tag">Definition</div>
-    $$T X(w) \;=\; \sum_{s \in S(w)} \ \prod_{p \in \Pos(w,s)} X\big(\sc(w,s,p)\big)$$
-    <p>The data, and how each piece varies along a map of worlds $f : w \to w'$:</p>
-    <ul>
-      <li><b>Shapes</b>: a presheaf $S$. A shape $s$ at $w$ is carried forward to the shape $S(f)(s)$ at $w'$.</li>
-      <li><b>Positions</b>: a set $\Pos(w,s)$ for each shape at each world. Positions go <em>backwards</em>: a function $\mathrm{pos}_f : \Pos(w', S(f)s) \to \Pos(w, s)$.</li>
-      <li><b>Scopes</b>: a world $\sc(w,s,p)$ for each position. Scopes go <em>forwards</em>: for each $p' \in \Pos(w', S(f)s)$, a world map $\mathrm{smap}_f(p') : \sc(w, s, \mathrm{pos}_f\,p') \to \sc(w', S(f)s, p')$.</li>
-    </ul>
-    <p>These are subject to the usual identity and composition laws. That is exactly the statement that positions and scopes together form a <b>functor</b>, as explained next.</p>
-  </div>
-  <p><b>Why positions go backwards.</b> $T X(f)$ must turn an element at $w$ (one $X$ per position at $w$) into an element at $w'$ (one $X$ per position at $w'$). To fill a position $p'$ at $w'$, you look up the corresponding position $\mathrm{pos}_f\,p'$ at $w$, take the $X$ found there, and carry it forward along $\mathrm{smap}_f(p')$:</p>
-  $$\big(T X(f)(s, k)\big)(p') \;=\; X(\mathrm{smap}_f\,p')\big(k(\mathrm{pos}_f\,p')\big).$$
-  <h4>Arities: the same data, packaged</h4>
-  <p>Fix a shape $s$ at $w$. Its positions and scopes are a family of worlds, one per position, and a family of worlds names a presheaf, namely the sum of the representables at those worlds:</p>
-  $$E(w,s) \;=\; \sum_{p \in \Pos(w,s)} y\big(\sc(w,s,p)\big) \qquad\text{the } \textbf{arity} \text{ of } s.$$
-  <p>Read it as "one point at each position's world". By the two facts of Part 0, a map out of the arity is exactly one $X$ per position, each at its own world:</p>
-  $$\Psh\big(E(w,s), X\big) \;\cong\; \prod_{p \in \Pos(w,s)} X\big(\sc(w,s,p)\big), \qquad\text{so}\qquad T X(w) \;\cong\; \sum_{s \in S(w)} \Psh\big(E(w,s), X\big).$$
-  <p>So the polynomial is a family of representable functors $\Psh(E(w,s), -)$, one per shape. This is where the name "familially representable" comes from.</p>
-  <div class="box def">
-    <div class="tag">Definition: families of worlds, and the arity functor</div>
-    <p>$\Fam(\W)$ is the category whose objects are families of worlds: a set $I$ and a world $X_i$ for each $i \in I$, written $\sum_{i \in I} y\,X_i$. A morphism $\sum_i y\,X_i \to \sum_j y\,Y_j$ is a function $\varphi : I \to J$ together with world maps $Y_{\varphi(i)} \to X_i$. These are exactly the presheaf maps between the corresponding sums of representables.</p>
-    <p>The shapes form a category of elements $\int\! S$: objects are pairs $(w, s)$ with $s \in S(w)$; maps $(w,s) \to (w', s')$ are maps $f : w \to w'$ with $S(f)(s) = s'$. Positions and scopes are then one functor</p>
-    $$E : \big(\textstyle\int S\big)^{op} \to \Fam(\W), \qquad E(w,s) = \big(\Pos(w,s),\ \sc(w,s,-)\big),$$
-    <p>whose action on a map $f$ is the pair $(\mathrm{pos}_f, \mathrm{smap}_f)$. Its functoriality is the identity and composition laws above.</p>
-  </div>
-  <p class="note">For category theorists: this is a polynomial in $\mathbf{Cat}$, $\W \leftarrow \int\!\Pos \to \int\!S \to \W$, where the middle map is a discrete opfibration and the right map a discrete fibration. $T$ is "pull back along the scope, take products over the positions, take sums over the shapes", and those products and sums are exactly the $\prod_p$ and $\sum_s$ of the formula. The development calls this the <code>Poly</code> record, and in <code>Polynomial.agda</code> the arity functor is the <code>G : Functor (∫ Shapes) (Fam W)</code> above. (Its category of elements is taken in the opposite orientation, which absorbs the ${}^{op}$.)</p>
-  <h4>Base types and their values</h4>
-  <p>The base types of Part I also become presheaves. Each base type $b$ comes with a presheaf $\Const_b$, its values at each world. For local state, $\Const_{\Lc}(n) = \Fin\,n$: the parameters of type "cell" at world $n$ are the $n$ cells. For an operation $o$, write $\Par_o(w) = \prod_{b \in \params\,o} \Const_b(w)$ for the possible parameter tuples at $w$.</p>
-</section>
-
-<section>
-  <h3><span class="n">II.3</span> Lock kinds: one-shape polynomials</h3>
-  <p>A lock kind (I.4) is a polynomial with exactly <em>one</em> shape, "the continuation", whose positions are the ways of crossing the lock. Its data, piece by piece:</p>
-  <div class="box def">
-    <div class="tag">A lock kind $\kappa$</div>
-    <ol>
-      <li><b>Positions</b> $\Pos_\kappa(w)$: the ways of crossing the lock at world $w$. There may be none, one, or several.</li>
-      <li><b>Scopes</b> $\sc_\kappa(w,p)$: the world on the far side, when crossing in way $p$.</li>
-      <li><b>Functoriality</b>, as in II.2 with a single shape: $\mathrm{pos}_f : \Pos_\kappa(w') \to \Pos_\kappa(w)$, and $\mathrm{smap}_f(p') : \sc_\kappa(w, \mathrm{pos}_f\,p') \to \sc_\kappa(w', p')$. Together these give a functor $E_\kappa : \W^{op} \to \Fam(\W)$, $E_\kappa(w) = \sum_p y(\sc_\kappa(w,p))$.</li>
-      <li><b>Strength</b>: a world map $\iota_{w,p} : w \to \sc_\kappa(w,p)$, natural in $w$. The far side is a future of the near side, so anything that existed before the lock can be carried across it.</li>
-      <li><b>Names</b>: a list of base types $\vec b_\kappa$, the parameters the lock makes available, and their values on the far side, $\gen_{w,p} \in \prod_{b \in \vec b_\kappa} \Const_b(\sc_\kappa(w,p))$, natural in $w$.</li>
-    </ol>
-    <p>Items 1–3 determine a one-shape polynomial, called the <b>modality</b> of $\kappa$:</p>
-    $$R_\kappa X(w) = \prod_{p \in \Pos_\kappa(w)} X\big(\sc_\kappa(w,p)\big)$$
-    <p class="reading">An $X$ at every world you could reach by crossing a $\kappa$-lock from $w$.</p>
-  </div>
-  <div class="pair">
-    <div class="box ls"><div class="tag">Local state: $\fresh$</div>
-      <p>One way to cross, $\Pos(n) = \{\ast\}$, and $\sc(n) = n{+}1$.</p>
-      <p>Along an injection $f : n \hookrightarrow m$, $\mathrm{smap}_f = f{+}1$: do $f$ on the old cells and send the new cell $n$ to the new cell $m$.</p>
-      <p>$\iota : n \hookrightarrow n{+}1$ is the inclusion. One name, of type $\Lc$, whose value is the new cell $n$.</p>
-      <p>$R_{\fresh} X(n) = X(n{+}1)$.</p>
-    </div>
-    <div class="box gd"><div class="tag">Guarded: $\tick$</div>
-      <p>$\Pos(0) = \varnothing$: with no steps left the lock cannot be crossed. $\Pos(n{+}1) = \{\ast\}$ and $\sc(n{+}1) = n$.</p>
-      <p>$\iota : n{+}1 \to n$ is the unique map. No names.</p>
-      <p>$R_{\tick} X(0) = 1$ (an empty product) and $R_{\tick} X(n{+}1) = X(n)$: the later modality $\triangleright$.</p>
-    </div>
-  </div>
-  <div class="box hypo">
-    <div class="tag">Several positions: Staton's binder over $\Inj$ (illustration only, not in the development)</div>
-    <p>What would Staton's exponential binder look like as a lock kind over $\Inj$? Since $y\,n \times \Const_{\Lc} \cong y(n{+}1) + n \cdot y\,n$, the exponential is $X^{\Const_{\Lc}}(n) = X(n{+}1) \times \prod_{i \in \Fin n} X(n)$. That is the lock kind with
-    $$\Pos(n) = 1 + \Fin\,n, \qquad \sc(n, \mathsf{new}) = n{+}1, \qquad \sc(n, i) = n.$$
-    The bound cell is either new, or equal to existing cell $i$, and something behind this lock must handle every case. The case split Staton expresses with $?_=$ sits inside the positions.</p>
-  </div>
-</section>
-
-<section>
-  <h3><span class="n">II.4</span> Lock words, and the signature polynomial</h3>
-  <p>A lock word $\mu = \kappa_1 \cdots \kappa_k$ (I.4) is crossed one lock at a time, so a way of crossing it is a sequence of choices. The first choice changes the world, and the second is made at the new world:</p>
-  <div class="box def">
-    <div class="tag">Positions and scope of a lock word</div>
-    $$\WPos\,\varepsilon\,w = \{\ast\} \qquad \WPos\,(\kappa\mu)\,w = \sum_{p \in \Pos_\kappa(w)} \WPos\,\mu\,\big(\sc_\kappa(w,p)\big)$$
-    $$\wsc\,\varepsilon\,w\,\ast = w \qquad \wsc\,(\kappa\mu)\,w\,(p, \vec p) = \wsc\,\mu\,\big(\sc_\kappa(w,p)\big)\,\vec p$$
-    <p>This is again an arity, the composite of the lock kinds' arities. In the code it is <code>wordE μ</code>, built with the composite <code>E κ ⊙ wordE μ</code>.</p>
-  </div>
-  <div class="pair">
-    <div class="box ls"><div class="tag">Local state</div><p>$\WPos\,\fresh\fresh\,n = \{\ast\}$ and $\wsc = n{+}2$: allocate two cells.</p></div>
-    <div class="box gd"><div class="tag">Guarded</div><p>$\WPos\,\tick\tick\,1 = \varnothing$: one step left, two ticks cannot be crossed.</p></div>
-  </div>
-  <p>Now the whole operation signature becomes one polynomial. A shape is an operation together with its parameters, and a position is a slot together with a way of crossing that slot's lock word:</p>
-  <div class="box def">
-    <div class="tag">The signature polynomial</div>
-    $$\Ext\,X(w) \;=\; \sum_{o} \ \sum_{\vec c \in \Par_o(w)} \ \prod_{a \in \Ar\,o} \ \prod_{\vec p \in \WPos(\slot\,o\,a)(w)} X\big(\wsc(\slot\,o\,a)(w, \vec p)\big)$$
-    <ul>
-      <li><b>Shapes</b> $\Ext\,1(w) = \sum_o \Par_o(w)$.</li>
-      <li><b>Arity</b> of shape $(o, \vec c)$: $\sum_{a \in \Ar\,o} \sum_{\vec p} y\big(\wsc(\slot\,o\,a)(w, \vec p)\big)$.</li>
-    </ul>
-    <p class="reading">An element of $\Ext\,X$ at $w$ is one layer of a program: an operation, its parameter values, and one $X$ per continuation, each at the world its lock word leads to.</p>
-  </div>
-  <div class="box ls">
-    <div class="tag">Local state at world $n$</div>
+    <p>Each operation $o$ has a list of <b>parameter types</b> $\params\,o$, a set of <b>slots</b> $\Ar\,o$ (one per continuation), and for each slot the list of locks its continuation sits behind, its <b>lock word</b> $\slot\,o\,a$. The empty word $\varepsilon$ means "same world".</p>
     <div class="tablewrap"><table>
-      <thead><tr><th>shape</th><th>how many</th><th>arity</th><th>summand of $\Ext X(n)$</th></tr></thead>
+      <thead><tr><th>operation</th><th>params</th><th>slots</th><th>lock words</th></tr></thead>
       <tbody>
-        <tr><td>(lookup, cell $i$)</td><td>$n$</td><td>$y\,n + y\,n$</td><td>$X(n) \times X(n)$</td></tr>
-        <tr><td>(update$_b$, cell $i$)</td><td>$2n$</td><td>$y\,n$</td><td>$X(n)$</td></tr>
-        <tr><td>(new$_b$)</td><td>$2$</td><td>$y(n{+}1)$</td><td>$X(n{+}1)$</td></tr>
+        <tr><td>lookup</td><td>a cell</td><td>true, false</td><td>$\varepsilon$, $\varepsilon$</td></tr>
+        <tr><td>update$_i$</td><td>a cell</td><td>one</td><td>$\varepsilon$</td></tr>
+        <tr><td>new$_i$</td><td>none</td><td>one</td><td>$\fresh$</td></tr>
+        <tr><td>step (guarded)</td><td>none</td><td>one</td><td>$\tick$</td></tr>
       </tbody>
     </table></div>
   </div>
-  <div class="yields">
-    <div class="tag">This part yields: the lock signature and the signature functor</div>
-    <p>The <b>lock signature</b> is the base types with their $\Const_b$, plus the lock kinds with the data of II.3. The <b>signature functor</b> is $\Ext$. In the development these are <code>LockSig</code> and <code>OpSig</code> (<code>Signature.agda</code>), <code>Fam.agda</code>, and <code>Polynomial.agda</code>.</p>
+  <details class="more"><summary>More precisely: Staton's definition, and why PRACBPV changes the binder</summary><div class="inner">
+    <p><b>Definition</b> (Staton 2013, Def. 1). Base types $\alpha$; types $\tau ::= \alpha \mid [\tau_1, \ldots, \tau_n]$; function symbols $F : [\tau_1, \ldots, \tau_n]$ where each argument is a parameter $\alpha$ or a continuation $[\alpha^m]$ binding $m$ parameters; equations between terms. Local state: $? : [[\,], \alpha, [\,]]$, $w_i : [\alpha, [\,]]$, $\nu_i : [[\alpha]]$, and a comparison $?_= : [[\,], \alpha, \alpha, [\,]]$.</p>
+    <p><b>Staton's binder is an exponential.</b> Models live in presheaves on contexts and renamings $\Ctx_0$, where $[\alpha]X$ is $X(\Gamma, a)$, and renamings may identify variables. So the bound cell might equal an old one, and freshness is an <em>equation</em>: $\nu b.(x(b) \mathrel{?_{a=b}} y(b)) \equiv \nu b.\,y(b)$.</p>
+    <p><b>PRACBPV moves freshness into the worlds.</b> Over $\Inj$, "bind a cell" is "move to world $n{+}1$"; the new cell $n$ differs from every old one by construction. PRACBPV also drops equations altogether (operations are lawless; behaviour comes from an abstract machine), and generalizes binders to other locks such as $\tick$. A PAT continuation $[\alpha^m]$ becomes the lock word $\fresh^m$.</p>
+  </div></details>
+  <div class="thread"><div class="tag">$P$ so far</div>
+    <p>In Staton's syntax: $\nu_{\mathsf t}\big(a.\ ?(M_{\mathsf t}, a, M_{\mathsf f})\big)$. Two operations: new (one slot, behind $\fresh$), and inside it lookup on the bound cell (two slots, no locks).</p>
   </div>
 </section>
 
 <!-- ================================================================== -->
-<div class="part" id="p3"><span class="label">Part III</span><h2>Parametric right adjoints</h2><p>The universal property of the polynomials of Part II, and how it turns into typing rules.</p></div>
+<div class="part" id="p2"><span class="label">Part II</span><h2>Presheaf polynomials</h2><p>What an operation denotes.</p></div>
 
 <section>
-  <h3><span class="n">III.1</span> The definition</h3>
-  <p>A functor $R$ is a <b>right adjoint</b> if there is a functor $L$ with $\mathcal B(\Gamma, R X) \cong \mathcal A(L\Gamma, X)$, naturally: maps into $R X$ are the same as maps out of $L\Gamma$. Right adjoints are the best-behaved functors, but they must preserve the terminal object, $R\,1 \cong 1$. $\Maybe$, $\List$ and $\Ext$ do not: their value on $1$ is their set of shapes, which has more than one element. The fix is to keep track of shapes.</p>
-  <div class="box def">
-    <div class="tag">Definition (Weber; nLab)</div>
-    <p>Let $\mathcal A$ have a terminal object $1$, and let $T : \mathcal A \to \mathcal B$. Every $T X$ comes with a map $T(!) : T X \to T\,1$, which sends each element to its shape. So $T$ factors canonically:
-    $$\mathcal A \xrightarrow{\ T_1\ } \mathcal B / T1 \xrightarrow{\ \Sigma_{T1}\ } \mathcal B, \qquad T_1 X = (T X,\ T(!)).$$
-    Here $\mathcal B/T1$ is the slice category: objects are $\Gamma$ together with a map $\Gamma \to T1$ (every element labelled by a shape), and maps preserve the labels. $\Sigma_{T1}$ forgets the label. $T$ is a <b>parametric right adjoint</b> (PRA) if $T_1$ is a right adjoint.</p>
-  </div>
-  <p>Unfolding the definition: a map $\Gamma \to T X$ is a <b>shape</b> $s : \Gamma \to T1$ together with <b>contents</b>, a map $L(\Gamma, s) \to X$ out of the left adjoint $L$ of $T_1$. On a single point labelled $s$, the left adjoint gives the <b>arity</b> of $s$. For $T X = \sum_s X^{P(s)}$ on sets, $L(\{\ast\}, s) = P(s)$: a single element of shape $s$ unpacks to its set of positions. If $T1 = 1$ there is only one shape, $\mathcal B/1 \cong \mathcal B$, and a PRA is exactly a right adjoint.</p>
-</section>
+  <h3><span class="n">II.1</span> On sets: shapes and positions</h3>
+  <p class="point">A polynomial functor is a sum of products, $T X = \sum_{s} X^{P(s)}$. The <b>shape</b> $s$ is what an element looks like with its data erased, and the <b>positions</b> $P(s)$ are where data goes.</p>
+  <p>For plain effects, $T X = \sum_o X^{\Ar\,o}$: a shape is an operation, and its positions are its slots. An element of $T X$ is one layer of a program, an operation with an $X$ in each continuation.</p>
+  <details class="more"><summary>More examples</summary><div class="inner">
+    <div class="tablewrap"><table>
+      <thead><tr><th>$T X$</th><th>shapes</th><th>positions</th></tr></thead>
+      <tbody>
+        <tr><td>$X \times X$</td><td>one</td><td>two</td></tr>
+        <tr><td>$1 + X$</td><td>nothing, just</td><td>none, one</td></tr>
+        <tr><td>lists of $X$</td><td>lengths $n$</td><td>$\Fin\,n$</td></tr>
+      </tbody>
+    </table></div>
+    <p>Shapes are always $T\,1$, since erasing the data is mapping $X$ to $1$.</p>
+  </div></details>
 
-<section>
-  <h3><span class="n">III.2</span> On presheaves, PRAs are exactly the polynomials</h3>
-  <p>There are two directions to check.</p>
-  <h4>Every polynomial is a PRA</h4>
-  <p>Take $T X(w) = \sum_{s} \Psh(E(w,s), X)$ as in II.2. A map from a point $y\,w$ into $T X$ is, by Yoneda, an element of $T X(w)$, i.e. a shape $s$ together with a map $E(w,s) \to X$. Fixing the shape, the maps into $T X$ are the maps out of $E(w,s)$. That is the PRA property at representables, with left adjoint $L(y\,w, s) = E(w,s)$. Every presheaf is a colimit of representables, so this extends to all of $\Psh/T1$.</p>
-  <h4>Every PRA is a polynomial: generic elements</h4>
-  <p>Conversely, let $T$ be a PRA and take a shape $s \in T1(w)$. Set $A = L(y\,w, s)$, the arity, and let $g \in T(A)(w)$ be the unit of the adjunction at $(y\,w, s)$. This $g$ is the <b>generic element</b> of shape $s$: the element whose contents are "each position holds its own name". Every element of $T X(w)$ of shape $s$ is obtained from $g$ by renaming its contents along exactly one map $A \to X$. That is the <b>generic factorization</b>.</p>
-  <div class="box def">
-    <div class="tag">Theorem (Weber, Prop. 2.10 and Rem. 2.12, as cited on nLab; nLab Prop. 3.3)</div>
-    <p>For a functor $T$ between presheaf categories, the following are equivalent:</p>
-    <ol>
-      <li>$T$ is a PRA;</li>
-      <li>every element of $T1$ at a representable has a generic factorization;</li>
-      <li>$T$ is a polynomial in $\mathbf{Cat}$, with arities $E(w,s) = L(y\,w, s)$.</li>
-    </ol>
-  </div>
-  <p>One refinement. A general PRA may have any presheaf as an arity. The polynomials of Part II have arities that are <em>sums of representables</em>, the $\Fam(\W)$-valued ones, sometimes called <b>familial</b>. That restriction is what lets "behind a lock, at a position" be a world, which Part IV relies on.</p>
-  <h4>In our setting</h4>
-  <ul>
-    <li>Each modality $R_\kappa$ is a one-shape PRA, i.e. an honest right adjoint. Its left adjoint is called the <b>lock</b>, $L_\kappa$ (III.3).</li>
-    <li>The signature functor $\Ext$ is a many-shape PRA with shapes $\Ext\,1 = \sum_o \Par_o$. The shapes depend on the world.</li>
-  </ul>
-  <div class="box ls"><div class="tag">A generic element in local state</div>
-    <p>Take the shape (lookup, cell $i$) at world $n$. Its arity is $y\,n + y\,n$, two points at world $n$. The generic element is "read cell $i$ and continue in the first point or in the second point". Any concrete $\mathsf{read}_i(x, y)$ is this generic element with the first point renamed to $x$ and the second to $y$.</p>
-  </div>
-  <p class="note">"Polynomial" here means a polynomial in $\mathbf{Cat}$, not an internal polynomial built from $\Sigma$, $\Pi$ and pullback inside the presheaf topos. $R_{\fresh}$ is not of the internal form: it would have to be an exponential $X^A$, forcing $y\,n \times A \cong y(n{+}1)$, and at $n = 0$ that forces $A = y\,1$, but $y\,1 \times y\,1 \not\cong y\,2$. The same argument rules out $\triangleright$.</p>
-</section>
+  <h3><span class="n">II.2</span> On presheaves: each position has a world</h3>
+  <p class="point">With worlds, a polynomial says, for each shape, how many positions it has <em>and which world each position lives at</em>, its <b>scope</b>:</p>
+  $$T X(w) \;=\; \sum_{s} \ \prod_{p} X\big(\sc(w,s,p)\big).$$
+  <p>By the fact from Part 0, this is the same as giving each shape an <b>arity</b>, the few points $\sum_p y(\sc(w,s,p))$, "one point per position, at its world". A map out of the arity is exactly one $X$ per position.</p>
+  <p>The base types also become presheaves: $\Const_b(w)$ is the values of type $b$ at world $w$. For cells, $\Const_{\Lc}(n) = \Fin\,n$.</p>
+  <details class="more"><summary>More precisely: functoriality, families of worlds, and the polynomial in Cat</summary><div class="inner">
+    <p>Shapes form a presheaf $S$. Along $f : w \to w'$, shapes go forward; positions go <em>backwards</em>, $\mathrm{pos}_f : \Pos(w', S(f)s) \to \Pos(w, s)$; and scopes go forward, $\mathrm{smap}_f(p') : \sc(w, s, \mathrm{pos}_f\,p') \to \sc(w', S(f)s, p')$. Positions go backwards because to fill a position $p'$ at $w'$ you fetch the $X$ at position $\mathrm{pos}_f\,p'$ and carry it forward along $\mathrm{smap}_f\,p'$.</p>
+    <p>A family of worlds (a set $I$ and a world for each $i$) is an object of $\Fam(\W)$, the free coproduct completion of $\W^{op}$; its morphisms are exactly presheaf maps between sums of representables. Positions and scopes together are one functor $E : (\int S)^{op} \to \Fam(\W)$, and $T X(w) \cong \sum_s \Psh(E(w,s), X)$: a family of representable functors ("familially representable").</p>
+    <p>For category theorists: this is a polynomial in $\mathbf{Cat}$, $\W \leftarrow \int\!\Pos \to \int\! S \to \W$ with a discrete opfibration and a discrete fibration; $T$ is pullback, then products along the first, then sums along the second. In the code: <code>Poly</code>, and <code>G : Functor (∫ Shapes) (Fam W)</code> in <code>Polynomial.agda</code>.</p>
+  </div></details>
 
-<section>
-  <h3><span class="n">III.3</span> The lock $L_\kappa$, concretely</h3>
-  <p>Since $R_\kappa$ is a right adjoint, it has a left adjoint $L_\kappa$. That left adjoint is what a lock in a context will mean. It is determined by what it does to single points, and that is the arity:</p>
-  <div class="box def">
-    <div class="tag">Familial representability</div>
-    $$L_\kappa(y\,w) \;\cong\; E_\kappa(w) \;=\; \sum_{p \in \Pos_\kappa(w)} y\big(\sc_\kappa(w,p)\big)$$
-    <p class="reading">Behind a $\kappa$-lock placed right after a single point at world $w$, you are at one of the worlds $\sc_\kappa(w,p)$, one for each way of crossing.</p>
-  </div>
-  <p>On a general presheaf $\Gamma$, which is glued from points, $L_\kappa$ glues the corresponding arities. Explicitly, as a quotient (a coend):</p>
-  <div class="box def">
-    <div class="tag">The lock on an arbitrary presheaf</div>
-    $$L_\kappa \Gamma(t) = \Big(\sum_{v} \sum_{q \in \Pos_\kappa(v)} \Gamma(v) \times \W\big[\sc_\kappa(v,q), t\big]\Big) \Big/ \sim$$
-    <p>An element of $L_\kappa\Gamma$ at world $t$ is a triple:</p>
-    <ul>
-      <li>an element $e$ of $\Gamma$ at some earlier world $v$;</li>
-      <li>a way $q$ of crossing the lock at $v$;</li>
-      <li>a way of continuing from the far side $\sc_\kappa(v,q)$ on to $t$.</li>
-    </ul>
-    <p>The relation $\sim$ identifies "move $e$ forward, then cross" with "cross, then move forward".</p>
-    <p>The adjunction is two transposes. A map $\psi : L_\kappa\Gamma \to X$ goes to $e \mapsto (q \mapsto \psi\langle v, q, e, \mathrm{id}\rangle)$, a map $\Gamma \to R_\kappa X$. In the other direction, $\varphi : \Gamma \to R_\kappa X$ goes to $\langle v, q, e, g\rangle \mapsto X(g)(\varphi(e)(q))$.</p>
-  </div>
+  <h3><span class="n">II.3</span> A lock is a one-shape polynomial</h3>
+  <p class="point">A lock kind $\kappa$ has one shape, "the continuation". Its positions $\Pos_\kappa(w)$ are the ways of crossing the lock at $w$, and their scopes $\sc_\kappa(w,p)$ are the worlds on the far side. Its polynomial is the <b>modality</b></p>
+  $$R_\kappa X(w) \;=\; \prod_{p \in \Pos_\kappa(w)} X\big(\sc_\kappa(w,p)\big),$$
+  <p class="reading">"an $X$ on the far side of the lock".</p>
+  <p>A lock kind also carries two pieces of data that are not part of the polynomial: a <b>strength</b>, saying the far side is a future of the near side (so old things can be carried across), and its <b>names</b>, the new parameters available on the far side.</p>
   <div class="pair">
-    <div class="box ls"><div class="tag">Local state</div>
-      <p>$L(y\,n) \cong y(n{+}1)$: behind an allocation at $n$ cells, you are at $n{+}1$ cells.</p>
-      <p>Applied to the presheaf of cells: $L(\Const_{\Lc}) \cong y\,2$. An element is a cell plus a new cell distinct from it, i.e. a pair of distinct cells.</p>
-      <p>In general $L\Gamma$ is "$\Gamma$ together with one cell that $\Gamma$ does not mention" (nominal sets call this the separated product $\Gamma * \Lc$).</p>
+    <div class="box ls"><div class="tag">$\fresh$</div>
+      <p>One position; far side $n{+}1$. $R_{\fresh} X(n) = X(n{+}1)$.</p>
+      <p>Strength: $n \hookrightarrow n{+}1$. Name: the new cell $n$.</p>
     </div>
-    <div class="box gd"><div class="tag">Guarded</div>
-      <p>$L(y(n{+}1)) \cong y\,n$ and $L(y\,0) = 0$: nothing lives behind a tick at stage 0.</p>
-      <p>In general $(L\Gamma)(n) = \Gamma(n{+}1)$: behind the lock at stage $n$ you hold an environment from one step earlier. This is "earlier", $\triangleleft$.</p>
+    <div class="box gd"><div class="tag">$\tick$</div>
+      <p>No position at stage 0; one at $n{+}1$, far side $n$. $R_{\tick} X(0) = 1$ and $R_{\tick} X(n{+}1) = X(n)$, the later modality $\triangleright$.</p>
+      <p>Strength: $n{+}1 \to n$. No names.</p>
     </div>
   </div>
-  <h4>Summands</h4>
-  <p>Say a presheaf $\Gamma$ <b>lies over</b> the world $w$ if it comes with a map $\pi : \Gamma \to y\,w$. Then each element of $\Gamma$ at $t$ carries a way that $t$ is a future of $w$. Applying the lock to $\pi$ gives $L_\kappa\Gamma \to L_\kappa(y\,w) \cong \sum_p y(\sc_\kappa(w,p))$. So every element of $L_\kappa\Gamma$ also carries a position $p$, the way it crossed. Grouping elements by $p$ splits $L_\kappa\Gamma$ into <b>summands</b>, one per position, and the $p$-th summand lies over the single world $\sc_\kappa(w,p)$.</p>
-  <p class="reading">This is the semantic fact behind the shape of PRACBPV's contexts (IV.3): if you start over one world and record which way you crossed, you are again over one world.</p>
+  <details class="more"><summary>More precisely: the five pieces of data, and a lock with several positions</summary><div class="inner">
+    <ol>
+      <li>Positions $\Pos_\kappa(w)$.</li>
+      <li>Scopes $\sc_\kappa(w,p)$.</li>
+      <li>Functoriality $\mathrm{pos}_f$, $\mathrm{smap}_f$ as in II.2. Items 1–3 together are a functor $E_\kappa : \W^{op} \to \Fam(\W)$.</li>
+      <li>Strength $\iota_{w,p} : w \to \sc_\kappa(w,p)$, natural in $w$.</li>
+      <li>Names: base types $\vec b_\kappa$ and generic values $\gen_{w,p} \in \prod_b \Const_b(\sc_\kappa(w,p))$, natural in $w$.</li>
+    </ol>
+    <p>For $\fresh$, $\mathrm{smap}_f = f{+}1$ (old cells by $f$, new cell to new cell). <b>A lock with several positions</b> (not in the development): Staton's exponential binder over $\Inj$ is the lock kind with $\Pos(n) = 1 + \Fin\,n$, scope $n{+}1$ for "new" and $n$ for "equal to cell $i$", since $y\,n \times \Const_{\Lc} \cong y(n{+}1) + n\cdot y\,n$. Its case split is what Staton's $?_=$ does by equations.</p>
+  </div></details>
+
+  <h3><span class="n">II.4</span> Locks in a row, and the whole signature</h3>
+  <p class="point">A lock word is crossed one lock at a time: its positions are sequences of choices, and its far side is where the last lock lands. Then all the operations together form one polynomial, the <b>signature functor</b>:</p>
+  $$\Ext\,X(w) \;=\; \sum_{o} \ \sum_{\text{params}} \ \prod_{a \in \Ar\,o} \ \prod_{\text{ways across } \slot\,o\,a} X(\text{far side}).$$
+  <p class="reading">One layer of a program: an operation, its parameter values, and for each continuation an $X$ at the world its lock word leads to.</p>
+  <div class="box ls"><div class="tag">Local state, at world $n$</div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>shape</th><th>how many</th><th>its part of $\Ext X(n)$</th></tr></thead>
+      <tbody>
+        <tr><td>lookup cell $i$</td><td>$n$</td><td>$X(n) \times X(n)$</td></tr>
+        <tr><td>update$_b$ cell $i$</td><td>$2n$</td><td>$X(n)$</td></tr>
+        <tr><td>new$_b$</td><td>$2$</td><td>$X(n{+}1)$</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <details class="more"><summary>More precisely: positions of a word, and the formula for Ext</summary><div class="inner">
+    $$\WPos\,\varepsilon\,w = \{\ast\} \qquad \WPos\,(\kappa\mu)\,w = \sum_{p \in \Pos_\kappa(w)} \WPos\,\mu\,\big(\sc_\kappa(w,p)\big) \qquad \wsc\,(\kappa\mu)\,w\,(p, \vec p) = \wsc\,\mu\,(\sc_\kappa(w,p))\,\vec p$$
+    $$\Ext\,X(w) = \sum_o \sum_{\vec c \in \Par_o(w)} \prod_{a} \prod_{\vec p \in \WPos(\slot\,o\,a)(w)} X\big(\wsc(\slot\,o\,a)(w,\vec p)\big), \qquad \Par_o(w) = \prod_{b \in \params\,o} \Const_b(w).$$
+    <p>Shapes are $\Ext\,1(w) = \sum_o \Par_o(w)$; they depend on the world (one lookup shape per existing cell). In the code: <code>wordE</code>, <code>WPos</code>, <code>wscope</code> (<code>Signature.agda</code>) and <code>Polynomial.agda</code>.</p>
+  </div></details>
+  <div class="thread"><div class="tag">$P$ so far</div>
+    <p>One layer at world 0: the shape new$_{\mathsf t}$, holding one continuation at world 1. That continuation is itself a layer at world 1: the shape lookup cell 0, holding two continuations at world 1.</p>
+  </div>
 </section>
 
+<!-- ================================================================== -->
+<div class="part" id="p3"><span class="label">Part III</span><h2>Parametric right adjoints</h2><p>Why these polynomials give good typing rules.</p></div>
+
 <section>
-  <h3><span class="n">III.4</span> Why PRAs become typing rules</h3>
-  <p>A term $\Gamma \vdash t : A$ denotes a map $\den\Gamma \to \den A$. So a universal property of the form "maps into this ≅ maps out of that" is a ready-made introduction rule, provided "that" is something a context can express.</p>
+  <h3><span class="n">III.1</span> The idea</h3>
+  <p class="point">A <b>right adjoint</b> $R$ has a partner $L$ with maps into $R X$ ≅ maps out of $L\,\Gamma$. That is exactly the form of an introduction rule: "to build an $R X$ from $\Gamma$, build an $X$ in the bigger context $L\Gamma$".</p>
+  <p class="point">Polynomials with many shapes are not right adjoints, but they are the next best thing: a <b>parametric right adjoint</b> (PRA). To map into $T X$, first <em>choose a shape</em> from $\Gamma$; then, for that shape, you are mapping into a right adjoint.</p>
+  $$\text{maps } \Gamma \to T X \;\;=\;\; \text{a shape } s \text{ chosen from } \Gamma \;\;+\;\; \text{a map } L(\Gamma, s) \to X.$$
+  <p>$L(\Gamma, s)$ is "$\Gamma$ unpacked along the positions of $s$". On a single point it gives the arity of $s$. A lock kind has one shape, so its modality $R_\kappa$ is an honest right adjoint; its partner $L_\kappa$ is what a <b>lock in a context</b> will mean.</p>
+  <details class="more"><summary>More precisely: the definition</summary><div class="inner">
+    <p>Let $\mathcal A$ have a terminal object and $T : \mathcal A \to \mathcal B$. Each $T X$ maps to $T\,1$ (send every element to its shape), so $T$ factors as $\mathcal A \xrightarrow{T_1} \mathcal B/T1 \xrightarrow{\Sigma} \mathcal B$ with $T_1 X = (T X, T(!))$. $T$ is a PRA if $T_1$ is a right adjoint (Weber; nLab). When $T1 = 1$ this is just a right adjoint. On sets, for $T X = \sum_s X^{P(s)}$, the left adjoint sends a point of shape $s$ to $P(s)$.</p>
+  </div></details>
+
+  <h3><span class="n">III.2</span> PRAs and polynomials are the same thing</h3>
+  <p class="point">On presheaves, a functor is a PRA exactly when it is a polynomial in the sense of Part II. The polynomial is the data; being a PRA is its universal property.</p>
+  <p>Why, in one line each way. A polynomial is a PRA because, once the shape is fixed, maps into $T X$ are maps out of the arity. A PRA is a polynomial because every element of a given shape is a renaming of one <b>generic element</b>, whose positions hold their own names, and those positions are the polynomial's positions.</p>
+  <div class="box ls"><div class="tag">A generic element</div>
+    <p>For the shape "lookup cell $i$" at world $n$, the generic element is "read cell $i$, then continue at point 1 or at point 2". Every concrete read of cell $i$ is this, with point 1 and point 2 renamed to the actual continuations.</p>
+  </div>
+  <details class="more"><summary>More precisely: the theorem, familial arities, and a caveat</summary><div class="inner">
+    <p><b>Theorem</b> (Weber, Prop. 2.10 and Rem. 2.12, as cited on nLab; nLab Prop. 3.3). For a functor between presheaf categories, the following are equivalent: it is a PRA; every element of $T1$ at a representable has a generic factorization; it is a polynomial in $\mathbf{Cat}$, with arities $E(w,s) = L(y\,w, s)$.</p>
+    <p>A general PRA may have any presheaf as an arity. Ours have <em>sums of representables</em> (familial arities), which is what makes "behind a lock, in a given way" a single world.</p>
+    <p>Caveat: "polynomial" means a polynomial in $\mathbf{Cat}$, not an internal one in the presheaf topos. $R_{\fresh}$ is not an internal exponential $X^A$: that would need $y\,n \times A \cong y(n{+}1)$, forcing $A = y\,1$ at $n = 0$, but $y\,1 \times y\,1 \not\cong y\,2$. The same goes for $\triangleright$.</p>
+  </div></details>
+
+  <h3><span class="n">III.3</span> The lock $L_\kappa$</h3>
+  <p class="point">Behind a $\kappa$-lock placed right after a single point at world $w$, you are simply at one of the far-side worlds:</p>
+  $$L_\kappa(y\,w) \;\cong\; \sum_{p \in \Pos_\kappa(w)} y\big(\sc_\kappa(w,p)\big).$$
+  <p>On a general context, $L_\kappa$ applies this to every point, so an element behind the lock carries the way $p$ it crossed. Grouping by $p$ splits $L_\kappa\Gamma$ into <b>summands</b>, one per way of crossing, and each summand sits over a single world. Part IV's contexts are built on this.</p>
+  <div class="pair">
+    <div class="box ls"><div class="tag">$\fresh$</div><p>$L(y\,n) \cong y(n{+}1)$. In general, $L\Gamma$ is "$\Gamma$ plus one cell that $\Gamma$ does not mention".</p></div>
+    <div class="box gd"><div class="tag">$\tick$</div><p>$(L\Gamma)(n) = \Gamma(n{+}1)$: behind the lock you hold an environment from one step earlier. At stage 0 nothing is behind the lock.</p></div>
+  </div>
+  <details class="more"><summary>More precisely: the formula for $L_\kappa$ and the adjunction</summary><div class="inner">
+    $$L_\kappa \Gamma(t) = \Big(\sum_{v} \sum_{q \in \Pos_\kappa(v)} \Gamma(v) \times \W\big[\sc_\kappa(v,q), t\big]\Big) \Big/ \sim$$
+    <p>An element: an environment $e$ at an earlier world $v$, a way $q$ of crossing there, and a way to continue from the far side to $t$; $\sim$ identifies moving $e$ forward before or after crossing. The two transposes: $\psi : L_\kappa\Gamma \to X$ gives $e \mapsto (q \mapsto \psi\langle v,q,e,\mathrm{id}\rangle)$; $\varphi : \Gamma \to R_\kappa X$ gives $\langle v,q,e,g\rangle \mapsto X(g)(\varphi(e)(q))$.</p>
+    <p><b>Summands.</b> If $\Gamma$ comes with $\pi : \Gamma \to y\,w$ ("lies over $w$"), then $L_\kappa\pi : L_\kappa\Gamma \to \sum_p y(\sc_\kappa(w,p))$ labels each element with a position; the $p$-th summand lies over $\sc_\kappa(w,p)$. Example: $L_{\fresh}(\Const_{\Lc}) \cong y\,2$, pairs of distinct cells.</p>
+  </div></details>
+
+  <h3><span class="n">III.4</span> From the universal property to typing rules</h3>
+  <p class="point">Each universal property becomes a rule:</p>
   <div class="box def">
-    <div class="tag">From a right adjoint: Fitch-style modal rules</div>
-    <p>Because $\Psh(L\Gamma, X) \cong \Psh(\Gamma, R X)$, add a context former, a <b>lock</b> $\Gamma, 🔒$ meaning $L\Gamma$, and a type $[R]A$ meaning $R\den A$:</p>
-    $$\frac{\Gamma, 🔒 \vdash t : A}{\Gamma \vdash \shut\, t : [R]A} \qquad \frac{\Gamma \vdash t : [R]A}{\Gamma, 🔒 \vdash \opn\, t : A}$$
-    <p>$\shut$ is the bijection used forwards, and $\opn$ is the counit $L R \to \mathrm{id}$. The equations $\opn(\shut\,t) = t$ and $\shut(\opn\,t) = t$ are its two round trips. This style of rule is called Fitch-style (Clouston; Birkedal et al.).</p>
+    <div class="tag">Right adjoint ⟹ lock rules</div>
+    $$\frac{\Gamma, 🔒 \vdash t : A}{\Gamma \vdash \shut\,t : [\kappa]A} \qquad \frac{\Gamma \vdash t : [\kappa]A}{\Gamma, 🔒 \vdash \opn\,t : A}$$
+    <p>The context $\Gamma, 🔒$ means $L_\kappa\Gamma$; $\shut$ is the bijection, $\opn$ undoes it.</p>
   </div>
   <div class="box def">
-    <div class="tag">From a many-shape PRA: the operation rule</div>
-    <p>A map $\Gamma \to \Ext\,X$ is a shape chosen from $\Gamma$ (an operation and its parameters) together with contents in the context $L(\Gamma, \text{shape})$: one term behind each slot's lock word, at each of its positions. Part IV turns exactly this into the operation rule.</p>
+    <div class="tag">Many-shape PRA ⟹ the operation rule</div>
+    <p>Choose the shape from $\Gamma$ (an operation and its parameters); then write each continuation in the context $L(\Gamma, \text{shape})$, i.e. behind its slot's locks.</p>
   </div>
-  <div class="box def">
-    <div class="tag">And for substitution (Gratzer, Cavallo, Kavvos, Guatto, Birkedal 2022)</div>
-    <p>Pushing a substitution through $\opn$ requires that the lock functor $\Gamma \mapsto \Gamma, 🔒$ on contexts is <em>itself</em> a PRA. Its shapes are called <b>keys</b>: a key is a substitution $r : \Delta \to 1, 🔒$. In the pure syntax, a key amounts to picking out one lock of $\Delta$. The PRA property says a substitution $\Delta \to \Gamma, 🔒$ is the same as a key $r$ together with a substitution $\Delta/r \to \Gamma$, where $\Delta/r$ is "$\Delta$ cut off at that lock". The interlude shows why this is needed.</p>
+  <details class="more"><summary>More precisely: the lock is a PRA too, and substitution (Gratzer et al. 2022)</summary><div class="inner">
+    <p>Pushing a substitution through $\opn$ needs the lock functor on contexts, $\Gamma \mapsto \Gamma, 🔒$, to be a PRA itself. Its shapes are <b>keys</b> $r : \Delta \to 1, 🔒$ (in the pure syntax: a choice of one lock in $\Delta$), and a substitution $\Delta \to \Gamma, 🔒$ is a key plus a substitution from "$\Delta$ cut off at that lock" to $\Gamma$. This is the rule style of Clouston and of Birkedal et al., made substitution-stable by Gratzer, Cavallo, Kavvos, Guatto and Birkedal.</p>
+  </div></details>
+  <div class="thread"><div class="tag">$P$ so far</div>
+    <p>Writing $P$ means: choose the shape new$_{\mathsf t}$; then write its continuation behind a $\fresh$ lock, where one cell exists. There, choose the shape lookup of that cell, and write two continuations in the same context.</p>
   </div>
 </section>
 
 <section id="fitch">
-  <h3><span class="n">Interlude</span> Fitch-style STLC: the binder fragment alone</h3>
-  <p>Before assembling PRACBPV, it helps to see locks without operations. Take the simply typed λ-calculus (STLC) and add one modality $[R]$ and one lock $🔒$, with the two rules of III.4 plus two more:</p>
+  <h3><span class="n">Interlude</span> Locks without operations</h3>
+  <p class="point">Take the simply typed λ-calculus and add only a lock and its modality. Two more rules make it usable: $\up$ uses something from before the lock (via the strength), and $\nm$ is the name the lock creates.</p>
   $$\frac{\Gamma \vdash t : A}{\Gamma, 🔒 \vdash \up\,t : A} \qquad \frac{}{\Gamma, 🔒 \vdash \nm : N}$$
-  <ul>
-    <li>$\up$ uses something from before the lock behind it. Semantically it needs a map $\mathsf{wk} : L\Gamma \to \Gamma$, "crossing the lock forgets nothing you need". This is the strength of II.3.</li>
-    <li>$\nm$ is the thing the lock creates, of some type $N$. Semantically it is a global element of $R\,N$, the names of II.3.</li>
-  </ul>
-  <p>Three models make the rules concrete. The first two are the running examples. The third uses <b>cubical sets</b>: presheaves on the category of cubes, where world $n$ means "$n$ dimensions", together with the interval $\I$ of coordinates.</p>
   <div class="tablewrap"><table>
-    <thead><tr><th></th><th>later ($\omega^{op}$)</th><th>fresh names ($\Inj$)</th><th>interval (cubes)</th></tr></thead>
+    <thead><tr><th></th><th>later</th><th>fresh names</th><th>interval (cubical sets)</th></tr></thead>
     <tbody>
-      <tr><td>$\den{[R]A}$ at $n$</td><td>$1$ if $n = 0$, else $\den A(n{-}1)$</td><td>$\den A(n{+}1)$</td><td>$\den A[n{+}1]$, the paths</td></tr>
-      <tr><td>$\den{\Gamma, 🔒}$</td><td>$\Gamma(n{+}1)$: one step earlier</td><td>$\Gamma$ plus a name it does not use</td><td>$\Gamma \times \I$: plus a dimension</td></tr>
-      <tr><td>$\shut\,t$</td><td>run $t$ one step later</td><td>bind the fresh name in $t$</td><td>$\lambda i.\,t$</td></tr>
-      <tr><td>$\opn\,t$</td><td>the later value, now</td><td>instantiate at the fresh name</td><td>apply the path at $i$</td></tr>
-      <tr><td>$\up\,t$</td><td>restrict $t$ one step</td><td>ignore the fresh name</td><td>constant in $i$</td></tr>
+      <tr><td>$[\kappa]A$</td><td>$A$ one step later</td><td>$A$ with a bound name</td><td>paths in $A$</td></tr>
+      <tr><td>$\shut\,t$</td><td>run $t$ later</td><td>bind the fresh name</td><td>$\lambda i.\,t$</td></tr>
+      <tr><td>$\opn\,t$</td><td>the later value, now</td><td>use at the fresh name</td><td>apply at $i$</td></tr>
       <tr><td>$\nm$</td><td>none</td><td>the fresh name</td><td>the dimension $i$</td></tr>
     </tbody>
   </table></div>
-  <p class="note"><b>The lesson for substitution.</b> Suppose $\opn$, $\up$ and $\nm$ only apply when the lock is the <em>last</em> thing in the context. Then $\Gamma, 🔒, x{:}B \vdash \opn\,t$ is not derivable. So with fresh names, "bind the fresh name $a$ in $\lambda x.\,(a, x)$" cannot be written, weakening fails, and β-reducing $(\lambda y.\lambda\_.\,y)\,a$ produces a term the syntax cannot express. The fix has two halves. First, each lock-crossing rule says <em>which</em> lock it crosses, via a weakening. Second, a substitution into $\Gamma, 🔒$ records which lock of its source it goes through. That second half is the PRA decomposition of the lock from III.4.</p>
+  <details class="more"><summary>More precisely: the denotations, and the lesson for substitution</summary><div class="inner">
+    <p>Later: $\Gamma, 🔒$ means $\Gamma(n{+}1)$. Fresh names: $\Gamma$ plus a name it does not use. Interval: worlds are dimensions of cubes, $\Gamma, 🔒$ means $\Gamma \times \I$. $\up$ needs a map $L\Gamma \to \Gamma$; $\nm$ needs a global element of $R\,N$.</p>
+    <p><b>Lesson.</b> If $\opn$, $\up$, $\nm$ only apply when the lock is <em>last</em> in the context, then $\Gamma, 🔒, x{:}B \vdash \opn\,t$ is not derivable: "bind $a$ in $\lambda x.\,(a, x)$" cannot be written and substitution fails. The fix is to say which lock a rule crosses, and to let substitutions into $\Gamma, 🔒$ record which lock they go through: the key decomposition above. Agda: <code>UnderstandingPRA/FitchSTLC</code> (simple) and <code>FitchSTLCSubst</code> (with substitution).</p>
+  </div></details>
 </section>
 
 <!-- ================================================================== -->
-<div class="part" id="p4"><span class="label">Part IV</span><h2>The syntax of PRACBPV</h2><p>Parts I–III assembled into one calculus.</p></div>
+<div class="part" id="p4"><span class="label">Part IV</span><h2>The syntax</h2><p>The three ingredients assembled.</p></div>
 
 <section>
-  <h3><span class="n">IV.1</span> The parameters</h3>
-  <p>PRACBPV is parameterized by a category of worlds and two signatures:</p>
-  <div class="tablewrap"><table>
-    <thead><tr><th>parameter</th><th>introduced in</th><th>local state</th><th>guarded</th></tr></thead>
-    <tbody>
-      <tr><td>worlds $\W$</td><td>Part 0</td><td>$\Inj$</td><td>$\omega^{op}$</td></tr>
-      <tr><td>base types $b$, values $\Const_b$</td><td>I.2, II.2</td><td>$\Lc$, $\Fin\,n$</td><td>none</td></tr>
-      <tr><td>lock kinds $\kappa$</td><td>I.4, II.3</td><td>$\fresh$</td><td>$\tick$</td></tr>
-      <tr><td>operations $o$: $\params$, $\Ar$, $\slot$</td><td>I.4, II.4</td><td>lookup, update$_b$, new$_b$</td><td>step: no parameters, one slot behind $\tick$</td></tr>
-    </tbody>
-  </table></div>
-</section>
-
-<section>
-  <h3><span class="n">IV.2</span> Types</h3>
-  <p>As in CBPV, there are <b>value types</b> $A$ (things a program can hold) and <b>computation types</b> $B$ (things a program can do). $U B$ is the type of suspended computations (thunks), and $F A$ is the type of computations that return an $A$.</p>
+  <h3><span class="n">IV.1</span> Types</h3>
+  <p class="point">CBPV's value types $A$ and computation types $B$, plus base types and one modality per lock kind:</p>
   $$A ::= \mathbb 1 \mid A \times A \mid U B \mid \mathsf{base}\ b \mid [\kappa] A \qquad\qquad B ::= F A \mid A \Rightarrow B$$
-  <p>The two new value types: $\mathsf{base}\ b$ is a type of parameters, and $[\kappa]A$, "an $A$ on the far side of a $\kappa$-lock", is the modality of II.3. There is one modality per lock kind. Operations get <em>no</em> type former; they appear only through the operation rule (IV.5).</p>
-  <div class="pair">
-    <div class="box ls"><div class="tag">Local state</div><p>$[\fresh]A$: an $A$ that may mention one newly allocated cell. (Elsewhere written $\Lc \multimap A$.)</p></div>
-    <div class="box gd"><div class="tag">Guarded</div><p>$[\tick]A = \triangleright A$: an $A$ one step later.</p></div>
-  </div>
-</section>
+  <p>$U B$ is a suspended computation and $F A$ a computation returning an $A$. Operations get no type; they appear only in the operation rule.</p>
 
-<section>
-  <h3><span class="n">IV.3</span> Contexts are telescopes over a world</h3>
-  <p>A context records the variables in scope, and also the locks crossed so far and the world they lead to. Because later entries depend on earlier ones (a position is only meaningful at the world reached so far), contexts are <b>telescopes</b>, defined together with the function computing their world.</p>
-  <div class="box def">
-    <div class="tag">Definition (Syntax.agda, <code>Tele</code> and <code>world</code>)</div>
-    $$\Theta ::= \varnothing_w \;\mid\; \Theta, A \;\mid\; \Theta \lockat{p}{\kappa} \quad \text{where } p \in \Pos_\kappa(\wd\,\Theta)$$
-    $$\wd(\varnothing_w) = w \qquad \wd(\Theta, A) = \wd\,\Theta \qquad \wd(\Theta \lockat{p}{\kappa}) = \sc_\kappa(\wd\,\Theta, p)$$
-    <p>For a lock word $\mu$ and $\vec p \in \WPos\,\mu\,(\wd\,\Theta)$, write $\Theta \lockat{\vec p}{\mu}$ for its locks appended one at a time. Its world is $\wsc\,\mu\,(\wd\,\Theta)\,\vec p$.</p>
-  </div>
-  <p>The three formers:</p>
-  <ul>
-    <li><b>$\varnothing_w$</b>: the root, "at world $w$, no variables". It denotes the representable $y\,w$, a single point at $w$.</li>
-    <li><b>$\Theta, A$</b>: add a variable of type $A$. The world does not change.</li>
-    <li><b>$\Theta \lockat{p}{\kappa}$</b>: cross a $\kappa$-lock in way $p$. The world becomes the scope. It denotes the $p$-th summand of $L_\kappa\den\Theta$ (III.3).</li>
-  </ul>
-  <p>Every telescope therefore lies over exactly one world, $\wd\,\Theta$. That is what lets the operation rule ask for parameters "at the current world" and positions "at the current world".</p>
+  <h3><span class="n">IV.2</span> Contexts know their world</h3>
+  <p class="point">A context starts at a world and records each lock it crosses, so it always knows the current world:</p>
+  $$\Theta ::= \varnothing_w \mid \Theta, A \mid \Theta \lockat{p}{\kappa} \qquad\quad \wd(\varnothing_w) = w, \quad \wd(\Theta \lockat{p}{\kappa}) = \sc_\kappa(\wd\,\Theta, p)$$
+  <p>Variables don't change the world. A lock records <em>which way</em> $p$ it was crossed, so its far side is one world: this is the summand of III.3. With no locks, a context is the POPL paper's $w \mid \Gamma$.</p>
   <div class="pair">
-    <div class="box ls"><div class="tag">Local state</div>
-      <p>$\varnothing_0,\ u{:}\mathbb 1 \lockat{}{\fresh},\ x{:}\Lc$ has world 1: $u$ was bound with no cells, then one cell was allocated, then $x$ was bound. Since $\Pos_{\fresh} = \{\ast\}$, the position is usually not written.</p>
-    </div>
-    <div class="box gd"><div class="tag">Guarded</div>
-      <p>$\varnothing_2 \lockat{}{\tick} \lockat{}{\tick}$ has world 0. A third tick cannot be written, because $\Pos_{\tick}(0) = \varnothing$ offers no position to put in it.</p>
-    </div>
+    <div class="box ls"><div class="tag">Local state</div><p>$\varnothing_0 \lockat{}{\fresh}$ is at world 1: one cell has been allocated.</p></div>
+    <div class="box gd"><div class="tag">Guarded</div><p>$\varnothing_1 \lockat{}{\tick}$ is at stage 0; no further tick can be written, as there is no way to cross.</p></div>
   </div>
-  <h4>How this relates to the literature</h4>
-  <div class="tablewrap"><table>
-    <thead><tr><th></th><th>contexts</th><th>a lock means</th></tr></thead>
-    <tbody>
-      <tr><td>POPL paper (plain CBPV at a world)</td><td>$w \mid \Gamma$: a world, then a flat list of variables</td><td>no locks</td></tr>
-      <tr><td>Fitch-style calculi (Clouston; Birkedal et al.; Gratzer et al.)</td><td>start at the empty context $\cdot$, which means the terminal object $1$</td><td>$\Gamma, 🔒$ is all of $L\Gamma$</td></tr>
-      <tr><td>PRACBPV</td><td>start at a world $\varnothing_w$, which means the representable $y\,w$</td><td>$\Theta \lockat{p}{\kappa}$ is one summand of $L_\kappa\Theta$</td></tr>
-    </tbody>
-  </table></div>
-  <p>So PRACBPV departs from the Fitch-style literature in two places, both deliberate.</p>
-  <ol>
-    <li><b>The root is a world, not the empty context.</b> This is the POPL paper's $w \mid \Gamma$ extended with locks, and it is what the operational semantics needs: programs run at a world. With no lock kinds, a telescope is exactly $\varnothing_w, A_1, \ldots, A_n$, i.e. $w \mid \Gamma$.</li>
-    <li><b>A lock records a position, and denotes a summand.</b> Over a single world, $L_\kappa$ lands in a sum over positions (III.3). The syntax splits that sum as soon as the lock is written, so contexts stay over one world. In the Fitch-style calculi, $\Gamma, 🔒$ is the whole of $L\Gamma$, and the choice among positions is never made in the context.</li>
-  </ol>
-  <p>In both instances the second difference is almost invisible. With one position, the single summand is all of $L_\kappa\Theta$. With no positions, which only happens for $\tick$ at stage 0, the summand is empty, so instead of a formable but empty context $\Gamma, 🔒$ there is no context at all. The difference would matter for a lock kind with several positions, like the one at the end of II.3.</p>
-  <p>The payoff of both choices is the <b>closing</b> isomorphism, familial representability read in the syntax:</p>
-  $$\den{\varnothing_u \lockat{p}{\kappa}} \;\cong\; \den{\varnothing_{\sc_\kappa(u,p)}}$$
-  <p class="reading">A lock right after the root is just a later root. The machine uses this after every operation (IV.6).</p>
-</section>
+  <details class="more"><summary>More precisely: telescopes, and how they differ from the literature</summary><div class="inner">
+    <p>Contexts are <b>telescopes</b>, defined together with $\wd$ (a position is only meaningful at the world reached so far). $\varnothing_w$ denotes $y\,w$; $\Theta, A$ denotes a product; $\Theta \lockat{p}{\kappa}$ denotes the $p$-th summand of $L_\kappa\den\Theta$. For a lock word, $\Theta \lockat{\vec p}{\mu}$ appends its locks one at a time.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th></th><th>contexts start at</th><th>a lock means</th></tr></thead>
+      <tbody>
+        <tr><td>POPL paper</td><td>a world $w$ (then flat variables)</td><td>no locks</td></tr>
+        <tr><td>Fitch-style (Clouston; Birkedal et al.; Gratzer et al.)</td><td>the empty context, meaning $1$</td><td>all of $L\Gamma$</td></tr>
+        <tr><td>PRACBPV</td><td>a world, meaning $y\,w$</td><td>one summand of $L_\kappa\Theta$</td></tr>
+      </tbody>
+    </table></div>
+    <p>Both differences are deliberate: programs run at a world (as in the POPL paper), and splitting $L_\kappa$ by position keeps every context over one world. In the instances the second barely shows: with one way to cross, the summand is all of $L_\kappa\Theta$; with none ($\tick$ at stage 0), the context simply cannot be formed. The payoff is <b>closing</b>: $\varnothing_u \lockat{p}{\kappa}$ is the same as $\varnothing_{\sc_\kappa(u,p)}$, which the machine uses after every operation.</p>
+  </div></details>
 
-<section>
-  <h3><span class="n">IV.4</span> Values</h3>
-  <p>The CBPV values are unchanged: variables, the unit, pairs, and thunks. Variables and the three rules below form the <b>neutrals</b>, values built from things in the context. Each of these three rules crosses exactly one lock, the last one, and each uses one piece of a lock kind's data:</p>
+  <h3><span class="n">IV.3</span> Values</h3>
+  <p class="point">The CBPV values, plus the lock rules of III.4, now crossing a lock at a recorded position:</p>
   $$\frac{\Delta \vdash n : A}{\Delta \lockat{p}{\kappa} \vdash \up\,n : A}
-    \qquad \frac{\Delta \vdash n : [\kappa]A}{\Delta \lockat{p}{\kappa} \vdash \opn\,n : A}
-    \qquad \frac{b = (\vec b_\kappa)_i}{\Delta \lockat{p}{\kappa} \vdash \nm_i : \mathsf{base}\ b}$$
-  <p>Two further rules introduce constants and the modality:</p>
-  $$\frac{c \in \Const_b(\wd\,\Theta)}{\Theta \vdash \mathsf{const}\ c : \mathsf{base}\ b}
-    \qquad \frac{\text{for each } p \in \Pos_\kappa(\wd\,\Theta):\ \ \Theta \lockat{p}{\kappa} \vdash V_p : A}{\Theta \vdash \shut\,(V_p)_p : [\kappa]A}$$
-  <div class="tablewrap"><table>
-    <thead><tr><th>rule</th><th>comes from</th><th>local state</th><th>guarded</th></tr></thead>
-    <tbody>
-      <tr><td>$\up$</td><td>the strength $\iota$ (II.3, item 4)</td><td>old cell $i$ is still cell $i$</td><td>restrict one step</td></tr>
-      <tr><td>$\opn$</td><td>the counit of $L_\kappa \dashv R_\kappa$ (III.4)</td><td>use a $[\fresh]A$ at the new cell</td><td>use a $\triangleright A$ one step later</td></tr>
-      <tr><td>$\nm_i$</td><td>the names $\gen$ (II.3, item 5)</td><td>the new cell</td><td>none</td></tr>
-      <tr><td>$\mathsf{const}$</td><td>$\Const_b$ at the current world (II.2)</td><td>a cell $i \in \Fin\,n$</td><td>none</td></tr>
-      <tr><td>$\shut$</td><td>$R_\kappa = \prod_p$: one value per position</td><td>one premise</td><td>one premise at $n{+}1$; none at $0$</td></tr>
-    </tbody>
-  </table></div>
-  <p>In $\varnothing_0 \lockat{}{\fresh}$ the values $\nm_0$ and $\mathsf{const}\ 0$ are different syntax for the same cell. $\nm_0$ means "the cell this lock created", and $\mathsf{const}\ 0$ means "cell number 0 of the current world". Closing (IV.6) turns the first into the second.</p>
-</section>
+    \quad \frac{\Delta \vdash n : [\kappa]A}{\Delta \lockat{p}{\kappa} \vdash \opn\,n : A}
+    \quad \frac{}{\Delta \lockat{p}{\kappa} \vdash \nm_i : \mathsf{base}\ b_i}
+    \quad \frac{c \in \Const_b(\wd\,\Theta)}{\Theta \vdash \mathsf{const}\ c : \mathsf{base}\ b}$$
+  $$\frac{\text{for each way } p \text{ of crossing}:\ \ \Theta \lockat{p}{\kappa} \vdash V_p : A}{\Theta \vdash \shut\,(V_p)_p : [\kappa]A}$$
+  <p>$\shut$ needs one value per way of crossing, because $R_\kappa$ is a product over them. For $\fresh$ that is one value; for $\tick$ at stage 0 it is none.</p>
+  <details class="more"><summary>More precisely: where each rule comes from</summary><div class="inner">
+    <p>$\up$, $\opn$ and $\nm$ are neutrals (built from the context), each crossing the last lock: $\up$ uses the strength, $\opn$ the counit of $L_\kappa \dashv R_\kappa$, $\nm_i$ the lock's names. $\mathsf{const}$ uses $\Const_b$ at the current world. In $\varnothing_0 \lockat{}{\fresh}$, $\nm_0$ ("the cell this lock made") and $\mathsf{const}\ 0$ ("cell 0") are different syntax for the same cell; closing turns the first into the second.</p>
+  </div></details>
 
-<section>
-  <h3><span class="n">IV.5</span> Computations, and the operation rule</h3>
-  <p>The CBPV computations ($\mathsf{return}$, sequencing $\mathsf{to}$, $\mathsf{force}$, $\mathsf{case}$, $\lambda$ and application) are unchanged, and none of them changes the world. The one new rule combines all three ingredients:</p>
+  <h3><span class="n">IV.4</span> The operation rule</h3>
+  <p class="point">CBPV's computations are unchanged. The one new rule is III.4's "choose a shape, then write each continuation behind its locks":</p>
+  <div class="box def">
+    $$\frac{\Theta \vdash \vec V : \params\,o \qquad \Theta \lockat{\vec p}{\slot\,o\,a} \vdash M_{a,\vec p} : B \ \ \text{for each slot } a \text{ and way } \vec p \text{ across its word}}{\Theta \vdash \op\ o\ \vec V\ (\lambda\, a\, \vec p.\ M_{a,\vec p}) : B}$$
 <pre>op : ∀ {B} (o : Op) → Vals Θ (params o) →
   ((a : Ar o) (ps : WPos (slot o a) (world Θ))
      → Comp (Θ ⧀*⟨ slot o a , ps ⟩) B)
   → Comp Θ B</pre>
-  <div class="box def">
-    $$\frac{\Theta \vdash V_i : \mathsf{base}\ b_i \ \ (\vec b = \params\,o) \qquad \Theta \lockat{\vec p}{\slot\,o\,a} \vdash M_{a,\vec p} : B \ \ (\text{each } a \in \Ar\,o,\ \vec p \in \WPos(\slot\,o\,a)(\wd\,\Theta))}{\Theta \vdash \op\ o\ \vec V\ (\lambda\, a\, \vec p.\ M_{a,\vec p}) : B}$$
   </div>
   <div class="tablewrap"><table>
-    <thead><tr><th>piece</th><th>what it is</th><th>ingredient</th></tr></thead>
+    <thead><tr><th>piece</th><th>meaning</th><th>from</th></tr></thead>
     <tbody>
-      <tr><td>$o$, $\vec V$</td><td>which operation, and one parameter value of each declared base type, at the current world. In Agda, <code>Vals Θ (params o)</code></td><td>PAT parameters (I.2); together, the <em>shape</em> (III.4)</td></tr>
-      <tr><td>$a \in \Ar\,o$</td><td>which continuation</td><td>PAT continuation arguments (I.2)</td></tr>
-      <tr><td>$\slot\,o\,a$</td><td>the lock word that continuation sits behind</td><td>PAT binders, generalized (I.4, II.3)</td></tr>
-      <tr><td>$\vec p \in \WPos$</td><td>a way of crossing that word; there may be none</td><td>polynomial positions (II.4)</td></tr>
-      <tr><td>$\Theta \lockat{\vec p}{\mu}$</td><td>the telescope with the word's locks appended; its world is the word's scope</td><td>the left adjoint applied to the shape (III.3, IV.3)</td></tr>
-      <tr><td>$B$</td><td>one computation type, the same everywhere</td><td>CPS operations (I.1)</td></tr>
+      <tr><td>$o$, $\vec V$</td><td>the operation and its parameters: the shape</td><td>I, III</td></tr>
+      <tr><td>$a$</td><td>a continuation</td><td>I</td></tr>
+      <tr><td>$\slot\,o\,a$, $\vec p$</td><td>its locks, and a way across them</td><td>I, II</td></tr>
+      <tr><td>$\Theta \lockat{\vec p}{\mu}$</td><td>the context behind those locks</td><td>III</td></tr>
+      <tr><td>$B$</td><td>the same type everywhere: operations choose how to continue</td><td>I</td></tr>
     </tbody>
   </table></div>
   <div class="pair">
     <div class="box ls"><div class="tag">Local state</div>
 <pre>read V M N = op lookup (V ∷ᵥ []ᵥ)
                λ { true _ → M ; false _ → N }
-write V b M = op (update b) (V ∷ᵥ []ᵥ) λ _ _ → M
 newℓ b M    = op (new b) []ᵥ λ _ _ → M</pre>
-      <p>The underscores ignore the position, which is always $\ast$. The continuation of <code>new</code> lives in $\Theta \lockat{}{\fresh}$, where $\nm_0$ (written $\ell$) is the new cell.</p>
     </div>
     <div class="box gd"><div class="tag">Guarded</div>
 <pre>delay M = op step []ᵥ λ _ p → ↑C p M
--- at stage 0:  delay M ≡ op step []ᵥ (λ _ ())</pre>
-      <p><code>↑C p M</code> moves the whole computation $M$ across the tick. At stage 0 there are no positions, so <code>step</code> takes no continuation: the program has run out of time.</p>
+-- stage 0: no way across, no continuation</pre>
     </div>
   </div>
-  <p>Compare $\shut$ from IV.4. It has the same premise shape, "for every way of crossing, a term behind the lock", with one slot, no parameters and a one-letter word, and its target is the modal type $[\kappa]A$ rather than an effect. The operation rule is that premise shape for a many-shape PRA.</p>
-</section>
-
-<section>
-  <h3><span class="n">IV.6</span> Renamings, substitutions, and closing</h3>
-  <p>Renamings and substitutions are inductive data, each constructor being one structure map. The lock-related ones:</p>
-  <ul>
-    <li><code>keepL</code>: rename under a lock of the same kind. This is $L_\kappa$ acting on maps; positions are pulled back along the renaming's world map.</li>
-    <li><code>dropL</code>: rename into a context with one more lock, using the strength.</li>
-    <li><code>lockₛ σ p τ</code>: a substitution out of a locked telescope goes through a lock of the target, then a renaming. This is the PRA decomposition of the lock from III.4, and it is how a substitution is pushed past $\opn$.</li>
-    <li><code>close p f</code>: the closing isomorphism of IV.3. A lock right after the root is a later root, and its names become constants.</li>
-  </ul>
-  <p>The operational semantics runs closed programs at a world. When it runs $\mathsf{new}$ at world $n$, the continuation lives in $\varnothing_n \lockat{}{\fresh}$. <code>close</code> turns it into a closed program at world $n{+}1$, replacing $\nm_0$ by $\mathsf{const}\ n$. Running $\mathsf{step}$ at stage $n{+}1$ is the same with $\tick$ and stage $n$.</p>
+  <details class="more"><summary>More precisely: renaming, substitution and closing</summary><div class="inner">
+    <p>Renamings and substitutions are data. <code>keepL</code> goes under a lock ($L_\kappa$ is a functor); <code>dropL</code> crosses one (the strength); <code>lockₛ</code> is the key decomposition of III.4, used to push a substitution past $\opn$; <code>close</code> is closing (IV.2). The machine runs closed programs at a world: after $\mathsf{new}$ at world $n$, <code>close</code> turns the continuation in $\varnothing_n \lockat{}{\fresh}$ into a program at world $n{+}1$, replacing $\nm_0$ by $\mathsf{const}\ n$.</p>
+  </div></details>
+  <div class="thread"><div class="tag">$P$ so far</div>
+<pre>P = newℓ true (read ℓ M_t M_f)        -- ℓ = nm₀, the new cell
+  = op (new true) []ᵥ λ _ _ → op lookup (ℓ ∷ᵥ []ᵥ) λ { true _ → M_t ; false _ → M_f }</pre>
+    <p>Typed in $\varnothing_0$; both continuations of lookup are typed in $\varnothing_0 \lockat{}{\fresh}$, at world 1.</p>
+  </div>
 </section>
 
 <!-- ================================================================== -->
-<div class="part" id="p5"><span class="label">Part V</span><h2>The denotational semantics</h2><p>Every piece of syntax, interpreted with the structure it came from.</p></div>
+<div class="part" id="p5"><span class="label">Part V</span><h2>The semantics</h2><p>Each piece of syntax, interpreted with the structure it came from.</p></div>
 
 <section>
-  <h3><span class="n">V.1</span> Algebras, and the types</h3>
-  <div class="box def">
-    <div class="tag">Algebras of the signature</div>
-    <p>An <b>$\Ext$-algebra</b> is a presheaf $C$ together with a map $\Ext\,C \to C$. It says how to perform any operation, given its parameters and one element of $C$ per continuation at the right world. The <b>free</b> $\Ext$-algebra on a presheaf $X$ is the presheaf of trees of operations with leaves in $X$: programs that may perform operations and finally return an $X$. Its algebra structure just adds a node.</p>
-  </div>
-  <p>Value types denote presheaves, and computation types denote $\Ext$-algebras:</p>
-  <div class="tablewrap"><table>
-    <thead><tr><th>type</th><th>denotation</th><th>from</th></tr></thead>
-    <tbody>
-      <tr><td>$\mathbb 1$, $A \times A'$</td><td>pointwise: $\{\ast\}$, and pairs at each world</td><td>Part 0</td></tr>
-      <tr><td>$\mathsf{base}\ b$</td><td>$\Const_b$</td><td>PAT parameters (II.2)</td></tr>
-      <tr><td>$[\kappa]A$</td><td>$R_\kappa \den A$</td><td>the modality (II.3)</td></tr>
-      <tr><td>$U B$</td><td>the underlying presheaf of the algebra $\den B$</td><td>CBPV</td></tr>
-      <tr><td>$F A$</td><td>the free $\Ext$-algebra on $\den A$</td><td>the signature polynomial (II.4)</td></tr>
-      <tr><td>$A \Rightarrow B$</td><td>the presheaf exponential $\den A \Rightarrow \den B$, an algebra pointwise via the strength</td><td>CBPV</td></tr>
-    </tbody>
-  </table></div>
-</section>
-
-<section>
-  <h3><span class="n">V.2</span> Telescopes</h3>
-  <div class="box def">
-    $$\den{\varnothing_w} = y\,w \qquad \den{\Theta, A} = \den\Theta \times \den A \qquad \den{\Theta \lockat{p}{\kappa}} = \text{the } p\text{-th summand of } L_\kappa\den\Theta$$
-    <p>Each telescope comes with a map $\den\Theta \to y(\wd\,\Theta)$: it lies over its world (III.3). A value $\Theta \vdash V : A$ denotes a map $\den\Theta \to \den A$, and a computation $\Theta \vdash M : B$ a map into the underlying presheaf of $\den B$.</p>
-  </div>
-  <div class="pair">
-    <div class="box ls"><div class="tag">Local state</div><p>$\den{\varnothing_0 \lockat{}{\fresh}} \cong y\,1$: behind one allocation from nothing, you are at one cell.</p></div>
-    <div class="box gd"><div class="tag">Guarded</div><p>$\den{\varnothing_{n+1} \lockat{}{\tick}} \cong y\,n$.</p></div>
-  </div>
-</section>
-
-<section>
-  <h3><span class="n">V.3</span> Values and neutrals</h3>
-  <p>Two pieces of vocabulary from III.3. To <b>transpose</b> is to turn a map $L_\kappa\Gamma \to X$ into a map $\Gamma \to R_\kappa X$, and to <b>unlock</b> is to go back. To <b>copair</b> is to assemble one map per summand into a map out of the whole sum. Every map out of a lock in the semantics is an unlock:</p>
+  <p class="point">Value types denote presheaves. Computation types denote <b>$\Ext$-algebras</b>: presheaves that know how to perform an operation given its continuations. $F A$ is the free one, trees of operations with leaves in $A$.</p>
   <div class="tablewrap"><table>
     <thead><tr><th>syntax</th><th>denotation</th></tr></thead>
     <tbody>
-      <tr><td>$\up\,n$</td><td>$\den n$ precomposed with the strength map $L_\kappa\Gamma \to \Gamma$, which is the unlock of $\Gamma \to R_\kappa\Gamma$, "carry forward along $\iota$"</td></tr>
-      <tr><td>$\opn\,n$</td><td>the unlock of $\den n : \den\Delta \to R_\kappa\den A$, i.e. the counit</td></tr>
-      <tr><td>$\nm_i$</td><td>the unlock of the names $\gen$</td></tr>
-      <tr><td>$\mathsf{const}\ c$</td><td>$\den\Theta \to y(\wd\,\Theta) \to \Const_b$, the second map being $c$ by Yoneda</td></tr>
-      <tr><td>$\shut\,(V_p)_p$</td><td>copair the $\den{V_p}$, one per summand, into a map out of $L_\kappa\den\Theta$, then transpose</td></tr>
+      <tr><td>$\mathsf{base}\ b$</td><td>$\Const_b$</td></tr>
+      <tr><td>$[\kappa]A$</td><td>$R_\kappa\den A$</td></tr>
+      <tr><td>$F A$</td><td>the free $\Ext$-algebra on $\den A$</td></tr>
+      <tr><td>context $\varnothing_w$</td><td>$y\,w$, a point at $w$</td></tr>
+      <tr><td>lock $\Theta \lockat{p}{\kappa}$</td><td>the $p$-summand of $L_\kappa\den\Theta$</td></tr>
+      <tr><td>$\shut$, $\opn$</td><td>the adjunction, forwards and backwards</td></tr>
+      <tr><td>$\op\ o\ \vec V\ k$</td><td>package the shape and the continuations as an element of $\Ext\,\den B$, then let $\den B$ perform it</td></tr>
     </tbody>
   </table></div>
-</section>
-
-<section>
-  <h3><span class="n">V.4</span> The operation rule</h3>
-  <div class="box def">
-    $$\den{\op\ o\ \vec V\ k} \;=\; \den\Theta \xrightarrow{\ \text{opNode}\ } \Ext\,\den B \xrightarrow{\ \text{algebra of } \den B\ } \den B$$
-    <ol>
-      <li><b>shutW</b>: each continuation, "a term behind the word, for each position", is transposed through its lock word into a map $\den\Theta \to R_{\slot\,o\,a}\den B$, i.e. a $B$ at every world the word can lead to. This is $\shut$ iterated along the word.</li>
-      <li><b>opNode</b>: pair the shape $(o, \den{\vec V})$ with the transposed continuations. The result is an element of $\Ext\,\den B$, read off directly from the PRA structure (III.4).</li>
-      <li><b>The algebra</b> of $\den B$ performs the operation.</li>
-    </ol>
-  </div>
-  <p>For the empty lock word, step 1 does nothing, and this is the POPL paper's interpretation of operations.</p>
-  <div class="pair">
-    <div class="box ls"><div class="tag">Local state</div><p>$\den{\mathsf{newℓ}\ b\ M}$: transpose $\den M : L_{\fresh}\den\Theta \to \den B$ into $\den\Theta \to R_{\fresh}\den B$, a $B$ at world $n{+}1$. Pair it with the shape $\mathsf{new}_b$, then apply $\den B$'s algebra.</p></div>
-    <div class="box gd"><div class="tag">Guarded</div><p>$\den{\mathsf{delay}\ M}$ at stage $n{+}1$: the transposed continuation is a $B$ at stage $n$. At stage 0 the product over positions is empty, so the operation node has no continuation at all.</p></div>
+  <p>The operation clause in three steps:</p>
+  $$\den{\op\ o\ \vec V\ k} \;=\; \den\Theta \xrightarrow{\ \text{shape and continuations}\ } \Ext\,\den B \xrightarrow{\ \text{perform}\ } \den B$$
+  <ol>
+    <li>Each continuation is moved across its lock word: this is $\shut$, once per lock.</li>
+    <li>Paired with the shape, they form one layer, an element of $\Ext\,\den B$.</li>
+    <li>The algebra $\den B$ performs it.</li>
+  </ol>
+  <p>With no locks, step 1 does nothing: this is the POPL paper's semantics of operations.</p>
+  <details class="more"><summary>More precisely: the full table, and the names in the code</summary><div class="inner">
+    <p>$\mathbb 1$, $\times$ pointwise; $U B$ the underlying presheaf of $\den B$; $A \Rightarrow B$ the presheaf exponential, an algebra via the strength. Each context lies over its world. A value denotes a map $\den\Theta \to \den A$.</p>
+    <p>Maps out of a lock are <em>unlocks</em> (transposes back along $L_\kappa \dashv R_\kappa$): $\up\,n$ is $\den n$ after the strength map $L_\kappa\Gamma \to \Gamma$; $\opn\,n$ is the unlock of $\den n$ (the counit); $\nm_i$ is the unlock of the names; $\mathsf{const}\ c$ goes through $y(\wd\,\Theta)$ by Yoneda; $\shut\,(V_p)_p$ copairs the $\den{V_p}$ over the summands and transposes.</p>
+    <p>In <code>Semantics/Denotation.agda</code>: step 1 is <code>shutW</code>, step 2 <code>opNode</code>, step 3 the algebra of <code>⟦ B ⟧c</code>.</p>
+  </div></details>
+  <div class="thread"><div class="tag">$P$, finally</div>
+    <p>At world 0, $\den P$ (in $F A$) is a tree: a node new$_{\mathsf t}$, whose single child lives at world 1 and is a node "lookup cell 0" with two children, $\den{M_{\mathsf t}}$ and $\den{M_{\mathsf f}}$ at world 1. The operational semantics runs it: allocate (moving to world 1 by closing), read cell 0, find <em>true</em>, continue as $M_{\mathsf t}$.</p>
   </div>
 </section>
 
 <!-- ================================================================== -->
 <section id="refs">
   <div class="part"><span class="label">Appendix</span><h2>References and where things live</h2></div>
-  <h4>Literature</h4>
   <ul>
-    <li>G. Plotkin, J. Power. Algebraic operations and generic effects. Applied Categorical Structures, 2003. (I.1)</li>
-    <li>S. Staton. <a href="https://www.cs.ox.ac.uk/people/samuel.staton/papers/lics2013.pdf">Instances of computational effects: an algebraic perspective</a>. LICS 2013. (Part I)</li>
-    <li>M. Weber. Familial 2-functors and parametric right adjoints. Theory and Applications of Categories 18, 2007; and the nLab page <a href="https://ncatlab.org/nlab/show/parametric+right+adjoint">parametric right adjoint</a>. (Parts II–III)</li>
-    <li>R. Clouston. Fitch-style modal lambda calculi. FoSSaCS 2018. (III.4)</li>
-    <li>L. Birkedal, R. Clouston, B. Mannaa, R. E. Møgelberg, A. M. Pitts, B. Spitters. <a href="https://arxiv.org/abs/1804.05236">Modal dependent type theory and dependent right adjoints</a>. MSCS 2020. (III.4)</li>
-    <li>D. Gratzer, E. Cavallo, G. A. Kavvos, A. Guatto, L. Birkedal. <a href="https://www.danielgratzer.com/papers/modalities-and-parametric-adjoints.pdf">Modalities and parametric adjoints</a>. ACM TOCL 23(3), 2022. (III.4, IV.3, IV.6)</li>
+    <li>G. Plotkin, J. Power. Algebraic operations and generic effects. 2003.</li>
+    <li>S. Staton. <a href="https://www.cs.ox.ac.uk/people/samuel.staton/papers/lics2013.pdf">Instances of computational effects: an algebraic perspective</a>. LICS 2013.</li>
+    <li>M. Weber. Familial 2-functors and parametric right adjoints. TAC 18, 2007; nLab, <a href="https://ncatlab.org/nlab/show/parametric+right+adjoint">parametric right adjoint</a>.</li>
+    <li>R. Clouston. Fitch-style modal lambda calculi. FoSSaCS 2018.</li>
+    <li>L. Birkedal et al. <a href="https://arxiv.org/abs/1804.05236">Modal dependent type theory and dependent right adjoints</a>. MSCS 2020.</li>
+    <li>D. Gratzer, E. Cavallo, G. A. Kavvos, A. Guatto, L. Birkedal. <a href="https://www.danielgratzer.com/papers/modalities-and-parametric-adjoints.pdf">Modalities and parametric adjoints</a>. ACM TOCL 2022.</li>
   </ul>
-  <h4>In the mechanization</h4>
-  <div class="tablewrap"><table>
-    <thead><tr><th>topic</th><th>module</th></tr></thead>
-    <tbody>
-      <tr><td>families of worlds, arities, composites</td><td><code>PRACBPV/Fam.agda</code></td></tr>
-      <tr><td>lock and operation signatures</td><td><code>PRACBPV/Signature.agda</code></td></tr>
-      <tr><td>the signature polynomial</td><td><code>PRACBPV/Polynomial.agda</code></td></tr>
-      <tr><td>types; telescopes, terms, renaming, substitution</td><td><code>PRACBPV/Types.agda</code>, <code>PRACBPV/Syntax.agda</code></td></tr>
-      <tr><td>the lock as a coend; $L \dashv R$; summands</td><td><code>PRACBPV/Semantics/Lock.agda</code></td></tr>
-      <tr><td>the denotation, <code>shutW</code>, <code>opNode</code></td><td><code>PRACBPV/Semantics/Denotation.agda</code></td></tr>
-      <tr><td>local state, guarded, plain effects</td><td><code>PRACBPV/Instances/</code></td></tr>
-      <tr><td>the PRA definition; right adjoints are PRAs; three examples</td><td><code>UnderstandingPRA/</code></td></tr>
-      <tr><td>Fitch-style STLC, without and with substitution</td><td><code>UnderstandingPRA/FitchSTLC/</code>, <code>FitchSTLCSubst/</code></td></tr>
-    </tbody>
-  </table></div>
+  <details class="more"><summary>Where each piece lives in the mechanization</summary><div class="inner">
+    <div class="tablewrap"><table>
+      <thead><tr><th>topic</th><th>module</th></tr></thead>
+      <tbody>
+        <tr><td>families of worlds, arities</td><td><code>PRACBPV/Fam.agda</code></td></tr>
+        <tr><td>lock and operation signatures</td><td><code>PRACBPV/Signature.agda</code></td></tr>
+        <tr><td>the signature polynomial</td><td><code>PRACBPV/Polynomial.agda</code></td></tr>
+        <tr><td>types, contexts, terms, substitution</td><td><code>PRACBPV/Types.agda</code>, <code>PRACBPV/Syntax.agda</code></td></tr>
+        <tr><td>the lock and its adjunction</td><td><code>PRACBPV/Semantics/Lock.agda</code></td></tr>
+        <tr><td>the denotation</td><td><code>PRACBPV/Semantics/Denotation.agda</code></td></tr>
+        <tr><td>instances</td><td><code>PRACBPV/Instances/</code></td></tr>
+        <tr><td>PRA definition and examples; Fitch-style STLC</td><td><code>UnderstandingPRA/</code></td></tr>
+      </tbody>
+    </table></div>
+  </div></details>
 </section>
 </main>
 </body>
