@@ -232,7 +232,7 @@ window.MathJax = {
   <h3><span class="n">II.2</span> On presheaves: each position has a world</h3>
   <p class="point">With worlds, a polynomial says, for each shape, how many positions it has <em>and which world each position lives at</em>, its <b>scope</b>:</p>
   $$T X(w) \;=\; \sum_{s} \ \prod_{p} X\big(\sc(w,s,p)\big).$$
-  <p>By the fact from Part 0, this is the same as giving each shape an <b>arity</b>, the few points $\sum_p y(\sc(w,s,p))$, "one point per position, at its world". A map out of the arity is exactly one $X$ per position.</p>
+  <p>By the fact from Part 0, this is the same as giving each shape an <b>arity</b>, the few points $\sum_p y(\sc(w,s,p))$, "one point per position, at its world". A map out of the arity is exactly one $X$ per position. (Why this rewriting matters is derived in detail in <a href="#derivation">III.2</a>.)</p>
   <p>The base types also become presheaves: $\Const_b(w)$ is the values of type $b$ at world $w$. For cells, $\Const_{\Lc}(n) = \Fin\,n$.</p>
   <details class="more"><summary>More precisely: functoriality, families of worlds, and the polynomial in Cat</summary><div class="inner">
     <p>Shapes form a presheaf $S$. Along $f : w \to w'$, shapes go forward; positions go <em>backwards</em>, $\mathrm{pos}_f : \Pos(w', S(f)s) \to \Pos(w, s)$; and scopes go forward, $\mathrm{smap}_f(p') : \sc(w, s, \mathrm{pos}_f\,p') \to \sc(w', S(f)s, p')$. Positions go backwards because to fill a position $p'$ at $w'$ you fetch the $X$ at position $\mathrm{pos}_f\,p'$ and carry it forward along $\mathrm{smap}_f\,p'$.</p>
@@ -309,6 +309,84 @@ window.MathJax = {
   <div class="box ls"><div class="tag">A generic element</div>
     <p>For the shape "lookup cell $i$" at world $n$, the generic element is "read cell $i$, then continue at point 1 or at point 2". Every concrete read of cell $i$ is this, with point 1 and point 2 renamed to the actual continuations.</p>
   </div>
+  <p>In particular, the formula $T X(w) \cong \sum_s \Psh(E(w,s), X)$ from II.2 is this property in disguise: once the shape is chosen, maps into $T X$ are maps out of the arity.</p>
+  <details class="more" id="derivation"><summary>Derivation, step by step: why $T X(w) \cong \sum_s \Psh(E(w,s), X)$, and why that formula is the PRA property</summary><div class="inner">
+    <p><b>The question.</b> Part II wrote a polynomial in two ways:</p>
+    $$T X(w) \;=\; \sum_{s \in S(w)} \ \prod_{p \in \Pos(w,s)} X\big(\sc(w,s,p)\big) \qquad\text{and}\qquad T X(w) \;\cong\; \sum_{s \in S(w)} \Psh\big(E(w,s),\, X\big), \quad E(w,s) = \sum_{p} y\big(\sc(w,s,p)\big).$$
+    <p>Why rewrite the first as the second? It is not a choice made to fit the definition of PRA. The two are isomorphic for every polynomial, by two standard facts. But the second form <em>is</em> the PRA property, written out. The steps below show both points.</p>
+
+    <h4>Step 1: one position is one map out of one point (Yoneda)</h4>
+    <p>Fix a world $v$ and a presheaf $X$. There is a bijection</p>
+    $$X(v) \;\cong\; \Psh(y\,v,\ X).$$
+    <ul>
+      <li><b>From left to right.</b> An element $x \in X(v)$ gives the map $\hat x : y\,v \to X$ which, at a world $t$, sends $g : v \to t$ (an element of $y\,v$ at $t$) to $X(g)(x)$: "carry $x$ forward along $g$". This is natural because carrying forward twice is carrying forward along the composite.</li>
+      <li><b>From right to left.</b> A map $\varphi : y\,v \to X$ gives the element $\varphi_v(\mathrm{id}_v) \in X(v)$: "where the identity goes".</li>
+      <li><b>Why these are inverse.</b> Naturality of $\varphi$ forces $\varphi_t(g) = X(g)\big(\varphi_v(\mathrm{id}_v)\big)$ for every $g : v \to t$, because $g = \mathrm{id}_v$ carried forward along $g$. So $\varphi$ is determined by where $\mathrm{id}_v$ goes. Conversely $\hat x$ sends $\mathrm{id}_v$ to $x$.</li>
+    </ul>
+    <p class="reading">In words: a single point at world $v$ can be mapped into $X$ in exactly as many ways as $X$ has elements at $v$.</p>
+
+    <h4>Step 2: several positions are one map out of several points</h4>
+    <p>Sums of presheaves are computed world by world: $\big(\sum_p A_p\big)(t) = \sum_p A_p(t)$, a disjoint union. So a map out of a sum is one map out of each summand, and nothing more:</p>
+    $$\prod_{p} \Psh(A_p, X) \;\cong\; \Psh\Big(\sum_p A_p,\ X\Big).$$
+    <p>From left to right, combine a family of maps $(\varphi_p)_p$ into one map that uses $\varphi_p$ on the $p$-th summand ("copairing"). From right to left, restrict a map to each summand.</p>
+
+    <h4>Step 3: put them together, for one shape</h4>
+    <p>Fix a shape $s$ at $w$, and write $\sc_p$ for $\sc(w,s,p)$:</p>
+    $$\prod_{p} X(\sc_p) \ \overset{\text{Step 1}}{\cong}\ \prod_p \Psh(y\,\sc_p,\ X) \ \overset{\text{Step 2}}{\cong}\ \Psh\Big(\sum_p y\,\sc_p,\ X\Big) \;=\; \Psh\big(E(w,s),\ X\big).$$
+    <p>Explicitly: a tuple $(x_p)_p$, with $x_p \in X(\sc_p)$, corresponds to the map $E(w,s) \to X$ that sends an element $(p, g)$ of $E(w,s)$ at world $t$, meaning "position $p$, then $g : \sc_p \to t$", to $X(g)(x_p)$.</p>
+    <p class="reading">The arity $E(w,s)$ is the "pattern" of the shape: one point per position, each at its own world. Filling the pattern with data from $X$ is the same as mapping the pattern into $X$.</p>
+
+    <h4>Step 4: sum over shapes</h4>
+    <p>Do Step 3 for every shape and take the sum:</p>
+    $$T X(w) \;=\; \sum_{s \in S(w)} \prod_p X(\sc_p) \;\cong\; \sum_{s \in S(w)} \Psh\big(E(w,s),\ X\big).$$
+    <p>That is the formula. So far only Yoneda and coproducts have been used: <b>every</b> polynomial can be rewritten this way, so there is nothing to "make compatible".</p>
+
+    <h4>Step 5: it is natural in $X$, so $T$ is a sum of representable functors</h4>
+    <p>For a map $h : X \to X'$, the left side acts by applying $h$ at every position, $(x_p)_p \mapsto (h(x_p))_p$. The right side acts by postcomposition, $\varphi \mapsto h \circ \varphi$. Under Step 3 these agree, because $h$ commutes with carrying forward: $h(X(g)(x_p)) = X'(g)(h(x_p))$. So, as functors of $X$,</p>
+    $$T(-)(w) \;\cong\; \sum_{s \in S(w)} \Psh\big(E(w,s),\ -\big).$$
+    <p>Each summand $\Psh(E(w,s), -)$ is a <b>representable functor</b>: everything about it is determined by one object, $E(w,s)$. A sum of representable functors is what "familially representable" means: a family of representables, indexed by shapes.</p>
+
+    <h4>Step 6: it is natural in $w$, and the action is precomposition</h4>
+    <p>Let $f : w \to w'$ and $s' = S(f)(s)$. The arities are related by a presheaf map going the other way,</p>
+    $$E(f) : E(w', s') \to E(w, s), \qquad \text{summand } p' \ \mapsto\ \text{summand } \mathrm{pos}_f\,p', \text{ along } y(\mathrm{smap}_f\,p').$$
+    <p>On the right-hand side, $T X(f)$ sends $(s, \varphi)$ to $(s', \varphi \circ E(f))$: "keep the data, re-read it through the new pattern". Unfolding at a position $p'$ of $s'$, $\varphi \circ E(f)$ looks up the data at position $\mathrm{pos}_f\,p'$ and carries it forward along $\mathrm{smap}_f\,p'$:</p>
+    $$\big(T X(f)(s, x)\big)_{p'} \;=\; X(\mathrm{smap}_f\,p')\big(x_{\mathrm{pos}_f\,p'}\big).$$
+    <p>That is exactly the action written in the product form. So the two forms agree as presheaves in $w$ too, and in the second form all the functoriality of positions and scopes is packed into one thing: precomposition with $E(f)$.</p>
+
+    <h4>Step 7: why this formula <em>is</em> the PRA property</h4>
+    <p>First, the shapes really are $T\,1$. Taking $X = 1$, every $\Psh(E(w,s), 1)$ is a single point, so $T\,1(w) \cong \sum_s 1 = S(w)$. The map $T(!) : T X \to T\,1$ sends $(s, \varphi)$ to $s$: it forgets the contents and keeps the shape.</p>
+    <p>Now recall the definition (III.1): $T$ is a PRA when $T_1 : X \mapsto (T X, T(!))$, a functor into the slice $\Psh/T1$, is a right adjoint. The simplest objects of that slice are a single point at $w$ labelled by a shape, $(y\,w,\ s)$ with $s \in T1(w)$. A map in the slice from $(y\,w, s)$ into $T_1 X$ is a map $y\,w \to T X$ whose label is $s$. By Yoneda that is an element of $T X(w)$ of shape $s$, and by Step 4 the elements of shape $s$ are the summand $\Psh(E(w,s), X)$. So:</p>
+    $$\big(\Psh/T1\big)\big((y\,w, s),\ T_1 X\big) \;\cong\; \Psh\big(E(w,s),\ X\big), \quad\text{naturally in } X.$$
+    <p>Read right to left, this is the defining property of a left adjoint, $L(y\,w, s) := E(w,s)$, on these simplest objects. Every object of the slice is glued (a colimit) from such labelled points, and a left adjoint must preserve gluing, so this determines $L$ everywhere, and it exists. That is: $T_1$ is a right adjoint, so $T$ is a PRA, and its left adjoint sends a labelled point to the arity of the label.</p>
+    <p class="reading">So the formula does not make $T$ PRA-compatible. It is the PRA property, stated on single points, and the arity is the left adjoint applied to a point.</p>
+
+    <h4>Step 8: the converse, and why the second form is the more general one</h4>
+    <p>Run Step 7 backwards. If $T$ is any PRA, define $E(w,s) := L(y\,w, s)$, the left adjoint on a labelled point, and Yoneda gives $T X(w) \cong \sum_s \Psh(E(w,s), X)$ again. But now $E(w,s)$ can be <em>any</em> presheaf. Only when it happens to be a sum of representables, $\sum_p y(\sc_p)$, does Step 3 run backwards to give the product form with positions and scopes. So:</p>
+    <ul>
+      <li>$\sum_s \Psh(E(w,s), X)$ describes every PRA;</li>
+      <li>$\sum_s \prod_p X(\sc_p)$ describes the PRAs whose arities are sums of representables (familial arities).</li>
+    </ul>
+    <p>PRACBPV restricts to the second on purpose. Because each arity is a sum of single points, "behind the lock, crossed in way $p$" is a single world, $\sc_p$, and that is what makes contexts know their world (IV.2).</p>
+
+    <h4>Step 9: the examples</h4>
+    <div class="tablewrap"><table>
+      <thead><tr><th>shape</th><th>arity $E$</th><th>$\Psh(E, X)$</th><th>product form</th></tr></thead>
+      <tbody>
+        <tr><td>lookup cell $i$, at $n$</td><td>$y\,n + y\,n$</td><td>$\Psh(y\,n + y\,n, X)$</td><td>$X(n) \times X(n)$</td></tr>
+        <tr><td>new$_b$, at $n$</td><td>$y(n{+}1)$</td><td>$\Psh(y(n{+}1), X)$</td><td>$X(n{+}1)$</td></tr>
+        <tr><td>$\tick$, at $n{+}1$</td><td>$y\,n$</td><td>$\Psh(y\,n, X)$</td><td>$X(n)$</td></tr>
+        <tr><td>$\tick$, at $0$</td><td>$0$ (no points)</td><td>$\Psh(0, X) = 1$</td><td>the empty product, $1$</td></tr>
+      </tbody>
+    </table></div>
+    <p>The last row is the "no positions" case. The arity is the empty presheaf, there is exactly one map out of it, and so $\triangleright X$ at stage 0 has exactly one element, whatever $X$ is.</p>
+
+    <h4>Why the second form is the one to work with</h4>
+    <ol>
+      <li><b>Generality.</b> It describes every PRA (Step 8).</li>
+      <li><b>It has the shape of a typing rule.</b> "Choose a shape, then give a map out of the arity" becomes "choose the operation and its parameters, then write each continuation in the context the arity describes". The arity is a presheaf, so it can be what a context means: the context behind the lock.</li>
+      <li><b>Naturality is one operation.</b> Moving between worlds is precomposition with $E(f)$ (Step 6), instead of tracking positions backwards and scopes forwards by hand.</li>
+    </ol>
+  </div></details>
   <details class="more"><summary>More precisely: the theorem, familial arities, and a caveat</summary><div class="inner">
     <p><b>Theorem</b> (Weber, Prop. 2.10 and Rem. 2.12, as cited on nLab; nLab Prop. 3.3). For a functor between presheaf categories, the following are equivalent: it is a PRA; every element of $T1$ at a representable has a generic factorization; it is a polynomial in $\mathbf{Cat}$, with arities $E(w,s) = L(y\,w, s)$.</p>
     <p>A general PRA may have any presheaf as an arity. Ours have <em>sums of representables</em> (familial arities), which is what makes "behind a lock, in a given way" a single world.</p>
@@ -511,6 +589,16 @@ newℓ b M    = op (new b) []ᵥ λ _ _ → M</pre>
     </table></div>
   </div></details>
 </section>
+<script>
+// open a collapsed "More precisely" box when a link points at it
+function openTarget() {
+  var id = location.hash.slice(1); if (!id) return;
+  var el = document.getElementById(id);
+  if (el && el.tagName === 'DETAILS') { el.open = true; el.scrollIntoView(); }
+}
+window.addEventListener('hashchange', openTarget);
+window.addEventListener('load', openTarget);
+</script>
 </main>
 </body>
 </html>
