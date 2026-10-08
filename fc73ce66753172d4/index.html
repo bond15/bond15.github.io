@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>POPL27 Camera-Ready: What We Need To Do</title>
+<style>
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --fg: #1c2230; --muted: #5a6475;
+  --rule: #d9dde5; --accent: #23508f; --accent-soft: #e6edf7;
+  --font-body: "Literata", Georgia, "Times New Roman", serif;
+  --font-label: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-code: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151b; --surface: #1a1f28; --fg: #e3e7ee; --muted: #9aa4b5;
+    --rule: #2e3542; --accent: #8fb4ea; --accent-soft: #1e2a3d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151b; --surface: #1a1f28; --fg: #e3e7ee; --muted: #9aa4b5;
+  --rule: #2e3542; --accent: #8fb4ea; --accent-soft: #1e2a3d; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 17px; line-height: 1.65; margin: 0; padding: 0 16px; }
+main { max-width: 900px; margin: 0 auto; padding-block: 40px 120px; }
+header { margin-bottom: 28px; }
+.eyebrow { font-family: var(--font-label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 2.1rem; line-height: 1.2; margin: 6px 0 0; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 1.5rem; font-weight: 600; margin: 44px 0 12px; padding-top: 14px; border-top: 2px solid var(--accent); text-wrap: balance; }
+h3 { font-size: 1.15rem; font-weight: 600; margin: 24px 0 8px; }
+hr { display: none; }
+p { margin: 10px 0; }
+a { color: var(--accent); }
+strong { font-weight: 600; }
+ul, ol { padding-left: 1.4em; margin: 8px 0; }
+li { margin: 5px 0; }
+li > ul, li > ol { margin: 4px 0; }
+li:has(> input[type=checkbox]) { list-style: none; margin-left: -1.3em; }
+input[type=checkbox] { margin-right: .5em; accent-color: var(--accent); }
+blockquote { margin: 12px 0; padding: 10px 16px; background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; }
+blockquote p { margin: 4px 0; }
+code { font-family: var(--font-code); font-size: .86em; background: var(--accent-soft); padding: 1px 4px; border-radius: 3px; }
+.tablewrap { overflow-x: auto; margin: 14px 0; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; line-height: 1.45; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; min-width: 120px; }
+tr:last-child td { border-bottom: none; }
+th { font-family: var(--font-label); font-size: 12px; letter-spacing: .04em; color: var(--muted); font-weight: 600; background: var(--accent-soft); }
+mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width: 100%; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<script>
+window.MathJax = { tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']], macros: { llbracket: '[\\![', rrbracket: ']\\!]' } }, svg: { fontCache: 'global' } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.js"></script>
+</head>
+<body>
+<main>
+<header>
+  <div class="eyebrow">POPL 2027 #162 · working notes</div>
+  <h1>POPL27 Camera-Ready: What We Need To Do</h1>
+</header>
+<p><strong>Paper.</strong> POPL 2027 #162, <em>An Algebraic Perspective on Operational Semantics</em> (E. Bond, M. New). Accepted on condition that we revise it. Reviews: A (champion, expert), B (weak accept, expert), C (weak accept, knowledgeable). Source: <code>cbpv-functorial-opsem/popl27/popl27.tex</code>. Line numbers below refer to that file as of 2026-10-05.
+<strong>Deadline.</strong> Not recorded; check HotCRP.
+<strong>Status of this note.</strong> Written 2026-10-08. It is self-contained. Related-work claims come from a literature check run with Claude on 2026-10-07. Eric has not reviewed that check yet (see §8).</p>
+<hr>
+<h2>0. Background: the two definitions the rest of this note uses</h2>
+<p><strong>Configurations and the Effect rule.</strong> Fix an algebraic theory $\mathcal T = (\Sigma, E)$. Assume its free model monad $T$ is given as a polynomial $p = (S, P)$: a set of shapes $S$, and $P(s) \in \mathbb N$ positions for each shape $s$. This is a <em>monadic container</em>. A configuration is an element $\langle s, M_1, \dots, M_{P(s)}\rangle \in T(\mathrm{Comp}(FA))$: one shape plus one closed computation at each position.</p>
+<p>The submission writes the Effect step with a substitution notation, $\langle s, \gamma, M/x_i\rangle$. The rebuttal gave an equivalent <strong>derivative form</strong>. Here $C$ is a one-hole context of the configuration, $C \in \partial T(\mathrm{Comp}(FA))$: a shape, one distinguished position $i$, and the other $P(s)-1$ subterms.
+$$C\big[S[\mathsf{op}(\vec M)]\big] \;\mapsto\; \mu\Big(\partial T(\eta)(C)\big[\,\llbracket\mathsf{op}\rrbracket(\eta\,S[M_1],\dots,\eta\,S[M_n])\,\big]\Big)$$
+In words:</p>
+<ol>
+<li>find an operation at one position, under a stack $S$;</li>
+<li>copy the stack into each operand;</li>
+<li>interpret the operation in the free model;</li>
+<li>wrap every other position in $\eta$;</li>
+<li>plug the result back in and flatten with $\mu$.</li>
+</ol>
+<p><strong>Affinity (our sense).</strong> Fix a shape $s$, a position $i$ and an operation $\mathsf{op}$ of arity $n$. Run the Effect step once on fresh variables: $x_j$ at each $j \neq i$, and $\llbracket\mathsf{op}\rrbracket(\eta y_1,\dots,\eta y_n)$ at $i$. The result has the form $\langle s \circ_i \mathsf{op} ; \rho_{s,i,\mathsf{op}}\rangle$, a new shape plus a renaming $\rho$ of the variables. Call this the <em>generic step</em>. The model is <strong>affine</strong> iff every $\rho_{s,i,\mathsf{op}}$ is injective, i.e. no Effect step duplicates a subterm. Affine models include writer, list, maybe, errors and finite state. This is <strong>not</strong> an affine monad in Jacobs&#39; sense.</p>
+<p><strong>Naturality lemma.</strong> $\mu$, $\eta$ and $\llbracket\mathsf{op}\rrbracket$ are natural transformations. So every Effect step is the generic step with the actual subterms substituted for the variables. This is why the substitution form and the derivative form define the same relation.</p>
+<hr>
+<h2>1. Required: conditions of acceptance</h2>
+<p>The meta-review (Reviewer C, after PC discussion) makes acceptance conditional on (a) the Change List from our rebuttal and (b) a change to the Contributions section. Items 1.1–1.6 are the Change List; 1.7 is condition (b). The reviewers&#39; post-response requests are folded into the matching items.</p>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>1.1 Effect rule: give both presentations and connect them.</strong> Reviewer B, post-rebuttal: the one-hole-context form is &quot;much clearer&quot;; they &quot;strongly encourage&quot; giving both and explaining &quot;in detail the connection between the two&quot;.<ul>
+<li>Give the substitution form, the derivative form (§0) and the naturality lemma (§0) as the bridge.</li>
+<li>Fix $s \circ_i$, which is missing its $\mathsf{op}$ (Def. 5.2, line 1928).</li>
+<li>Fix the brackets on the right-hand side of the Effect rule (line 1912). It should read $T(\rho_{s,i,\mathsf{op}})(s\circ_i\mathsf{op})$.</li>
+</ul>
+</li>
+<li><input disabled="" type="checkbox"> <strong>1.2 Use the term &quot;monadic container&quot; and cite the literature.</strong> Attribution:<ul>
+<li>Ahman–Chapman–Uustalu (LMCS 2014, §5) first sketch the idea;</li>
+<li>Uustalu (TTCS 2017) calls them &quot;mnd-containers&quot;;</li>
+<li>the name &quot;monadic container&quot; is Altenkirch–Pinyo&#39;s (TYPES 2017);</li>
+<li>Purdy–Damato (CALCO 2025) lay out several of our §5 example monads (their Exs. 11–14).</li>
+<li>Replace &quot;a suitable presentation of its free model monad&quot; (line 79). Reviewer C read &quot;presentation&quot; as the algebraic theory.</li>
+</ul>
+</li>
+<li><input disabled="" type="checkbox"> <strong>1.3 Terminology and introductory definitions.</strong> Reviewer C (W1, W2) found pp. 1–8 vague and short on references.<ul>
+<li><strong>Configuration</strong> is Plotkin&#39;s SOS term; say so (A, line 44).</li>
+<li><strong>Stoups:</strong> add a short explanation of which judgments exist (A, line 284). Don&#39;t write the stoup as $\Delta$, which looks like a context (B, line 281).</li>
+<li><strong>Doctrine:</strong> the syntax quotiented by the equational theory forms the doctrine, not the raw syntax (A, lines 385–390). Define the term (C).</li>
+<li><strong>Fig. 2:</strong> write the operations as maps, $V,\gamma \mapsto V[\gamma]$ (A). Explain $(\Gamma\mid\cdot\vdash B)\vDash \mathcal T$ (A).</li>
+<li><strong>Initiality wording (A).</strong><ul>
+<li>Line 439: &quot;The initiality of the syntactic model means that we have a unique structure-preserving interpretation.&quot;</li>
+<li>Line 442: &quot;The interpretation being a morphism of CBPV doctrines means it preserves substitution, stack plugging, the algebraic operations, and all type structure.&quot;</li>
+</ul>
+</li>
+<li><strong>Equational canonicity:</strong> define it before Cor. 3.2 (C).</li>
+<li><strong>Affinity:</strong> use the §0 definition. Add a remark that it differs from Jacobs&#39; affine monads (C), and that it is a property of the polynomial presentation, not of the monad (A).</li>
+<li><strong>&quot;Metric&quot;:</strong> rename to &quot;variant&quot; (A).</li>
+<li><strong>Weighted monoids</strong> are $\mathrm{writer}_R \otimes \text{monoids}$, i.e. a monoid action; cite this (C).</li>
+<li><strong>&quot;Linear combination&quot;:</strong> scaling also counts (A, C). Where we put it in quotes, point out that commutativity is missing (C, line 237).</li>
+</ul>
+</li>
+<li><input disabled="" type="checkbox"> <strong>1.4 Top-down vs bottom-up reduction in the introduction.</strong> Reviewer B did not follow lines 57–63. Also explain the sense in which handlers &quot;leave effects unevaluated&quot; (lines 69–70).</li>
+<li><input disabled="" type="checkbox"> <strong>1.5 Attribution and related work.</strong> See §4, which also lists what not to claim.<ul>
+<li>Cite Plotkin–Power 2001 and Plotkin 2009 (A).</li>
+<li>Explain the polynomial restriction (C, post-response). A bare monad has no unambiguous decomposition into subterm and context; the polynomial supplies the positions. Arities must be finite, but there may be infinitely many operations.</li>
+<li>Discuss GSOS (C, post-response; see §4).</li>
+<li>Johann–Simpson–Voigtländer already use the lifting at lines 486–490 (A).</li>
+</ul>
+</li>
+<li><input disabled="" type="checkbox"> <strong>1.6 Notation, grammar and example typos.</strong><ul>
+<li>From the reviews:<ul>
+<li>the missing &quot;.&quot; at line 158;</li>
+<li>&quot;.&quot; and &quot;:&quot; together at line 157;</li>
+<li>$\eta(x)(y)$ at line 243;</li>
+<li>&quot;[the] function reify&quot; (604) and &quot;[the] reduction relation&quot; (639);</li>
+<li>$[V/x]$ vs $[V]$ (line 416);</li>
+<li>$\multimap$ and $\alpha$ undefined in Fig. 3, and the denotation of $x\leftarrow M;N$ needs a gloss;</li>
+<li>$\mathsf{case}_\times$ twice in Fig. 5;</li>
+<li>the stray comma after $\eta$ (881);</li>
+<li>line 930 is hard to parse;</li>
+<li>Ex. 5.4: explain that configurations are tabulated functions, $\mathsf{true}\mapsto(b_t,M_t)$, $\mathsf{false}\mapsto(b_f,M_f)$;</li>
+<li>get and $\eta$ at lines 230 and 241 (C).</li>
+</ul>
+</li>
+<li>Found by us:<ul>
+<li><strong>Weighted monoid:</strong> $\mathsf{act}_r$ for $r{:}R$ (not $m{:}M$); $\eta(x) = [(1_R,x)]$.</li>
+<li><strong>Finite-state lens laws:</strong> get-set and the $s=1$ case of set-get are missing, so the free model is not $S\to X\times S$ as stated.</li>
+<li><strong>State example:</strong> the get rule should leave $(b_f, N)$, not $N_f$.</li>
+<li><strong>Pre-convex:</strong> the inner weight is $p_2/(1-p_1)$, not $p_1p_2$.</li>
+<li><strong>Semimodule free model:</strong> use finitely supported functions.</li>
+<li><strong>Figs. 5 and 6:</strong> $\llbracket\star\rrbracket\gamma = \star$, not $\{\star\}$; the $\mathcal G[\Gamma,x{:}A]$ clause; the ret judgment.</li>
+<li><strong>Stale comments:</strong> delete <code>% Instances.agda</code> and <code>% Logic.agda</code> (lines 1179–1180).</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><input disabled="" type="checkbox"> <strong>1.7 Contributions section, item 1.</strong> Condition (b) of the meta-review. Its suggested wording:<blockquote>
+<p>&quot;We develop effect-generic logical relations proving equational and operational canonicity for a language with finitary algebraic effects. This development follows well-established techniques, presenting in technical detail material that&#39;s scattered across the CBPV literature and folklore.&quot;</p>
+</blockquote>
+Then say exactly what is new; §4 ends with a draft. Reviewer B&#39;s view, which the PC adopted: Sections 3–4 adapt existing work, and the configuration semantics of §5 is the real contribution and should be the paper&#39;s central theme.</li>
+</ul>
+<hr>
+<h2>2. Required for correctness: bugs we found ourselves</h2>
+<p>The reviewers did not catch these. We found them while formalizing the paper in Agda and rereading the whole <code>.tex</code>. Each one makes a stated result false or a proof invalid.</p>
+<ol>
+<li><p><strong>The tree-reduction figure (§4) is wrong in three ways.</strong></p>
+<ul>
+<li>(a) The whole-stack rule $S[\mathsf{op}(\vec M)] \mapsto \mathsf{op}(S[\vec M])$, together with op-congruence as a single step, breaks stack closure. With $M = S[\mathsf{op}(N_1,N_2)]$ and $M \mapsto M'$, both $M\,V$ and $M'\,V$ step to $\mathsf{op}((S\,V)[N_1],(S\,V)[N_2])$, but neither steps to the other. So the following are unjustified:<ul>
+<li>anti-reduction at $\to$ and $\&amp;$ (lines 1622–1632);</li>
+<li>the congruence lemma;</li>
+<li>the bind case of the operational fundamental lemma.</li>
+</ul>
+</li>
+<li>(b) The side condition <code>S ≠ •</code> on β blocks redexes at the top level. For example, <code>force(thunk(ret ⋆))</code> is stuck.</li>
+<li>(c) $\pi_1$-β is missing (only $\pi_2$ is present).</li>
+</ul>
+<p>Together these make the operational fundamental lemma and termination false as stated.</p>
+</li>
+<li><p><strong>The termination metric is missing <code>1 +</code></strong> (line 2393). Without it, pure steps need not decrease the metric. The zero case (2439) and Pure case (2446) of the configuration SN proof fail; the Effect case (2451) already silently assumes the <code>1 +</code>.</p>
+</li>
+<li><p><strong>Determinism and Progress are asserted, not proved.</strong> Line 1723 says &quot;only one reduction applies&quot;, with no lemma behind it. The metric, tree SN, anti-reduction and the SN proof all rely on it. We need a Progress-and-determinism lemma in §4.</p>
+</li>
+<li><p><strong>Two corollaries fail once the theory has equations.</strong></p>
+<ul>
+<li>The uniqueness corollary for equational canonicity (1459–1477) is stated over unquotiented $\Sigma$-terms. It is false for writer: $\mathsf{tell}_e(\mathsf{ret}\,V)$ and $\mathsf{ret}\,V$ are equal but different terms.</li>
+<li>Tree canonicity $M \mapsto^* \mathsf{reify}(\llbracket M\rrbracket)$ (1737–1742) is ill-typed. With equations no choice of representative rescues it, since $\mathsf{tell}_e(\mathsf{ret}\,V)$ is already tree-normal.</li>
+</ul>
+</li>
+<li><p><strong>§5 formula slips.</strong></p>
+<ul>
+<li>The configuration-soundness calculation applies $\llbracket\mathsf{op}\rrbracket$ to the wrong argument (line 2249). The proof also needs algebraicity of stacks, which it does not mention.</li>
+<li>The definition of operational model is garbled: &quot;generated by $T$&quot; should be &quot;generated by $X$&quot;.</li>
+</ul>
+</li>
+</ol>
+<p><strong>Two ways to repair 1(a):</strong></p>
+<ul>
+<li><strong>Option A, frame rules.</strong> Replace the whole-stack rule with one rule per stack frame, each moving an operation out one frame: $\mathsf{op}(\vec M)\ \mathsf{to}\ x.N \mapsto \mathsf{op}(\vec{M_i\ \mathsf{to}\ x.N})$ and $\mathsf{op}(\vec M)\,V \mapsto \mathsf{op}(\vec{M_i\,V})$. Allow head steps under any stack, including $\bullet$, and keep congruence only in $\mapsto^*$.<ul>
+<li>Reduction becomes deterministic and closed under stacks.</li>
+<li>Anti-reduction becomes a three-line proof, and tree SN becomes immediate.</li>
+<li>This matches the <code>RMRCanonicity</code> Agda development.</li>
+</ul>
+</li>
+<li><strong>Option B, keep the paper&#39;s rule.</strong> Restrict anti-reduction to head steps, and prove it together with forward preservation using determinism of head steps. This is what the Cubical Agda port of the paper does (branch <code>popl-formalization</code>).</li>
+</ul>
+<p>Neither repaired proof has been checked in full on paper.</p>
+<hr>
+<h2>3. Required: weaken claims the paper does not prove</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Current phrase</th>
+<th>Problem</th>
+<th>Replace with</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&quot;adequacy&quot; (lines 186–188)</td>
+<td>no adequacy theorem is stated</td>
+<td>&quot;soundness, termination and canonicity&quot;, or prove the corollary in §5</td>
+</tr>
+<tr>
+<td>&quot;simple / mild syntactic condition&quot;</td>
+<td>affinity is semantic; line 1795 says so</td>
+<td>&quot;a condition on the polynomial presentation&quot;</td>
+</tr>
+<tr>
+<td>&quot;soundness w.r.t. the equational theory&quot; (Contribution 3)</td>
+<td>configurations are not terms; what we prove is soundness w.r.t. the denotational semantics</td>
+<td>&quot;both reductions preserve the interpretation in the free model&quot;</td>
+</tr>
+<tr>
+<td>&quot;non-determinism&quot; (abstract)</td>
+<td>finite powerset is a non-example</td>
+<td>&quot;weighted and probabilistic choice&quot;</td>
+</tr>
+<tr>
+<td>&quot;reproduces ad hoc operational semantics&quot;</td>
+<td>our state machine runs every initial state at once</td>
+<td>&quot;yields the familiar machines for logging and errors; for state, a machine that restricts to the familiar one&quot; (also answers Reviewer A, p. 19)</td>
+</tr>
+<tr>
+<td>&quot;eliminating effect-specific rules&quot;</td>
+<td>a polynomial presentation must still be supplied</td>
+<td>say what the user supplies</td>
+</tr>
+<tr>
+<td>&quot;compositional&quot;</td>
+<td>combining theories is never treated</td>
+<td>drop it, or move it to future work</td>
+</tr>
+<tr>
+<td>&quot;trivial&quot;, &quot;immediate&quot;, &quot;by construction&quot; soundness</td>
+<td>the printed proof had a slip and needs algebraicity of stacks</td>
+<td>&quot;follows by a short calculation with the monad laws and algebraicity of stacks&quot;</td>
+</tr>
+<tr>
+<td>&quot;errors&quot; (abstract)</td>
+<td>never introduced in §2</td>
+<td>add a theory of errors: one nullary $\mathsf{err}$, no equations, free model $X+1$</td>
+</tr>
+</tbody></table></div>
+<hr>
+<h2>4. Required: position the Effect rule against prior work</h2>
+<p><strong>The key fact.</strong> Configurations living in an effect monad and stepped through $\mu$ is <strong>not new</strong>. Three works already have effect steps of our shape: Gavazzo–Faggian 2021, Gavazzo–Treglia–Vanoni 2024 and Dagnino–Giannini–Zucca 2025. Abou-Saleh–Pattinson 2013 has free-model transition systems. None is cited in the submission. Our &quot;$Q = T$ is new&quot; framing from earlier notes is false.</p>
+<p><strong>Works with an effect rule that interprets operations during reduction</strong></p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th></th>
+<th><strong>Ours (POPL27)</strong></th>
+<th><strong>Gavazzo–Faggian, LICS 2021</strong></th>
+<th><strong>Gavazzo–Treglia–Vanoni, ESOP 2024</strong></th>
+<th><strong>Dagnino–Giannini–Zucca, ECOOP 2025</strong></th>
+<th><strong>Abou-Saleh–Pattinson, FoSSaCS 2013</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Language</td>
+<td>typed CBPV with stacks, no recursion</td>
+<td>untyped CBV λ</td>
+<td>untyped CBV λ</td>
+<td>fine-grain CBV, with recursion</td>
+<td>first-order While-like</td>
+</tr>
+<tr>
+<td>Effect parameter</td>
+<td>algebraic theory whose free model is a monadic container</td>
+<td><strong>linear</strong> (or affine) theory; its free model</td>
+<td>any monad (countable support) plus algebraic ops $g_{\mathsf{op}}$; no equations</td>
+<td>any monad plus generic effects $\mathsf{run}_{op}$; no equations</td>
+<td>countable Lawvere theory, no nullary ops (Cpo)</td>
+</tr>
+<tr>
+<td>Single-term effect step</td>
+<td>copy the stack into each operand, apply $\llbracket\mathsf{op}\rrbracket$, then $\mu$</td>
+<td>same shape</td>
+<td>same shape</td>
+<td>different: generic effect, frame pushed through $\mathsf{map}$</td>
+<td>coalgebra $P\to N(V+P)$</td>
+</tr>
+<tr>
+<td>Configuration step</td>
+<td><strong>one position</strong>, via a one-hole context, then $\mu$</td>
+<td><strong>any subset</strong> of leaves (Barr relational lifting, then $\mu$)</td>
+<td><strong>all leaves</strong> at once (Kleisli extension)</td>
+<td><strong>all leaves</strong> at once (Kleisli extension)</td>
+<td>all branches (Kleisli iteration), step-counted</td>
+</tr>
+<tr>
+<td>Global state</td>
+<td>yes</td>
+<td><strong>excluded</strong> (not linear or affine)</td>
+<td>possible, not worked out; typing excludes it</td>
+<td>defined, not run</td>
+<td>yes (via comodel)</td>
+</tr>
+<tr>
+<td>Multisets / distributions</td>
+<td><strong>no</strong> (not polynomial)</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Denotational semantics</td>
+<td>independent; each step proved sound</td>
+<td>none</td>
+<td>defined <em>from</em> reduction</td>
+<td>defined <em>from</em> reduction</td>
+<td>final coalgebra</td>
+</tr>
+<tr>
+<td>Main results</td>
+<td>soundness; SN under affinity; unique final configuration</td>
+<td>standardisation; confluence (commutative theories)</td>
+<td>intersection types; must-termination</td>
+<td>type-and-effect soundness</td>
+<td>adequacy, compositionality</td>
+</tr>
+</tbody></table></div>
+<p><strong>Other related work to cite and contrast</strong></p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Work</th>
+<th>What it does</th>
+<th>How it differs from us</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Plotkin–Power, FoSSaCS 2001; Plotkin, CALCO 2009</td>
+<td>effect <em>trees</em> for CBV PCF over a signature; termination and adequacy, with and without recursion</td>
+<td>effects stay uninterpreted. Reviewer A asked for both citations. This is the precedent for our tree semantics.</td>
+</tr>
+<tr>
+<td>Kavvos, OOPSLA 2025; Johann–Simpson–Voigtländer, LICS 2010</td>
+<td>tree semantics with recursion; Kavvos proves denotational equality implies observational equivalence</td>
+<td>stronger metatheory than ours (recursion, contextual equivalence), but over signatures and trees</td>
+</tr>
+<tr>
+<td>Forster–Kammar–Lindley–Pretnar, ICFP 2017</td>
+<td>terminating CBPV with handlers; denotational equality implies observational equivalence</td>
+<td>handlers, not interpretation in a free model</td>
+</tr>
+<tr>
+<td>Plotkin–Power, MFPS 2008 (tensors and comodels)</td>
+<td>a configuration is a pair (state, term) in a comodel tensor</td>
+<td>defines no reduction relation and leaves adequacy open. Plain comodels do not exist for errors or weighted lists. Neither framework generalizes the other: ours excludes infinite state.</td>
+</tr>
+<tr>
+<td>Ahman–Bauer, ESOP 2020 (runners, $\lambda_{coop}$)</td>
+<td>runners; effectful $T$-runners have co-operations $A\to T\,B$</td>
+<td>equational calculus with a sound denotational semantics. No operational semantics, adequacy or termination. Its kernel theory is fixed. Effectful and residual runners (also Katsumata–Rivas–Uustalu 2020) <strong>do</strong> handle errors.</td>
+</tr>
+<tr>
+<td>Goncharov–Tsampas–Urbat, POPL 2025; Goncharov et al., ICFP 2025</td>
+<td>abstract GSOS for CBPV; stateful GSOS via a reader/writer split</td>
+<td>effect-parameterized variants are left as future work. Discuss as in our rebuttal: we have configurations <em>containing</em> syntax, not behaviour under syntax.</td>
+</tr>
+<tr>
+<td>Purdy–Damato, CALCO 2025; Uustalu 2017</td>
+<td>monadic containers and their distributive laws</td>
+<td>the mathematical structure we assume; no operational semantics</td>
+</tr>
+<tr>
+<td>Azevedo de Amorim–Kura–Saville, LICS 2025 (Ex. V.5); Kammar, thesis (Thm 9.8)</td>
+<td>the $\mathcal C[FA]$ predicate (free lifting)</td>
+<td>cite these for the predicate rather than calling it new or an &quot;exception&quot; (lines 1266–1268)</td>
+</tr>
+</tbody></table></div>
+<p><strong>What we can claim</strong> (closest work first):</p>
+<ol>
+<li>an Effect rule that fires <strong>one operation at one position</strong>, chosen by a one-hole context of the polynomial, flattened by $\mu$;</li>
+<li>that <strong>every step preserves an independently defined denotational semantics</strong>;</li>
+<li><strong>strong normalization</strong> whenever no effect step duplicates (affinity), with the final configuration equal to the denotation at ground types;</li>
+<li>one generic theory covering <strong>global state</strong> (outside GF21), <strong>errors and weighted lists</strong> (outside plain comodels), for typed CBPV.</li>
+</ol>
+<p><strong>Do not claim:</strong></p>
+<ul>
+<li>that configurations in $T$ are new;</li>
+<li>&quot;errors have no runner&quot;; say &quot;no ordinary comodel&quot;;</li>
+<li>that we generalize comodels;</li>
+<li>that $\lambda_{coop}$ has operational soundness or adequacy;</li>
+<li>either way, whether our construction is a distributive law.</li>
+</ul>
+<p><strong>Draft contribution paragraph</strong> (not yet reviewed by Eric):</p>
+<blockquote>
+<p>Some configuration-based operational semantics already take a configuration to be an element of an effect monad applied to terms. Gavazzo and Faggian (LICS 2021) rewrite free-model elements for linear theories. Gavazzo, Treglia and Vanoni (ESOP 2024) and Dagnino, Giannini and Zucca (ECOOP 2025) advance every term of a monadic configuration at once, by Kleisli extension. Abou-Saleh and Pattinson (FoSSaCS 2013) give first-order While languages transition systems valued in the free model, and prove adequacy via final coalgebras. We bring this idea to a simply typed call-by-push-value calculus parameterised by a finitary algebraic theory whose free model monad is a monadic container. Within that setting we combine three things that none of the works we checked combines. (i) An Effect rule fires one operation at one position of the configuration, chosen by a one-hole context of the container, and flattens with the monad multiplication. (ii) Every step provably preserves the standard denotational semantics, which is defined independently of reduction. (iii) Reduction is strongly normalising whenever no effect step duplicates a subterm, and at ground types it ends in the denotation. The same generic theorems cover global state, which Gavazzo and Faggian&#39;s rewriting theory excludes, and errors and weighted lists, which have no comodel in Set. Several ingredients have precedents: soundness and termination for effect trees (Plotkin and Power, FoSSaCS 2001), step-wise invariance for single effects, and monadic containers. The contribution is their effect-generic combination and the position-focused formulation of the effect step.</p>
+</blockquote>
+<p><strong>Our weaknesses relative to these works</strong> (be honest in the related-work section):</p>
+<ul>
+<li>no recursion, where Plotkin–Power 2001, JSV, Kavvos and DGZ have it;</li>
+<li>no contextual equivalence;</li>
+<li>polynomial free models only, so no multisets or multidistributions, which GF21 and Faggian–Ronchi Della Rocca cover.</li>
+</ul>
+<hr>
+<h2>5. Optional, but recommended or invited</h2>
+<ul>
+<li><p><strong>Adequacy corollary.</strong> This is cheap, and it answers Reviewer A&#39;s framing of the paper as &quot;soundness and adequacy&quot;. For an affine model and closed $M : FA$ with $A$ ground, $\eta(M) \mapsto^* c$ with $c \cong \llbracket M\rrbracket$. It follows from three things:</p>
+<ul>
+<li>SN plus a unique final configuration;</li>
+<li>step soundness;</li>
+<li>ground closed values being in bijection with $\llbracket A\rrbracket$.</li>
+</ul>
+<p>Corollary: $\llbracket M\rrbracket = \llbracket N\rrbracket$ implies that $M$ and $N$ reach the same final configuration in every ground closing context. Cite Plotkin–Power 2001 for this form. Do not claim full abstraction, recursion, or anything beyond affine models. This depends on the §2 repairs going through.</p>
+</li>
+<li><p><strong>Non-affine examples from the rebuttal.</strong> Reviewer A says they are welcome but not required.</p>
+<ul>
+<li><em>Duplication combinator:</em> operations $d$ (arity 0) and $\cdot$ (arity 2), with $d\cdot x = x\cdot x = x\cdot d$. This is a monadic container that is not weakly normalizing: $\langle x\cdot y, (d/x, d/y)\rangle$ steps back to itself.</li>
+<li><em>Unital near-semiring:</em> $x*(y+z) = x*y + x*z$ duplicates $x$, yet the system is SN under a bespoke variant.</li>
+</ul>
+<p>Conclusion: affinity is common and easy to check, but it is not the most general condition.</p>
+</li>
+<li><p><strong>Future work</strong> (Reviewer A, optional): discrete generalized polynomial functors, which may not be the right level of generality; infinite arities; right modules and local state. Combining theories need not stay polynomial. For example, monoids ⊗ monoids gives commutative monoids, whose free model, finite multisets, is not polynomial.</p>
+</li>
+<li><p><strong>Mechanization footnote.</strong> The paper is ported to Cubical Agda: branch <code>popl-formalization</code> of <code>cbpv-functorial-opsem</code>, directory <code>agda/src/POPL/</code>. Claim only what that port covers.</p>
+</li>
+</ul>
+<hr>
+<h2>6. Decisions for Eric and Max</h2>
+<ol>
+<li><strong>How to repair tree reduction:</strong> Option A (frame rules) or Option B (keep the rule, restrict anti-reduction). See §2.</li>
+<li><strong>Scope of §5.</strong> Keep configurations in $T$, as submitted (recommended), or move to right modules over $T$, which covers local state and matches the newer Agda. The second is new material that the reviewers never saw.</li>
+<li><strong>Adequacy corollary:</strong> add it or not.</li>
+<li><strong>Related work:</strong> how much to add. Doing §4 honestly makes the novelty narrower than the submission implied. The meta-review explicitly asks us to say exactly what is new, so this is required.</li>
+</ol>
+<h2>7. Suggested order of work</h2>
+<ol>
+<li>Tree-reduction repair, Progress and determinism, then the anti-reduction, congruence and fundamental-lemma proofs.</li>
+<li>The metric <code>1 +</code> and the SN proof.</li>
+<li>The corollaries.</li>
+<li>§5: both Effect presentations, the definition of affinity, and the soundness slip.</li>
+<li>Claims (§3).</li>
+<li>Related work and Contributions (§4, item 1.7).</li>
+<li>Terminology and introduction (1.3, 1.4).</li>
+<li>Typos (1.6).</li>
+<li>Optional extras.</li>
+</ol>
+<h2>8. Provenance and caveats</h2>
+<ul>
+<li><strong>Sources.</strong> The review text and meta-review are from HotCRP. The bugs in §2 come from formalizing the paper in Agda plus a full read of the <code>.tex</code>; a 2026-10-07 statement review confirmed them independently. The tables in §4 come from reading each cited paper&#39;s definitions on 2026-10-07; the rows were checked against the sources.</li>
+<li><strong>Unchecked.</strong><ul>
+<li>Whether the repaired proofs go through.</li>
+<li>The determinism and Progress gap was not re-verified.</li>
+<li>JSV 2010 and Filinski 2010 were only partly read.</li>
+</ul>
+</li>
+<li><strong>The literature check was run by Claude and has not yet been reviewed by Eric.</strong> Read the GF21 and GTV24 definitions yourself before finalizing §4.</li>
+</ul>
+
+</main>
+</body>
+</html>
