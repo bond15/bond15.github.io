@@ -528,6 +528,82 @@ newℓ b M    = op (new b) []ᵥ λ _ _ → M</pre>
 </section>
 
 <!-- ================================================================== -->
+<section id="derived-rules">
+  <h3><span class="n">IV.5</span> Derived rules for the instances</h3>
+  <p class="point">Each instance defines its familiar operations from the general rules. Their typing rules follow, each with its one-line definition underneath.</p>
+
+  <div class="box ls">
+    <div class="tag">Local state ($\Lc = \mathsf{base}\ \Lc$; $\Theta \lockat{}{\fresh}$ written $\Theta \# \ell$)</div>
+    <h4>Cells</h4>
+    $$\frac{i \in \Fin(\wd\,\Theta)}{\Theta \vdash \mathsf{cell}\ i : \Lc}
+      \qquad\qquad
+      \frac{}{\Delta \# \ell \vdash \ell : \Lc}$$
+    <p>$\mathsf{cell}\ i = \mathsf{const}\ i$: an existing cell. $\ell = \nm_0$: the cell allocated by the nearest $\fresh$ lock.</p>
+    <h4>Reading and writing</h4>
+    $$\frac{\Theta \vdash V : \Lc \qquad \Theta \vdash M : B \qquad \Theta \vdash N : B}{\Theta \vdash \mathsf{read}\ V\ M\ N : B}
+      \qquad\qquad
+      \frac{\Theta \vdash V : \Lc \qquad b \in \mathsf{Bool} \qquad \Theta \vdash M : B}{\Theta \vdash \mathsf{write}\ V\ b\ M : B}$$
+    <p>$\mathsf{read}\ V\ M\ N = \op\ \mathsf{lookup}\ [V]\ (\mathsf{true} \mapsto M;\ \mathsf{false} \mapsto N)$ and $\mathsf{write}\ V\ b\ M = \op\ \mathsf{update}_b\ [V]\ (\ast \mapsto M)$. Neither has a lock, so the continuations stay in $\Theta$.</p>
+    <h4>Allocation</h4>
+    $$\frac{\Theta \# \ell \vdash M : B}{\Theta \vdash \mathsf{new}\ell\ b\ M : B}
+      \qquad\qquad
+      \frac{\Theta,\ x{:}\Lc \vdash M : B}{\Theta \vdash \mathsf{new}x\ b\ M : B}$$
+    <p>$\mathsf{new}\ell\ b\ M = \op\ \mathsf{new}_b\ [\,]\ (\ast \mapsto M)$: the continuation lives behind the lock, where $\ell$ is the new cell. $\mathsf{new}x$ is the familiar "$\mathsf{new}\ x := b\ \mathsf{in}\ M$" with an ordinary variable: it is $\mathsf{new}\ell$ applied to $M$ with $\ell$ substituted for $x$, the rest of $\Theta$ moved across the lock with $\up$.</p>
+    <h4>The modality $\Lc \multimap A = [\fresh]A$</h4>
+    $$\frac{\Theta \# \ell \vdash V : A}{\Theta \vdash \shut\,V : [\fresh]A}
+      \qquad\qquad
+      \frac{\Theta \vdash V : [\fresh]A}{\Theta \# \ell \vdash \mathsf{open}\ V : A}
+      \qquad\qquad
+      \frac{}{\Theta \vdash \mathsf{generic} : [\fresh]\Lc}$$
+    <p>$\fresh$ has exactly one way across, so $\shut$ takes one value. $\mathsf{open}$ (<code>openV</code>) is $\opn$ extended to all values: it returns the body of a $\shut$ directly. $\mathsf{generic} = \shut\,\ell$: "the cell you will get when you allocate".</p>
+  </div>
+
+  <div class="box gd">
+    <div class="tag">Guarded ($\triangleright A = [\tick]A$; $\Theta \lockat{}{\tick}$ written $\Theta, \checkmark$)</div>
+    <h4>The modality</h4>
+    $$\frac{\wd\,\Theta = n{+}1 \qquad \Theta, \checkmark \vdash V : A}{\Theta \vdash \shut\,V : \triangleright A}
+      \qquad\qquad
+      \frac{\wd\,\Theta = 0}{\Theta \vdash \shut\,() : \triangleright A}
+      \qquad\qquad
+      \frac{\Theta \vdash V : \triangleright A}{\Theta, \checkmark \vdash \mathsf{open}\ V : A}$$
+    <p>$\shut$ takes one value per way across the tick: one at stage $n{+}1$, none at stage 0. At stage 0 every $\triangleright A$ is the trivial $\shut\,()$, and there is no context $\Theta, \checkmark$ in which to open it.</p>
+    <h4>next and ⊛</h4>
+    $$\frac{\Theta \vdash V : A}{\Theta \vdash \mathsf{next}\ V : \triangleright A}
+      \qquad\qquad
+      \frac{\Theta \vdash f : \triangleright U(A \Rightarrow B) \qquad \Theta \vdash x : \triangleright A}{\Theta \vdash f \circledast x : \triangleright U B}$$
+    <p>$\mathsf{next}\ V = \shut\,(\up\ V)$: what you have now, you also have later (<code>box tick</code>). $f \circledast x = \shut\,\big(\mathsf{thunk}\,(\mathsf{app}\,(\mathsf{force}\,(\mathsf{open}\,f))\,(\mathsf{open}\,x))\big)$: open both behind one tick and apply.</p>
+    <h4>Taking a step</h4>
+    $$\frac{\Theta \vdash M : B}{\Theta \vdash \mathsf{delay}\ M : B}
+      \qquad\qquad
+      \frac{\Theta \vdash V : \triangleright U B}{\Theta \vdash \mathsf{later}\ V : B}$$
+    <p>$\mathsf{delay}\ M = \op\ \mathsf{step}\ [\,]\ (p \mapsto \up\ M)$: take a step, then run $M$ one stage later (the whole of $M$ moved across the tick). $\mathsf{later}\ V = \op\ \mathsf{step}\ [\,]\ (p \mapsto \mathsf{force}\,(\mathsf{open}\ V))$: take a step, then run the computation that was promised for later. Neither rule needs a side condition: at stage 0, $\mathsf{step}$ has no way across, so both become $\op\ \mathsf{step}\ [\,]\ ()$, a program that has run out of time.</p>
+  </div>
+
+  <details class="more"><summary>More precisely: the Agda definitions</summary><div class="inner">
+<pre>-- Instances/LocalState.agda
+cell i     = const i
+ℓ          = ne (nm ∋z)
+read V M N = op lookup (V ∷ᵥ []ᵥ) λ { true _ → M ; false _ → N }
+write V b M = op (update b) (V ∷ᵥ []ᵥ) λ _ _ → M
+newℓ b M   = op (new b) []ᵥ λ _ _ → M
+newx b M   = newℓ b (subC (⌜ dropL idR tt ⌝ ,ₛ ℓ) M)
+𝕃⊸ A       = [ fresh ] A
+generic    = shut λ _ → ℓ
+
+-- Instances/Guarded.agda
+▸ A        = [ tick ] A
+next       = box tick                      -- box κ V = shut λ p → ↑V p V
+delay M    = op step []ᵥ λ _ p → ↑C p M
+later V    = op step []ᵥ λ _ p → force (openV V p)
+f ⊛ x      = shut λ p → thunk (app (force (openV f p)) (openV x p))
+
+-- Syntax.agda
+openV (ne n) q   = ne (opn n)
+openV (shut V) q = V q</pre>
+    <p><code>↑V p</code> and <code>↑C p</code> move a whole value or computation across a lock by the renaming <code>dropL</code>, i.e. by $\up$ on every free variable. The guarded file also proves <code>delay₀ : delay M ≡ op step []ᵥ (λ _ ())</code> at stage 0.</p>
+  </div></details>
+</section>
+
 <div class="part" id="p5"><span class="label">Part V</span><h2>The semantics</h2><p>Each piece of syntax, interpreted with the structure it came from.</p></div>
 
 <section>
