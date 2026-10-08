@@ -280,6 +280,31 @@ window.MathJax = {
       </tbody>
     </table></div>
   </div>
+  <details class="more" id="instance-polynomials"><summary>The signature polynomials of local state and guarded recursion, explicitly</summary><div class="inner">
+    <h4>Local state ($\W = \Inj$)</h4>
+    <p>Three families of operations: lookup (one cell, two slots, no locks), update$_b$ for $b \in \mathsf{Bool}$ (one cell, one slot, no lock), and new$_b$ (no parameters, one slot behind $\fresh$). Plugging them into the formula for $\Ext$:</p>
+    $$\Ext\,X(n) \;=\; \underbrace{\sum_{i \in \Fin n} X(n) \times X(n)}_{\text{lookup cell } i} \;+\; \underbrace{\sum_{b \in \mathsf{Bool}} \sum_{i \in \Fin n} X(n)}_{\text{update}_b \text{ cell } i} \;+\; \underbrace{\sum_{b \in \mathsf{Bool}} X(n{+}1)}_{\text{new}_b}$$
+    <p>As presheaves, writing $\Lc$ for the presheaf of cells ($\Lc(n) = \Fin\,n$) and $\delta X(n) = X(n{+}1)$:</p>
+    $$\Ext\,X \;\cong\; \Lc \times X \times X \;+\; 2 \cdot (\Lc \times X) \;+\; 2 \cdot \delta X.$$
+    <div class="tablewrap"><table>
+      <thead><tr><th></th><th>shapes at $n$</th><th>arity of each shape</th></tr></thead>
+      <tbody>
+        <tr><td>lookup</td><td>$\Fin\,n$ (which cell)</td><td>$y\,n + y\,n$</td></tr>
+        <tr><td>update$_b$</td><td>$\Fin\,n$, for each $b$</td><td>$y\,n$</td></tr>
+        <tr><td>new$_b$</td><td>one, for each $b$</td><td>$y(n{+}1)$</td></tr>
+      </tbody>
+    </table></div>
+    <p>So $\Ext\,1(n) = \Fin\,n + 2 \cdot \Fin\,n + 2$, which has $3n + 2$ elements. Along an injection $f : n \hookrightarrow m$: a lookup or update of cell $i$ becomes one of cell $f(i)$, with its continuations carried along $f$; a new$_b$ keeps its shape, with its continuation carried along $f{+}1$ (old cells by $f$, new cell to new cell).</p>
+
+    <h4>Guarded recursion ($\W = \omega^{op}$)</h4>
+    <p>One operation, step: no parameters, one slot behind $\tick$. So there is one shape at every stage, and</p>
+    $$\Ext\,X(0) \;=\; 1, \qquad \Ext\,X(n{+}1) \;=\; X(n), \qquad\text{i.e.}\qquad \Ext \;=\; \triangleright.$$
+    <p>The signature functor <em>is</em> the later modality. At stage 0 the only element is the step with no continuation ($\Psh(0, X) = 1$); at stage $n{+}1$ an element is a step together with what happens at stage $n$. With one shape, $\Ext\,1 = 1$, so here the signature functor is an honest right adjoint, its left adjoint being "earlier", $\triangleleft$.</p>
+
+    <h4>For comparison: no worlds</h4>
+    <p>With $\W$ the one-object category and no lock kinds (the POPL setting), $\Ext\,X = \sum_o X^{\Ar\,o}$, e.g. $\Ext\,X = 1$ for a single error operation with no slots, or $\Ext\,X = X \times X + X + X$ for global boolean state (get with two slots, put$_0$, put$_1$).</p>
+    <p>In the code: <code>Instances/Polynomials.agda</code> builds <code>localStatePoly</code>, <code>guardedPoly</code> and <code>statePoly</code> (global state) with <code>P.polynomial</code>, and reads back shapes and scopes by <code>refl</code> (for example <code>newScope : scope n (new b) = n + 1</code>).</p>
+  </div></details>
   <details class="more"><summary>More precisely: positions of a word, and the formula for Ext</summary><div class="inner">
     $$\WPos\,\varepsilon\,w = \{\ast\} \qquad \WPos\,(\kappa\mu)\,w = \sum_{p \in \Pos_\kappa(w)} \WPos\,\mu\,\big(\sc_\kappa(w,p)\big) \qquad \wsc\,(\kappa\mu)\,w\,(p, \vec p) = \wsc\,\mu\,(\sc_\kappa(w,p))\,\vec p$$
     $$\Ext\,X(w) = \sum_o \sum_{\vec c \in \Par_o(w)} \prod_{a} \prod_{\vec p \in \WPos(\slot\,o\,a)(w)} X\big(\wsc(\slot\,o\,a)(w,\vec p)\big), \qquad \Par_o(w) = \prod_{b \in \params\,o} \Const_b(w).$$
