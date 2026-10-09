@@ -15,96 +15,106 @@ The guiding standard is the POPL'27 formalization (the separate clone `cbpv-popl
 
 This page is the literate Agda module `RMRCanonicity.PRACBPVGeneric.Everything`. It imports every module of the development, and every name in the tables links to its definition.
 
-<pre class="Agda"><a id="1705" class="Keyword">module</a> <a id="1712" href="RMRCanonicity.PRACBPVGeneric.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Everything</a> <a id="1752" class="Keyword">where</a>
+## Future investigation: guarded recursion
 
-<a id="1759" class="Keyword">import</a> <a id="1766" href="RMRCanonicity.PRACBPVGeneric.Closing.html" class="Module">RMRCanonicity.PRACBPVGeneric.Closing</a>
-<a id="1803" class="Keyword">import</a> <a id="1810" href="RMRCanonicity.PRACBPVGeneric.Fam.html" class="Module">RMRCanonicity.PRACBPVGeneric.Fam</a>
-<a id="1843" class="Keyword">import</a> <a id="1850" href="RMRCanonicity.PRACBPVGeneric.FinCount.html" class="Module">RMRCanonicity.PRACBPVGeneric.FinCount</a>
-<a id="1888" class="Keyword">import</a> <a id="1895" href="RMRCanonicity.PRACBPVGeneric.FinMax.html" class="Module">RMRCanonicity.PRACBPVGeneric.FinMax</a>
-<a id="1931" class="Keyword">import</a> <a id="1938" href="RMRCanonicity.PRACBPVGeneric.FinSum.html" class="Module">RMRCanonicity.PRACBPVGeneric.FinSum</a>
-<a id="1974" class="Keyword">import</a> <a id="1981" href="RMRCanonicity.PRACBPVGeneric.Instances.Constant.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Constant</a>
-<a id="2029" class="Keyword">import</a> <a id="2036" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.Common.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.Common</a>
-<a id="2093" class="Keyword">import</a> <a id="2100" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.Errors.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.Errors</a>
-<a id="2157" class="Keyword">import</a> <a id="2164" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.Everything</a>
-<a id="2225" class="Keyword">import</a> <a id="2232" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.State.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.State</a>
-<a id="2288" class="Keyword">import</a> <a id="2295" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.WeightedMonoid.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.WeightedMonoid</a>
-<a id="2360" class="Keyword">import</a> <a id="2367" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.Writer.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.Writer</a>
-<a id="2424" class="Keyword">import</a> <a id="2431" href="RMRCanonicity.PRACBPVGeneric.Instances.Guarded.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Guarded</a>
-<a id="2478" class="Keyword">import</a> <a id="2485" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.LocalState</a>
-<a id="2535" class="Keyword">import</a> <a id="2542" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.Error.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.Error</a>
-<a id="2596" class="Keyword">import</a> <a id="2603" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.Everything</a>
-<a id="2662" class="Keyword">import</a> <a id="2669" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.GlobalState.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.GlobalState</a>
-<a id="2729" class="Keyword">import</a> <a id="2736" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.Guarded.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.Guarded</a>
-<a id="2792" class="Keyword">import</a> <a id="2799" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.LocalState.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.LocalState</a>
-<a id="2858" class="Keyword">import</a> <a id="2865" href="RMRCanonicity.PRACBPVGeneric.Instances.Normalization.Error.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Normalization.Error</a>
-<a id="2924" class="Keyword">import</a> <a id="2931" href="RMRCanonicity.PRACBPVGeneric.Instances.Normalization.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Normalization.Everything</a>
-<a id="2995" class="Keyword">import</a> <a id="3002" href="RMRCanonicity.PRACBPVGeneric.Instances.Normalization.GlobalState.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Normalization.GlobalState</a>
-<a id="3067" class="Keyword">import</a> <a id="3074" href="RMRCanonicity.PRACBPVGeneric.Instances.Normalization.Guarded.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Normalization.Guarded</a>
-<a id="3135" class="Keyword">import</a> <a id="3142" href="RMRCanonicity.PRACBPVGeneric.Instances.Normalization.LocalState.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Normalization.LocalState</a>
-<a id="3206" class="Keyword">import</a> <a id="3213" href="RMRCanonicity.PRACBPVGeneric.Instances.Polynomials.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Polynomials</a>
-<a id="3264" class="Keyword">import</a> <a id="3271" href="RMRCanonicity.PRACBPVGeneric.Instances.SelfModule.Error.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.SelfModule.Error</a>
-<a id="3327" class="Keyword">import</a> <a id="3334" href="RMRCanonicity.PRACBPVGeneric.Instances.SelfModule.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.SelfModule.Everything</a>
-<a id="3395" class="Keyword">import</a> <a id="3402" href="RMRCanonicity.PRACBPVGeneric.Instances.SelfModule.List.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.SelfModule.List</a>
-<a id="3457" class="Keyword">import</a> <a id="3464" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Chain.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Chain</a>
-<a id="3510" class="Keyword">import</a> <a id="3517" href="RMRCanonicity.PRACBPVGeneric.Metatheory.ClosedLaws.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.ClosedLaws</a>
-<a id="3568" class="Keyword">import</a> <a id="3575" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Determinism.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Determinism</a>
-<a id="3627" class="Keyword">import</a> <a id="3634" href="RMRCanonicity.PRACBPVGeneric.Metatheory.EqLogicalRelation.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.EqLogicalRelation</a>
-<a id="3692" class="Keyword">import</a> <a id="3699" href="RMRCanonicity.PRACBPVGeneric.Metatheory.EqSubstitution.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.EqSubstitution</a>
-<a id="3754" class="Keyword">import</a> <a id="3761" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Equational.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Equational</a>
-<a id="3812" class="Keyword">import</a> <a id="3819" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Everything</a>
-<a id="3870" class="Keyword">import</a> <a id="3877" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Fundamental.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Fundamental</a>
-<a id="3929" class="Keyword">import</a> <a id="3936" href="RMRCanonicity.PRACBPVGeneric.Metatheory.LogicalRelation.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.LogicalRelation</a>
-<a id="3992" class="Keyword">import</a> <a id="3999" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Renaming.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Renaming</a>
-<a id="4048" class="Keyword">import</a> <a id="4055" href="RMRCanonicity.PRACBPVGeneric.Metatheory.SubstReduction.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.SubstReduction</a>
-<a id="4110" class="Keyword">import</a> <a id="4117" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Substitution.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Substitution</a>
-<a id="4170" class="Keyword">import</a> <a id="4177" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Termination.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Termination</a>
-<a id="4229" class="Keyword">import</a> <a id="4236" href="RMRCanonicity.PRACBPVGeneric.Metatheory.TermsSet.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.TermsSet</a>
-<a id="4285" class="Keyword">import</a> <a id="4292" href="RMRCanonicity.PRACBPVGeneric.Metatheory.TreeNormalization.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.TreeNormalization</a>
-<a id="4350" class="Keyword">import</a> <a id="4357" href="RMRCanonicity.PRACBPVGeneric.Metatheory.TreeSize.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.TreeSize</a>
-<a id="4406" class="Keyword">import</a> <a id="4413" href="RMRCanonicity.PRACBPVGeneric.Metatheory.TypesSet.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.TypesSet</a>
-<a id="4462" class="Keyword">import</a> <a id="4469" href="RMRCanonicity.PRACBPVGeneric.Multiset.html" class="Module">RMRCanonicity.PRACBPVGeneric.Multiset</a>
-<a id="4507" class="Keyword">import</a> <a id="4514" href="RMRCanonicity.PRACBPVGeneric.Polynomial.html" class="Module">RMRCanonicity.PRACBPVGeneric.Polynomial</a>
-<a id="4554" class="Keyword">import</a> <a id="4561" href="RMRCanonicity.PRACBPVGeneric.Properties.html" class="Module">RMRCanonicity.PRACBPVGeneric.Properties</a>
-<a id="4601" class="Keyword">import</a> <a id="4608" href="RMRCanonicity.PRACBPVGeneric.Reduction.html" class="Module">RMRCanonicity.PRACBPVGeneric.Reduction</a>
-<a id="4647" class="Keyword">import</a> <a id="4654" href="RMRCanonicity.PRACBPVGeneric.Semantics.Affinity.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Affinity</a>
-<a id="4702" class="Keyword">import</a> <a id="4709" href="RMRCanonicity.PRACBPVGeneric.Semantics.Algebra.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Algebra</a>
-<a id="4756" class="Keyword">import</a> <a id="4763" href="RMRCanonicity.PRACBPVGeneric.Semantics.Branching.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Branching</a>
-<a id="4812" class="Keyword">import</a> <a id="4819" href="RMRCanonicity.PRACBPVGeneric.Semantics.Closed.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Closed</a>
-<a id="4865" class="Keyword">import</a> <a id="4872" href="RMRCanonicity.PRACBPVGeneric.Semantics.ConfigCanonicity.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.ConfigCanonicity</a>
-<a id="4928" class="Keyword">import</a> <a id="4935" href="RMRCanonicity.PRACBPVGeneric.Semantics.Denotation.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Denotation</a>
-<a id="4985" class="Keyword">import</a> <a id="4992" href="RMRCanonicity.PRACBPVGeneric.Semantics.EqCanonicity.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.EqCanonicity</a>
-<a id="5044" class="Keyword">import</a> <a id="5051" href="RMRCanonicity.PRACBPVGeneric.Semantics.EquationalSoundness.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.EquationalSoundness</a>
-<a id="5110" class="Keyword">import</a> <a id="5117" href="RMRCanonicity.PRACBPVGeneric.Semantics.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Everything</a>
-<a id="5167" class="Keyword">import</a> <a id="5174" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Closed.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Closed</a>
-<a id="5225" class="Keyword">import</a> <a id="5232" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Comparison.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Comparison</a>
-<a id="5287" class="Keyword">import</a> <a id="5294" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Denotation.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Denotation</a>
-<a id="5349" class="Keyword">import</a> <a id="5356" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Renaming.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Renaming</a>
-<a id="5409" class="Keyword">import</a> <a id="5416" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Soundness.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Soundness</a>
-<a id="5470" class="Keyword">import</a> <a id="5477" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Substitution.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Substitution</a>
-<a id="5534" class="Keyword">import</a> <a id="5541" href="RMRCanonicity.PRACBPVGeneric.Semantics.FreeModel.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.FreeModel</a>
-<a id="5590" class="Keyword">import</a> <a id="5597" href="RMRCanonicity.PRACBPVGeneric.Semantics.Ground.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Ground</a>
-<a id="5643" class="Keyword">import</a> <a id="5650" href="RMRCanonicity.PRACBPVGeneric.Semantics.GuardedLock.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.GuardedLock</a>
-<a id="5701" class="Keyword">import</a> <a id="5708" href="RMRCanonicity.PRACBPVGeneric.Semantics.Lock.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Lock</a>
-<a id="5752" class="Keyword">import</a> <a id="5759" href="RMRCanonicity.PRACBPVGeneric.Semantics.Machine.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Machine</a>
-<a id="5806" class="Keyword">import</a> <a id="5813" href="RMRCanonicity.PRACBPVGeneric.Semantics.Normalization.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Normalization</a>
-<a id="5866" class="Keyword">import</a> <a id="5873" href="RMRCanonicity.PRACBPVGeneric.Semantics.PolyMachine.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.PolyMachine</a>
-<a id="5924" class="Keyword">import</a> <a id="5931" href="RMRCanonicity.PRACBPVGeneric.Semantics.PolySelfModule.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.PolySelfModule</a>
-<a id="5985" class="Keyword">import</a> <a id="5992" href="RMRCanonicity.PRACBPVGeneric.Semantics.Presheaf.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Presheaf</a>
-<a id="6040" class="Keyword">import</a> <a id="6047" href="RMRCanonicity.PRACBPVGeneric.Semantics.Renaming.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Renaming</a>
-<a id="6095" class="Keyword">import</a> <a id="6102" href="RMRCanonicity.PRACBPVGeneric.Semantics.RunMachine.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.RunMachine</a>
-<a id="6152" class="Keyword">import</a> <a id="6159" href="RMRCanonicity.PRACBPVGeneric.Semantics.RunNormalization.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.RunNormalization</a>
-<a id="6215" class="Keyword">import</a> <a id="6222" href="RMRCanonicity.PRACBPVGeneric.Semantics.Runner.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Runner</a>
-<a id="6268" class="Keyword">import</a> <a id="6275" href="RMRCanonicity.PRACBPVGeneric.Semantics.RunnerAffine.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.RunnerAffine</a>
-<a id="6327" class="Keyword">import</a> <a id="6334" href="RMRCanonicity.PRACBPVGeneric.Semantics.SelfCanonicity.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.SelfCanonicity</a>
-<a id="6388" class="Keyword">import</a> <a id="6395" href="RMRCanonicity.PRACBPVGeneric.Semantics.SelfMachine.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.SelfMachine</a>
-<a id="6446" class="Keyword">import</a> <a id="6453" href="RMRCanonicity.PRACBPVGeneric.Semantics.SelfModule.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.SelfModule</a>
-<a id="6503" class="Keyword">import</a> <a id="6510" href="RMRCanonicity.PRACBPVGeneric.Semantics.Soundness.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Soundness</a>
-<a id="6559" class="Keyword">import</a> <a id="6566" href="RMRCanonicity.PRACBPVGeneric.Semantics.StrongTheory.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.StrongTheory</a>
-<a id="6618" class="Keyword">import</a> <a id="6625" href="RMRCanonicity.PRACBPVGeneric.Semantics.Substitution.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Substitution</a>
-<a id="6677" class="Keyword">import</a> <a id="6684" href="RMRCanonicity.PRACBPVGeneric.Semantics.TreeCanonicity.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.TreeCanonicity</a>
-<a id="6738" class="Keyword">import</a> <a id="6745" href="RMRCanonicity.PRACBPVGeneric.Signature.html" class="Module">RMRCanonicity.PRACBPVGeneric.Signature</a>
-<a id="6784" class="Keyword">import</a> <a id="6791" href="RMRCanonicity.PRACBPVGeneric.Syntax.html" class="Module">RMRCanonicity.PRACBPVGeneric.Syntax</a>
-<a id="6827" class="Keyword">import</a> <a id="6834" href="RMRCanonicity.PRACBPVGeneric.Types.html" class="Module">RMRCanonicity.PRACBPVGeneric.Types</a>
+Adding a guarded fixpoint to the guarded instance would give a calculus with general recursion. `fix` would unfold behind a tick. None of what follows is formalized. It has also not yet been checked against prior work: Clouston, Bizjak, Grathwohl and Birkedal (FoSSaCS 2015); Paviotti, Møgelberg and Birkedal; Guarded Interaction Trees (Frumin, Timany and Birkedal, POPL 2024); and the RaTT line.
+
+1. **Termination bounded by fuel, with the world as the fuel.** At world `n`, `fix` unrolls behind a tick, so a run either returns or times out. The target theorem is that every run from a configuration at world `n` ends after finitely many steps, by returning or by timing out. It should hold for every effect theory, with the steps counted by the world itself rather than by an added index.
+2. **Step-indexing from the lock.** The Kripke logical relation is already indexed by worlds. With `fix`, the world plays the role of the step index, and the tick lock supplies the "later" of a step-indexed relation. The question is whether the fundamental lemma goes through for every signature, so that step-indexed logical relations arise from the signature's lock.
+3. **Adequacy at every world, for every effect theory.** Machine runs at world `n` should agree with the presheaf denotation at `n`, for every effect theory whose configuration module is affine. The closest known work is Guarded Interaction Trees and Kavvos's adequacy for algebraic effects, but neither is a configuration machine built from right modules.
+
+Adding `fix` breaks the current proofs of strong normalization, for tree reduction and for the machine. They would be replaced by versions bounded by fuel.
+
+<pre class="Agda"><a id="3424" class="Keyword">module</a> <a id="3431" href="RMRCanonicity.PRACBPVGeneric.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Everything</a> <a id="3471" class="Keyword">where</a>
+
+<a id="3478" class="Keyword">import</a> <a id="3485" href="RMRCanonicity.PRACBPVGeneric.Closing.html" class="Module">RMRCanonicity.PRACBPVGeneric.Closing</a>
+<a id="3522" class="Keyword">import</a> <a id="3529" href="RMRCanonicity.PRACBPVGeneric.Fam.html" class="Module">RMRCanonicity.PRACBPVGeneric.Fam</a>
+<a id="3562" class="Keyword">import</a> <a id="3569" href="RMRCanonicity.PRACBPVGeneric.FinCount.html" class="Module">RMRCanonicity.PRACBPVGeneric.FinCount</a>
+<a id="3607" class="Keyword">import</a> <a id="3614" href="RMRCanonicity.PRACBPVGeneric.FinMax.html" class="Module">RMRCanonicity.PRACBPVGeneric.FinMax</a>
+<a id="3650" class="Keyword">import</a> <a id="3657" href="RMRCanonicity.PRACBPVGeneric.FinSum.html" class="Module">RMRCanonicity.PRACBPVGeneric.FinSum</a>
+<a id="3693" class="Keyword">import</a> <a id="3700" href="RMRCanonicity.PRACBPVGeneric.Instances.Constant.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Constant</a>
+<a id="3748" class="Keyword">import</a> <a id="3755" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.Common.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.Common</a>
+<a id="3812" class="Keyword">import</a> <a id="3819" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.Errors.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.Errors</a>
+<a id="3876" class="Keyword">import</a> <a id="3883" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.Everything</a>
+<a id="3944" class="Keyword">import</a> <a id="3951" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.State.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.State</a>
+<a id="4007" class="Keyword">import</a> <a id="4014" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.WeightedMonoid.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.WeightedMonoid</a>
+<a id="4079" class="Keyword">import</a> <a id="4086" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.Writer.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.Writer</a>
+<a id="4143" class="Keyword">import</a> <a id="4150" href="RMRCanonicity.PRACBPVGeneric.Instances.Guarded.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Guarded</a>
+<a id="4197" class="Keyword">import</a> <a id="4204" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.LocalState</a>
+<a id="4254" class="Keyword">import</a> <a id="4261" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.Error.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.Error</a>
+<a id="4315" class="Keyword">import</a> <a id="4322" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.Everything</a>
+<a id="4381" class="Keyword">import</a> <a id="4388" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.GlobalState.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.GlobalState</a>
+<a id="4448" class="Keyword">import</a> <a id="4455" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.Guarded.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.Guarded</a>
+<a id="4511" class="Keyword">import</a> <a id="4518" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.LocalState.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.LocalState</a>
+<a id="4577" class="Keyword">import</a> <a id="4584" href="RMRCanonicity.PRACBPVGeneric.Instances.Normalization.Error.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Normalization.Error</a>
+<a id="4643" class="Keyword">import</a> <a id="4650" href="RMRCanonicity.PRACBPVGeneric.Instances.Normalization.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Normalization.Everything</a>
+<a id="4714" class="Keyword">import</a> <a id="4721" href="RMRCanonicity.PRACBPVGeneric.Instances.Normalization.GlobalState.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Normalization.GlobalState</a>
+<a id="4786" class="Keyword">import</a> <a id="4793" href="RMRCanonicity.PRACBPVGeneric.Instances.Normalization.Guarded.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Normalization.Guarded</a>
+<a id="4854" class="Keyword">import</a> <a id="4861" href="RMRCanonicity.PRACBPVGeneric.Instances.Normalization.LocalState.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Normalization.LocalState</a>
+<a id="4925" class="Keyword">import</a> <a id="4932" href="RMRCanonicity.PRACBPVGeneric.Instances.Polynomials.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Polynomials</a>
+<a id="4983" class="Keyword">import</a> <a id="4990" href="RMRCanonicity.PRACBPVGeneric.Instances.SelfModule.Error.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.SelfModule.Error</a>
+<a id="5046" class="Keyword">import</a> <a id="5053" href="RMRCanonicity.PRACBPVGeneric.Instances.SelfModule.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.SelfModule.Everything</a>
+<a id="5114" class="Keyword">import</a> <a id="5121" href="RMRCanonicity.PRACBPVGeneric.Instances.SelfModule.List.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.SelfModule.List</a>
+<a id="5176" class="Keyword">import</a> <a id="5183" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Chain.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Chain</a>
+<a id="5229" class="Keyword">import</a> <a id="5236" href="RMRCanonicity.PRACBPVGeneric.Metatheory.ClosedLaws.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.ClosedLaws</a>
+<a id="5287" class="Keyword">import</a> <a id="5294" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Determinism.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Determinism</a>
+<a id="5346" class="Keyword">import</a> <a id="5353" href="RMRCanonicity.PRACBPVGeneric.Metatheory.EqLogicalRelation.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.EqLogicalRelation</a>
+<a id="5411" class="Keyword">import</a> <a id="5418" href="RMRCanonicity.PRACBPVGeneric.Metatheory.EqSubstitution.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.EqSubstitution</a>
+<a id="5473" class="Keyword">import</a> <a id="5480" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Equational.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Equational</a>
+<a id="5531" class="Keyword">import</a> <a id="5538" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Everything</a>
+<a id="5589" class="Keyword">import</a> <a id="5596" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Fundamental.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Fundamental</a>
+<a id="5648" class="Keyword">import</a> <a id="5655" href="RMRCanonicity.PRACBPVGeneric.Metatheory.LogicalRelation.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.LogicalRelation</a>
+<a id="5711" class="Keyword">import</a> <a id="5718" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Renaming.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Renaming</a>
+<a id="5767" class="Keyword">import</a> <a id="5774" href="RMRCanonicity.PRACBPVGeneric.Metatheory.SubstReduction.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.SubstReduction</a>
+<a id="5829" class="Keyword">import</a> <a id="5836" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Substitution.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Substitution</a>
+<a id="5889" class="Keyword">import</a> <a id="5896" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Termination.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Termination</a>
+<a id="5948" class="Keyword">import</a> <a id="5955" href="RMRCanonicity.PRACBPVGeneric.Metatheory.TermsSet.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.TermsSet</a>
+<a id="6004" class="Keyword">import</a> <a id="6011" href="RMRCanonicity.PRACBPVGeneric.Metatheory.TreeNormalization.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.TreeNormalization</a>
+<a id="6069" class="Keyword">import</a> <a id="6076" href="RMRCanonicity.PRACBPVGeneric.Metatheory.TreeSize.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.TreeSize</a>
+<a id="6125" class="Keyword">import</a> <a id="6132" href="RMRCanonicity.PRACBPVGeneric.Metatheory.TypesSet.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.TypesSet</a>
+<a id="6181" class="Keyword">import</a> <a id="6188" href="RMRCanonicity.PRACBPVGeneric.Multiset.html" class="Module">RMRCanonicity.PRACBPVGeneric.Multiset</a>
+<a id="6226" class="Keyword">import</a> <a id="6233" href="RMRCanonicity.PRACBPVGeneric.Polynomial.html" class="Module">RMRCanonicity.PRACBPVGeneric.Polynomial</a>
+<a id="6273" class="Keyword">import</a> <a id="6280" href="RMRCanonicity.PRACBPVGeneric.Properties.html" class="Module">RMRCanonicity.PRACBPVGeneric.Properties</a>
+<a id="6320" class="Keyword">import</a> <a id="6327" href="RMRCanonicity.PRACBPVGeneric.Reduction.html" class="Module">RMRCanonicity.PRACBPVGeneric.Reduction</a>
+<a id="6366" class="Keyword">import</a> <a id="6373" href="RMRCanonicity.PRACBPVGeneric.Semantics.Affinity.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Affinity</a>
+<a id="6421" class="Keyword">import</a> <a id="6428" href="RMRCanonicity.PRACBPVGeneric.Semantics.Algebra.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Algebra</a>
+<a id="6475" class="Keyword">import</a> <a id="6482" href="RMRCanonicity.PRACBPVGeneric.Semantics.Branching.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Branching</a>
+<a id="6531" class="Keyword">import</a> <a id="6538" href="RMRCanonicity.PRACBPVGeneric.Semantics.Closed.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Closed</a>
+<a id="6584" class="Keyword">import</a> <a id="6591" href="RMRCanonicity.PRACBPVGeneric.Semantics.ConfigCanonicity.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.ConfigCanonicity</a>
+<a id="6647" class="Keyword">import</a> <a id="6654" href="RMRCanonicity.PRACBPVGeneric.Semantics.Denotation.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Denotation</a>
+<a id="6704" class="Keyword">import</a> <a id="6711" href="RMRCanonicity.PRACBPVGeneric.Semantics.EqCanonicity.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.EqCanonicity</a>
+<a id="6763" class="Keyword">import</a> <a id="6770" href="RMRCanonicity.PRACBPVGeneric.Semantics.EquationalSoundness.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.EquationalSoundness</a>
+<a id="6829" class="Keyword">import</a> <a id="6836" href="RMRCanonicity.PRACBPVGeneric.Semantics.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Everything</a>
+<a id="6886" class="Keyword">import</a> <a id="6893" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Closed.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Closed</a>
+<a id="6944" class="Keyword">import</a> <a id="6951" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Comparison.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Comparison</a>
+<a id="7006" class="Keyword">import</a> <a id="7013" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Denotation.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Denotation</a>
+<a id="7068" class="Keyword">import</a> <a id="7075" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Renaming.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Renaming</a>
+<a id="7128" class="Keyword">import</a> <a id="7135" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Soundness.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Soundness</a>
+<a id="7189" class="Keyword">import</a> <a id="7196" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Substitution.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Substitution</a>
+<a id="7253" class="Keyword">import</a> <a id="7260" href="RMRCanonicity.PRACBPVGeneric.Semantics.FreeModel.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.FreeModel</a>
+<a id="7309" class="Keyword">import</a> <a id="7316" href="RMRCanonicity.PRACBPVGeneric.Semantics.Ground.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Ground</a>
+<a id="7362" class="Keyword">import</a> <a id="7369" href="RMRCanonicity.PRACBPVGeneric.Semantics.GuardedLock.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.GuardedLock</a>
+<a id="7420" class="Keyword">import</a> <a id="7427" href="RMRCanonicity.PRACBPVGeneric.Semantics.Lock.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Lock</a>
+<a id="7471" class="Keyword">import</a> <a id="7478" href="RMRCanonicity.PRACBPVGeneric.Semantics.Machine.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Machine</a>
+<a id="7525" class="Keyword">import</a> <a id="7532" href="RMRCanonicity.PRACBPVGeneric.Semantics.Normalization.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Normalization</a>
+<a id="7585" class="Keyword">import</a> <a id="7592" href="RMRCanonicity.PRACBPVGeneric.Semantics.PolyMachine.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.PolyMachine</a>
+<a id="7643" class="Keyword">import</a> <a id="7650" href="RMRCanonicity.PRACBPVGeneric.Semantics.PolySelfModule.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.PolySelfModule</a>
+<a id="7704" class="Keyword">import</a> <a id="7711" href="RMRCanonicity.PRACBPVGeneric.Semantics.Presheaf.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Presheaf</a>
+<a id="7759" class="Keyword">import</a> <a id="7766" href="RMRCanonicity.PRACBPVGeneric.Semantics.Renaming.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Renaming</a>
+<a id="7814" class="Keyword">import</a> <a id="7821" href="RMRCanonicity.PRACBPVGeneric.Semantics.RunMachine.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.RunMachine</a>
+<a id="7871" class="Keyword">import</a> <a id="7878" href="RMRCanonicity.PRACBPVGeneric.Semantics.RunNormalization.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.RunNormalization</a>
+<a id="7934" class="Keyword">import</a> <a id="7941" href="RMRCanonicity.PRACBPVGeneric.Semantics.Runner.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Runner</a>
+<a id="7987" class="Keyword">import</a> <a id="7994" href="RMRCanonicity.PRACBPVGeneric.Semantics.RunnerAffine.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.RunnerAffine</a>
+<a id="8046" class="Keyword">import</a> <a id="8053" href="RMRCanonicity.PRACBPVGeneric.Semantics.SelfCanonicity.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.SelfCanonicity</a>
+<a id="8107" class="Keyword">import</a> <a id="8114" href="RMRCanonicity.PRACBPVGeneric.Semantics.SelfMachine.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.SelfMachine</a>
+<a id="8165" class="Keyword">import</a> <a id="8172" href="RMRCanonicity.PRACBPVGeneric.Semantics.SelfModule.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.SelfModule</a>
+<a id="8222" class="Keyword">import</a> <a id="8229" href="RMRCanonicity.PRACBPVGeneric.Semantics.Soundness.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Soundness</a>
+<a id="8278" class="Keyword">import</a> <a id="8285" href="RMRCanonicity.PRACBPVGeneric.Semantics.StrongTheory.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.StrongTheory</a>
+<a id="8337" class="Keyword">import</a> <a id="8344" href="RMRCanonicity.PRACBPVGeneric.Semantics.Substitution.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Substitution</a>
+<a id="8396" class="Keyword">import</a> <a id="8403" href="RMRCanonicity.PRACBPVGeneric.Semantics.TreeCanonicity.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.TreeCanonicity</a>
+<a id="8457" class="Keyword">import</a> <a id="8464" href="RMRCanonicity.PRACBPVGeneric.Signature.html" class="Module">RMRCanonicity.PRACBPVGeneric.Signature</a>
+<a id="8503" class="Keyword">import</a> <a id="8510" href="RMRCanonicity.PRACBPVGeneric.Syntax.html" class="Module">RMRCanonicity.PRACBPVGeneric.Syntax</a>
+<a id="8546" class="Keyword">import</a> <a id="8553" href="RMRCanonicity.PRACBPVGeneric.Types.html" class="Module">RMRCanonicity.PRACBPVGeneric.Types</a>
 </pre>
 ## Build
 
