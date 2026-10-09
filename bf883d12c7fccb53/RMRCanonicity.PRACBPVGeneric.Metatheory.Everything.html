@@ -1,0 +1,75 @@
+<!DOCTYPE HTML>
+<html><head><meta name="robots" content="noindex, nofollow"><meta charset="utf-8"><title>RMRCanonicity.PRACBPVGeneric.Metatheory.Everything</title><link rel="stylesheet" href="Agda.css"></head><body><pre class="Agda"><a id="1" class="Comment">-- The syntactic metatheory (syntax only: no Semantics module is imported,</a>
+<a id="76" class="Comment">-- except that the equational theory takes a theory over the polynomial,</a>
+<a id="149" class="Comment">-- Semantics.Machine.Equations, as its parameter):</a>
+<a id="200" class="Comment">--</a>
+<a id="203" class="Comment">--   TypesSet     ValTy and CompTy are sets</a>
+<a id="247" class="Comment">--   TermsSet     bs ∋ b, Ne, Val, Vals and Comp are sets (Thm 8.1)</a>
+<a id="315" class="Comment">--   Renaming     renaming identity, fusion and extensionality over paths</a>
+<a id="389" class="Comment">--                of telescopes (Thms 8.2-8.4)</a>
+<a id="436" class="Comment">--   Substitution substituting a renaming, identity, the three fusions and</a>
+<a id="511" class="Comment">--                extensionality of substitution (Thms 5.1-5.5), and the</a>
+<a id="584" class="Comment">--                one-variable and one-lock laws (5.6)</a>
+<a id="639" class="Comment">--   SubstReduction  tree reduction is stable under substitution and</a>
+<a id="708" class="Comment">--                renaming (5.6)</a>
+<a id="741" class="Comment">--   Determinism  tree reduction is deterministic; return and op are</a>
+<a id="810" class="Comment">--                normal (6.1)</a>
+<a id="841" class="Comment">--   Chain        formal composites of substitutions and their laws (6.3)</a>
+<a id="915" class="Comment">--   LogicalRelation  lock telescopes, the Kripke logical relation and its</a>
+<a id="990" class="Comment">--                closure properties (6.2, 6.4, Lemma 6.5)</a>
+<a id="1049" class="Comment">--   Fundamental  the compatibility lemmas and the fundamental lemma</a>
+<a id="1118" class="Comment">--                (Thm 6.6)</a>
+<a id="1146" class="Comment">--   Termination  every computation of type F A on a lock telescope reduces</a>
+<a id="1222" class="Comment">--                to an operation tree (Cor 6.7, Thm 6.8)</a>
+<a id="1280" class="Comment">--   TreeNormalization  strong normalization of tree reduction: every</a>
+<a id="1350" class="Comment">--                computation of type F A on a lock telescope is accessible</a>
+<a id="1426" class="Comment">--                for the converse of ↦ (parity stage G)</a>
+<a id="1483" class="Comment">--   ClosedLaws   closedLaws : Closing.ClosedLaws (Cor 8.5)</a>
+<a id="1543" class="Comment">--   TreeSize     the height of a derivation of the logical relation: unique,</a>
+<a id="1621" class="Comment">--                not raised by substitution or by closing locks; the size</a>
+<a id="1696" class="Comment">--                sz of a closed computation (Stage C)</a>
+<a id="1751" class="Comment">--   Equational   the equational theory ≈ over a theory: equivalence,</a>
+<a id="1821" class="Comment">--                congruence, β and η (stack-form F-η, the lock modality),</a>
+<a id="1896" class="Comment">--                algebraicity of operations, the theory&#39;s equations</a>
+<a id="1965" class="Comment">--                (parity stage F)</a>
+<a id="2000" class="Comment">--   EqSubstitution  ≈ is closed under substitution and chains</a>
+<a id="2063" class="Comment">--   EqLogicalRelation  the equational logical relation (≈-closed), its</a>
+<a id="2135" class="Comment">--                fundamental theorem, and equational canonicity</a>
+<a id="2200" class="Comment">--</a>
+<a id="2203" class="Comment">-- Every module that needs a set of types takes isSet Lk and isSet Base as</a>
+<a id="2278" class="Comment">-- hypotheses (LockSig does not assume them).</a>
+<a id="2324" class="Keyword">module</a> <a id="2331" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Everything</a> <a id="2382" class="Keyword">where</a>
+
+<a id="2389" class="Keyword">open</a> <a id="2394" class="Keyword">import</a> <a id="2401" href="Cubical.Foundations.Prelude.html" class="Module">Cubical.Foundations.Prelude</a> <a id="2429" class="Keyword">using</a> <a id="2435" class="Symbol">(</a><a id="2436" href="Cubical.Foundations.Prelude.html#15579" class="Function">isSet</a><a id="2441" class="Symbol">;</a> <a id="2443" href="Cubical.Foundations.Prelude.html#20549" class="Function">isProp→isSet</a><a id="2455" class="Symbol">;</a> <a id="2457" href="Cubical.Foundations.Prelude.html#892" class="Function">refl</a><a id="2461" class="Symbol">)</a>
+
+<a id="2464" class="Keyword">import</a> <a id="2471" href="RMRCanonicity.PRACBPVGeneric.Metatheory.TypesSet.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.TypesSet</a>
+<a id="2520" class="Keyword">import</a> <a id="2527" href="RMRCanonicity.PRACBPVGeneric.Metatheory.TermsSet.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.TermsSet</a>
+<a id="2576" class="Keyword">import</a> <a id="2583" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Renaming.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Renaming</a>
+<a id="2632" class="Keyword">import</a> <a id="2639" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Substitution.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Substitution</a>
+<a id="2692" class="Keyword">import</a> <a id="2699" href="RMRCanonicity.PRACBPVGeneric.Metatheory.SubstReduction.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.SubstReduction</a>
+<a id="2754" class="Keyword">import</a> <a id="2761" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Determinism.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Determinism</a>
+<a id="2813" class="Keyword">import</a> <a id="2820" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Chain.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Chain</a>
+<a id="2866" class="Keyword">import</a> <a id="2873" href="RMRCanonicity.PRACBPVGeneric.Metatheory.LogicalRelation.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.LogicalRelation</a>
+<a id="2929" class="Keyword">import</a> <a id="2936" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Fundamental.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Fundamental</a>
+<a id="2988" class="Keyword">import</a> <a id="2995" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Termination.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Termination</a>
+<a id="3047" class="Keyword">import</a> <a id="3054" href="RMRCanonicity.PRACBPVGeneric.Metatheory.TreeNormalization.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.TreeNormalization</a>
+<a id="3112" class="Keyword">import</a> <a id="3119" href="RMRCanonicity.PRACBPVGeneric.Metatheory.ClosedLaws.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.ClosedLaws</a>
+<a id="3170" class="Keyword">import</a> <a id="3177" href="RMRCanonicity.PRACBPVGeneric.Metatheory.TreeSize.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.TreeSize</a>
+<a id="3226" class="Keyword">import</a> <a id="3233" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Equational.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.Equational</a>
+<a id="3284" class="Keyword">import</a> <a id="3291" href="RMRCanonicity.PRACBPVGeneric.Metatheory.EqSubstitution.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.EqSubstitution</a>
+<a id="3346" class="Keyword">import</a> <a id="3353" href="RMRCanonicity.PRACBPVGeneric.Metatheory.EqLogicalRelation.html" class="Module">RMRCanonicity.PRACBPVGeneric.Metatheory.EqLogicalRelation</a>
+
+<a id="3412" class="Comment">-- a test instantiation: local state (both sets have one element)</a>
+<a id="3478" class="Keyword">import</a> <a id="3485" href="RMRCanonicity.PRACBPVGeneric.Closing.html" class="Module">RMRCanonicity.PRACBPVGeneric.Closing</a> <a id="3522" class="Symbol">as</a> <a id="3525" class="Module">Closing</a>
+<a id="3533" class="Keyword">open</a> <a id="3538" class="Keyword">import</a> <a id="3545" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.LocalState</a> <a id="3595" class="Keyword">using</a> <a id="3601" class="Symbol">(</a><a id="3602" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#3451" class="Datatype">LSLk</a><a id="3606" class="Symbol">;</a> <a id="3608" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#3471" class="InductiveConstructor">fresh</a><a id="3613" class="Symbol">;</a> <a id="3615" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#2387" class="Datatype">LSBase</a><a id="3621" class="Symbol">;</a> <a id="3623" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#2409" class="InductiveConstructor">Loc</a><a id="3626" class="Symbol">;</a> <a id="3628" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#3485" class="Function">lsLocks</a><a id="3635" class="Symbol">;</a> <a id="3637" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#4727" class="Function">lsOps</a><a id="3642" class="Symbol">)</a>
+
+<a id="3645" class="Keyword">private</a>
+  <a id="isSetLSLk"></a><a id="3655" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Everything.html#3655" class="Function">isSetLSLk</a> <a id="3665" class="Symbol">:</a> <a id="3667" href="Cubical.Foundations.Prelude.html#15579" class="Function">isSet</a> <a id="3673" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#3451" class="Datatype">LSLk</a>
+  <a id="3680" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Everything.html#3655" class="Function">isSetLSLk</a> <a id="3690" class="Symbol">=</a> <a id="3692" href="Cubical.Foundations.Prelude.html#20549" class="Function">isProp→isSet</a> <a id="3705" class="Symbol">λ</a> <a id="3707" class="Symbol">{</a> <a id="3709" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#3471" class="InductiveConstructor">fresh</a> <a id="3715" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#3471" class="InductiveConstructor">fresh</a> <a id="3721" class="Symbol">→</a> <a id="3723" href="Cubical.Foundations.Prelude.html#892" class="Function">refl</a> <a id="3728" class="Symbol">}</a>
+
+  <a id="isSetLSBase"></a><a id="3733" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Everything.html#3733" class="Function">isSetLSBase</a> <a id="3745" class="Symbol">:</a> <a id="3747" href="Cubical.Foundations.Prelude.html#15579" class="Function">isSet</a> <a id="3753" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#2387" class="Datatype">LSBase</a>
+  <a id="3762" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Everything.html#3733" class="Function">isSetLSBase</a> <a id="3774" class="Symbol">=</a> <a id="3776" href="Cubical.Foundations.Prelude.html#20549" class="Function">isProp→isSet</a> <a id="3789" class="Symbol">λ</a> <a id="3791" class="Symbol">{</a> <a id="3793" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#2409" class="InductiveConstructor">Loc</a> <a id="3797" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#2409" class="InductiveConstructor">Loc</a> <a id="3801" class="Symbol">→</a> <a id="3803" href="Cubical.Foundations.Prelude.html#892" class="Function">refl</a> <a id="3808" class="Symbol">}</a>
+
+  <a id="lsClosedLaws"></a><a id="3813" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Everything.html#3813" class="Function">lsClosedLaws</a> <a id="3826" class="Symbol">:</a> <a id="3828" href="RMRCanonicity.PRACBPVGeneric.Closing.html#4309" class="Record">Closing.ClosedLaws</a> <a id="3847" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#3485" class="Function">lsLocks</a> <a id="3855" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#4727" class="Function">lsOps</a>
+  <a id="3863" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Everything.html#3813" class="Function">lsClosedLaws</a> <a id="3876" class="Symbol">=</a> <a id="3878" href="RMRCanonicity.PRACBPVGeneric.Metatheory.ClosedLaws.html#4349" class="Function">RMRCanonicity.PRACBPVGeneric.Metatheory.ClosedLaws.closedLaws</a> <a id="3940" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#3485" class="Function">lsLocks</a> <a id="3948" href="RMRCanonicity.PRACBPVGeneric.Instances.LocalState.html#4727" class="Function">lsOps</a> <a id="3954" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Everything.html#3655" class="Function">isSetLSLk</a> <a id="3964" href="RMRCanonicity.PRACBPVGeneric.Metatheory.Everything.html#3733" class="Function">isSetLSBase</a>
+</pre></body></html>

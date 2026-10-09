@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html><head><meta name="robots" content="noindex, nofollow"><meta charset="utf-8"><title>RMRCanonicity.PRACBPVGeneric.Instances.Equational.Everything</title><link rel="stylesheet" href="Agda.css"></head><body><pre class="Agda"><a id="1" class="Comment">-- The POPL instances as Q = T WITH their equations (parity stage H), at</a>
+<a id="74" class="Comment">-- W = 1 with no locks:</a>
+<a id="98" class="Comment">--</a>
+<a id="101" class="Comment">--   Semantics.PolySelfModule  a free model presented by a container is a</a>
+<a id="175" class="Comment">--                          right module over itself, ρ = μ (any theory)</a>
+<a id="248" class="Comment">--   Semantics.PolyMachine  the machine at such a module: the unit</a>
+<a id="315" class="Comment">--                          configuration and its denotation, the steps at</a>
+<a id="390" class="Comment">--                          any hole, final configurations, the comparison</a>
+<a id="465" class="Comment">--                          with the free-model denotation, and (under</a>
+<a id="536" class="Comment">--                          finOp, finQ, affinity) SN, WN, canonicity</a>
+<a id="606" class="Comment">--   Common                 free models presented by a container at W = 1,</a>
+<a id="681" class="Comment">--                          from POPL&#39;s universal property at the level of</a>
+<a id="756" class="Comment">--                          types (PolyFree)</a>
+<a id="801" class="Comment">--   Writer                 tell_m, unit and multiplication laws; M × X</a>
+<a id="873" class="Comment">--   Errors                 raise, no equations; X + 1</a>
+<a id="928" class="Comment">--   State                  get / set_c, the four lens laws; (Bool × X)^Bool</a>
+<a id="1005" class="Comment">--   WeightedMonoid         e, ⊗, act_r and their seven laws; weighted lists.</a>
+<a id="1083" class="Comment">--                          Its affinity is DEFERRED by user decision, so it</a>
+<a id="1160" class="Comment">--                          has no SN / WN / ground canonicity here</a>
+<a id="1228" class="Keyword">module</a> <a id="1235" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.Everything</a> <a id="1296" class="Keyword">where</a>
+
+<a id="1303" class="Keyword">import</a> <a id="1310" href="RMRCanonicity.PRACBPVGeneric.Semantics.PolySelfModule.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.PolySelfModule</a>
+<a id="1364" class="Keyword">import</a> <a id="1371" href="RMRCanonicity.PRACBPVGeneric.Semantics.PolyMachine.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.PolyMachine</a>
+
+<a id="1423" class="Keyword">import</a> <a id="1430" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.Common.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.Common</a>
+<a id="1487" class="Keyword">import</a> <a id="1494" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.Writer.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.Writer</a>
+<a id="1551" class="Keyword">import</a> <a id="1558" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.Errors.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.Errors</a>
+<a id="1615" class="Keyword">import</a> <a id="1622" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.State.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.State</a>
+<a id="1678" class="Keyword">import</a> <a id="1685" href="RMRCanonicity.PRACBPVGeneric.Instances.Equational.WeightedMonoid.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Equational.WeightedMonoid</a>
+</pre></body></html>

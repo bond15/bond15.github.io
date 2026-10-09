@@ -1,0 +1,24 @@
+<!DOCTYPE HTML>
+<html><head><meta name="robots" content="noindex, nofollow"><meta charset="utf-8"><title>RMRCanonicity.PRACBPVGeneric.Instances.Machines.Everything</title><link rel="stylesheet" href="Agda.css"></head><body><pre class="Agda"><a id="1" class="Comment">-- Deterministic runners and the machine at the instances (stage 6):</a>
+<a id="70" class="Comment">--</a>
+<a id="73" class="Comment">--   Semantics.Runner       a runner (S , H , δ) gives a configuration</a>
+<a id="144" class="Comment">--                          container and a right module of the term monad</a>
+<a id="219" class="Comment">--                          (Thm 10.1)</a>
+<a id="258" class="Comment">--   Semantics.RunMachine   the combined machine at a runner: derived rules</a>
+<a id="334" class="Comment">--                          pure-at / op-step / op-at, and the</a>
+<a id="397" class="Comment">--                          corollaries run-return / run-halt (Cor 10.2)</a>
+<a id="470" class="Comment">--   Semantics.GuardedLock  the tick lock is the earlier modality:</a>
+<a id="537" class="Comment">--                          L_tick Γ t ≅ Γ (t + 1)</a>
+<a id="588" class="Comment">--   Error, GlobalState, LocalState, Guarded</a>
+<a id="633" class="Comment">--                          runners, concrete runs, and their corollaries</a>
+<a id="707" class="Keyword">module</a> <a id="714" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.Everything</a> <a id="773" class="Keyword">where</a>
+
+<a id="780" class="Keyword">import</a> <a id="787" href="RMRCanonicity.PRACBPVGeneric.Semantics.Runner.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Runner</a>
+<a id="833" class="Keyword">import</a> <a id="840" href="RMRCanonicity.PRACBPVGeneric.Semantics.RunMachine.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.RunMachine</a>
+<a id="890" class="Keyword">import</a> <a id="897" href="RMRCanonicity.PRACBPVGeneric.Semantics.GuardedLock.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.GuardedLock</a>
+
+<a id="949" class="Keyword">import</a> <a id="956" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.Error.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.Error</a>
+<a id="1010" class="Keyword">import</a> <a id="1017" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.GlobalState.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.GlobalState</a>
+<a id="1077" class="Keyword">import</a> <a id="1084" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.LocalState.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.LocalState</a>
+<a id="1143" class="Keyword">import</a> <a id="1150" href="RMRCanonicity.PRACBPVGeneric.Instances.Machines.Guarded.html" class="Module">RMRCanonicity.PRACBPVGeneric.Instances.Machines.Guarded</a>
+</pre></body></html>

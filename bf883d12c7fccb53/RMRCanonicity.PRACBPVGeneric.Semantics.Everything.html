@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<html><head><meta name="robots" content="noindex, nofollow"><meta charset="utf-8"><title>RMRCanonicity.PRACBPVGeneric.Semantics.Everything</title><link rel="stylesheet" href="Agda.css"></head><body><pre class="Agda"><a id="1" class="Keyword">module</a> <a id="8" href="RMRCanonicity.PRACBPVGeneric.Semantics.Everything.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Everything</a> <a id="58" class="Keyword">where</a>
+
+<a id="65" class="Comment">-- stage 1: the semantic core</a>
+<a id="95" class="Keyword">import</a> <a id="102" href="RMRCanonicity.PRACBPVGeneric.Semantics.Presheaf.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Presheaf</a>
+<a id="150" class="Keyword">import</a> <a id="157" href="RMRCanonicity.PRACBPVGeneric.Semantics.Lock.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Lock</a>
+<a id="201" class="Keyword">import</a> <a id="208" href="RMRCanonicity.PRACBPVGeneric.Semantics.Algebra.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Algebra</a>
+<a id="255" class="Keyword">import</a> <a id="262" href="RMRCanonicity.PRACBPVGeneric.Semantics.Denotation.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Denotation</a>
+
+<a id="313" class="Comment">-- stage 2: renamings and substitutions as context morphisms; substitution lemmas</a>
+<a id="395" class="Keyword">import</a> <a id="402" href="RMRCanonicity.PRACBPVGeneric.Semantics.Renaming.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Renaming</a>
+<a id="450" class="Keyword">import</a> <a id="457" href="RMRCanonicity.PRACBPVGeneric.Semantics.Substitution.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Substitution</a>
+
+<a id="510" class="Comment">-- stage 3: tree reduction (syntax) and its soundness</a>
+<a id="564" class="Keyword">import</a> <a id="571" href="RMRCanonicity.PRACBPVGeneric.Reduction.html" class="Module">RMRCanonicity.PRACBPVGeneric.Reduction</a>
+<a id="610" class="Keyword">import</a> <a id="617" href="RMRCanonicity.PRACBPVGeneric.Semantics.Soundness.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Soundness</a>
+
+<a id="667" class="Comment">-- stage 4: closed computations, closing locks (syntax), the free model of</a>
+<a id="742" class="Comment">-- an equation-free theory, and the combined machine</a>
+<a id="795" class="Keyword">import</a> <a id="802" href="RMRCanonicity.PRACBPVGeneric.Closing.html" class="Module">RMRCanonicity.PRACBPVGeneric.Closing</a>
+<a id="839" class="Keyword">import</a> <a id="846" href="RMRCanonicity.PRACBPVGeneric.Semantics.Closed.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Closed</a>
+<a id="892" class="Keyword">import</a> <a id="899" href="RMRCanonicity.PRACBPVGeneric.Semantics.FreeModel.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.FreeModel</a>
+<a id="948" class="Keyword">import</a> <a id="955" href="RMRCanonicity.PRACBPVGeneric.Semantics.Machine.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Machine</a>
+
+<a id="1003" class="Comment">-- generic stage 2: branching monads (the Kleisli categories comodels live in)</a>
+<a id="1082" class="Keyword">import</a> <a id="1089" href="RMRCanonicity.PRACBPVGeneric.Semantics.Branching.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Branching</a>
+
+<a id="1139" class="Comment">-- generic stage C: affinity of a right module (read off the generic redex),</a>
+<a id="1216" class="Comment">-- and strong and weak normalization of the machine under it</a>
+<a id="1277" class="Keyword">import</a> <a id="1284" href="RMRCanonicity.PRACBPVGeneric.Semantics.Affinity.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Affinity</a>
+<a id="1332" class="Keyword">import</a> <a id="1339" href="RMRCanonicity.PRACBPVGeneric.Semantics.Normalization.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Normalization</a>
+
+<a id="1393" class="Comment">-- parity stage F: theories whose models are closed under exponentials</a>
+<a id="1464" class="Comment">-- (every theory at a chaotic W, every equation-free one); the denotation in</a>
+<a id="1541" class="Comment">-- a free model of the theory, its renaming, substitution, tree soundness and</a>
+<a id="1619" class="Comment">-- closed-computation lemmas; its soundness for the equational theory; and</a>
+<a id="1694" class="Comment">-- canonical forms denote and are unique in the free model</a>
+<a id="1753" class="Keyword">import</a> <a id="1760" href="RMRCanonicity.PRACBPVGeneric.Semantics.StrongTheory.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.StrongTheory</a>
+<a id="1812" class="Keyword">import</a> <a id="1819" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Denotation.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Denotation</a>
+<a id="1874" class="Keyword">import</a> <a id="1881" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Renaming.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Renaming</a>
+<a id="1934" class="Keyword">import</a> <a id="1941" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Substitution.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Substitution</a>
+<a id="1998" class="Keyword">import</a> <a id="2005" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Soundness.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Soundness</a>
+<a id="2059" class="Keyword">import</a> <a id="2066" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Closed.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Closed</a>
+<a id="2117" class="Keyword">import</a> <a id="2124" href="RMRCanonicity.PRACBPVGeneric.Semantics.EquationalSoundness.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.EquationalSoundness</a>
+<a id="2183" class="Keyword">import</a> <a id="2190" href="RMRCanonicity.PRACBPVGeneric.Semantics.EqCanonicity.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.EqCanonicity</a>
+
+<a id="2243" class="Comment">-- parity stage G: the two denotations related (a binary logical relation;</a>
+<a id="2318" class="Comment">-- at first-order types the canonical algebra map from the term algebra to</a>
+<a id="2393" class="Comment">-- the free model carries one to the other, also for the machine&#39;s map);</a>
+<a id="2466" class="Comment">-- canonicity of tree reduction for the free-model denotation; ground types;</a>
+<a id="2543" class="Comment">-- canonicity of the machine in any right module (den-final, final-unique,</a>
+<a id="2618" class="Comment">-- normalize, ground-canonicity)</a>
+<a id="2651" class="Keyword">import</a> <a id="2658" href="RMRCanonicity.PRACBPVGeneric.Semantics.Free.Comparison.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Free.Comparison</a>
+<a id="2713" class="Keyword">import</a> <a id="2720" href="RMRCanonicity.PRACBPVGeneric.Semantics.TreeCanonicity.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.TreeCanonicity</a>
+<a id="2774" class="Keyword">import</a> <a id="2781" href="RMRCanonicity.PRACBPVGeneric.Semantics.Ground.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.Ground</a>
+<a id="2827" class="Keyword">import</a> <a id="2834" href="RMRCanonicity.PRACBPVGeneric.Semantics.ConfigCanonicity.html" class="Module">RMRCanonicity.PRACBPVGeneric.Semantics.ConfigCanonicity</a>
+</pre></body></html>
