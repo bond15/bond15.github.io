@@ -230,6 +230,10 @@ defaults:
       path: "33442060a57b5a1d"
     values:
       sitemap: false
+  - scope:
+      path: "3598e8b965c9563c"
+    values:
+      sitemap: false
   # _teaching
   #- scope:
   #    path: ""
