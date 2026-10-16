@@ -71,6 +71,47 @@ body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #do
 #theme-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
 #theme-toggle:hover { border-color: var(--navy); }
 #theme-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+
+/* ---- jsCoq in the page's colors ------------------------------------
+   Syntax colors are deliberately quiet: commands (Definition, Lemma,
+   Proof, Qed) in the accent, comments muted, everything else plain.  */
+:root {
+  --syn-cmd: #00274c; --syn-comment: #6b7385; --syn-bullet: #8a6d00;
+  --ok-bg: #e7ecf4; --pending-bg: #fbefc4; --failed-bg: #f5d3d3;
+}
+:root[data-theme="dark"] {
+  --syn-cmd: #9cbde6; --syn-comment: #8590a3; --syn-bullet: #e8c45c;
+  --ok-bg: #19273b; --pending-bg: #3b3313; --failed-bg: #4a1f26;
+}
+/* editors */
+.cm-s-d6.CodeMirror { background: var(--code-bg) !important; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; }
+.cm-s-d6 .CodeMirror-gutters { background: var(--code-bg) !important; border-right: 1px solid var(--line) !important; }
+.cm-s-d6 .CodeMirror-linenumber { color: var(--muted) !important; }
+.cm-s-d6 .CodeMirror-cursor { border-left-color: var(--fg) !important; }
+.cm-s-d6 .CodeMirror-selected, .cm-s-d6.CodeMirror-focused .CodeMirror-selected { background: var(--line) !important; }
+.cm-s-d6 span[class*="cm-"] { color: var(--fg) !important; font-weight: 400; font-style: normal; }
+.cm-s-d6 span.cm-builtin { color: var(--syn-cmd) !important; font-weight: 600; }
+.cm-s-d6 span.cm-comment { color: var(--syn-comment) !important; font-style: italic; }
+.cm-s-d6 span.cm-coq-bullet { color: var(--syn-bullet) !important; font-weight: 600; }
+.cm-s-d6 span.cm-coq-focus { color: var(--muted) !important; }
+.cm-s-d6 span.CodeMirror-matchingbracket { color: var(--fg) !important; outline: 1px solid var(--maize); text-shadow: none; }
+/* how far Coq has checked */
+.cm-s-d6 .coq-eval-ok { background-color: var(--ok-bg) !important; }
+.cm-s-d6 .coq-eval-ok.coq-highlight { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-pending { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-failed { background-color: var(--failed-bg) !important; }
+/* the goals / messages panel */
+body.jscoq-main #panel-wrapper { background: var(--bg) !important; color: var(--fg) !important; border-left: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel { border-top: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel > .caption { background: var(--panel) !important; color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper #toolbar { border-bottom: 1px solid var(--line) !important; }
+body.jscoq-main #vsep, body.jscoq-main #hsep { background: var(--line) !important; }
+body.jscoq-main #panel-wrapper a, body.jscoq-main #panel-wrapper a:visited { color: var(--navy) !important; }
+body.jscoq-main #panel-wrapper #goal-panel p.system { color: var(--muted) !important; }
+body.jscoq-main #panel-wrapper [class*="constr."], body.jscoq-main #panel-wrapper [class*="module."],
+body.jscoq-main #panel-wrapper [class*="tactic."] { color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper .constr\.keyword, body.jscoq-main #panel-wrapper .module\.keyword,
+body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !important; }
 </style>
 </head>
 <body class="jscoq-main">
@@ -686,7 +727,6 @@ function workerPrelude(BASE, PIN) {
 <script type="module">
   const JSCOQ = 'https://cdn.jsdelivr.net/npm/jscoq@0.17.1/';
   const { JsCoq } = await import(JSCOQ + 'jscoq.js');
-  const EDITOR_THEME = { light: 'default', dark: 'blackboard' };
   const theme0 = document.documentElement.getAttribute('data-theme');
   const button = document.getElementById('theme-toggle');
   const label = t => { button.textContent = t === 'dark' ? '☀ Light mode' : '☾ Dark mode'; };
@@ -699,15 +739,17 @@ function workerPrelude(BASE, PIN) {
     implicit_libs: true,
     init_pkgs: ['init'],
     all_pkgs: ['coq'],
-    editor: { mode: { 'company-coq': true }, theme: EDITOR_THEME[theme0] },
+    editor: { mode: { 'company-coq': true }, theme: 'd6' },
     focus: false
   });
-  /* The light switch: page colors, jsCoq's panel, and every editor. */
+  /* The light switch: page colors, jsCoq's panel (and its icons). */
   function setTheme(t) {
     document.documentElement.setAttribute('data-theme', t);
     try { localStorage.setItem('jscoq-page-theme', t); } catch (e) {}
     try { coq.layout.configure({ theme: t }); } catch (e) {}
-    try { coq.provider.configure({ theme: EDITOR_THEME[t] }); } catch (e) {}
+    /* jsCoq switches its editors to its own themes here; put ours back.
+       Our editor theme reads the page colors, so it follows data-theme. */
+    try { coq.provider.configure({ theme: 'd6' }); } catch (e) {}
     label(t);
   }
   button.addEventListener('click', () =>
