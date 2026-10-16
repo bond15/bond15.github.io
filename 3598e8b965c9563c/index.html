@@ -73,14 +73,23 @@ body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #do
 #theme-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
 
 /* ---- jsCoq in the page's colors ------------------------------------
-   Syntax colors are deliberately quiet: commands (Definition, Lemma,
-   Proof, Qed) in the accent, comments muted, everything else plain.  */
+   One color per kind of token, all at least 5:1 against the code
+   background (about 6:1 or more for most), so they hold up on a
+   projector.  Names and operators stay plain text.  */
 :root {
-  --syn-cmd: #00274c; --syn-comment: #6b7385; --syn-bullet: #8a6d00;
+  --syn-cmd: #1d4ed8;      /* Definition, Lemma, Proof, Qed, ...     */
+  --syn-tactic: #036149;   /* intros, destruct, apply, ...           */
+  --syn-finish: #be123c;   /* reflexivity, discriminate, exact, ...  */
+  --syn-kw: #7e22ce;       /* match, forall, Type, if, ...           */
+  --syn-comment: #5f5a50;  /* (* ... *)                              */
+  --syn-lit: #9a3412;      /* strings and numbers                    */
+  --syn-bullet: #854d0e;   /* - + *                                  */
   --ok-bg: #e7ecf4; --pending-bg: #fbefc4; --failed-bg: #f5d3d3;
 }
 :root[data-theme="dark"] {
-  --syn-cmd: #9cbde6; --syn-comment: #8590a3; --syn-bullet: #e8c45c;
+  --syn-cmd: #8db8ff; --syn-tactic: #5fd3a8; --syn-finish: #ff8fa3;
+  --syn-kw: #d0a3ff; --syn-comment: #a3abb9; --syn-lit: #f5a97f;
+  --syn-bullet: #ffcb05;
   --ok-bg: #19273b; --pending-bg: #3b3313; --failed-bg: #4a1f26;
 }
 /* editors */
@@ -90,9 +99,13 @@ body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #do
 .cm-s-d6 .CodeMirror-cursor { border-left-color: var(--fg) !important; }
 .cm-s-d6 .CodeMirror-selected, .cm-s-d6.CodeMirror-focused .CodeMirror-selected { background: var(--line) !important; }
 .cm-s-d6 span[class*="cm-"] { color: var(--fg) !important; font-weight: 400; font-style: normal; }
-.cm-s-d6 span.cm-builtin { color: var(--syn-cmd) !important; font-weight: 600; }
+.cm-s-d6 span.cm-builtin { color: var(--syn-cmd) !important; font-weight: 700; }
+.cm-s-d6 span.cm-tactic { color: var(--syn-tactic) !important; font-weight: 600; }
+.cm-s-d6 span.cm-terminator { color: var(--syn-finish) !important; font-weight: 700; }
+.cm-s-d6 span.cm-keyword { color: var(--syn-kw) !important; font-weight: 600; }
 .cm-s-d6 span.cm-comment { color: var(--syn-comment) !important; font-style: italic; }
-.cm-s-d6 span.cm-coq-bullet { color: var(--syn-bullet) !important; font-weight: 600; }
+.cm-s-d6 span.cm-string, .cm-s-d6 span.cm-number { color: var(--syn-lit) !important; }
+.cm-s-d6 span.cm-coq-bullet { color: var(--syn-bullet) !important; font-weight: 700; }
 .cm-s-d6 span.cm-coq-focus { color: var(--muted) !important; }
 .cm-s-d6 span.CodeMirror-matchingbracket { color: var(--fg) !important; outline: 1px solid var(--maize); text-shadow: none; }
 /* how far Coq has checked */
