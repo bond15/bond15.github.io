@@ -114,6 +114,8 @@ body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #do
 .venn .v-label { fill: var(--fg); font-family: var(--font-display); font-weight: 650; font-size: 20px; }
 .venn .v-ex { fill: var(--fg); font-family: var(--font-body); font-style: italic; font-size: 18px; }
 #document .cite { font-size: .85rem; color: var(--muted); }
+#document ul.refs { font-size: .88rem; color: var(--muted); padding-left: 1.1rem; }
+#document ul.refs li { margin: .3rem 0; }
 /* step rules that do the real work */
 .rules > div.work { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 6px; padding: 0 .7rem; }
 .work-key { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 4px; padding: 0 .3rem; }
@@ -270,12 +272,12 @@ Definition exp_of (v : val) : exp := proj1_sig v.</textarea><div class="cell-bar
   <div class="work">\[\frac{}{\mathsf{if}\ \mathsf{false}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow e_2}\]</div>
 </div>
 <h3>Redexes</h3>
-<p>So we will pull out the "real" reduction rules as their own step, written \(r \longrightarrow_{\mathsf{redex}} r'\). The expression \(r\) on the left is a <strong>redex</strong>, short for reducible expression.</p>
+<p>So we will pull out the "real" reduction rules as their own step, written \(r \longrightarrow_{\mathsf{r}} r'\). The expression \(r\) on the left is a <strong>redex</strong>, short for reducible expression. In Rocq the relation is <code>redex</code>, written <code>⟶r</code>.</p>
 <div class="rules">
-  <div>\[(\lambda x{:}\tau.\, e)\, v \longrightarrow_{\mathsf{redex}} e[x \mapsto v]\]</div>
-  <div>\[n_1 + n_2 \longrightarrow_{\mathsf{redex}} n_3 \quad (n_3 = n_1 + n_2)\]</div>
-  <div>\[\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow_{\mathsf{redex}} e_1\]</div>
-  <div>\[\mathsf{if}\ \mathsf{false}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow_{\mathsf{redex}} e_2\]</div>
+  <div>\[(\lambda x{:}\tau.\, e)\, v \longrightarrow_{\mathsf{r}} e[x \mapsto v]\]</div>
+  <div>\[n_1 + n_2 \longrightarrow_{\mathsf{r}} n_3 \quad (n_3 = n_1 + n_2)\]</div>
+  <div>\[\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow_{\mathsf{r}} e_1\]</div>
+  <div>\[\mathsf{if}\ \mathsf{false}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow_{\mathsf{r}} e_2\]</div>
 </div>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-6">Fixpoint subst (x : name) (v : exp) (e : exp) : exp :=
   match e with
@@ -298,7 +300,9 @@ Inductive redex : exp -&gt; exp -&gt; Prop :=
 | r_beta x τ e v : value v -&gt; redex ((λ x : τ , e) · v) (e [x ↦ v])
 | r_plus n1 n2 : redex (const n1 ⊕ const n2) (const (n1 + n2))
 | r_if_true e1 e2 : redex (IF TRUE THEN e1 ELSE e2 FI) e1
-| r_if_false e1 e2 : redex (IF FALSE THEN e1 ELSE e2 FI) e2.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 22 lines">Show code · 22 lines</button></div></div>
+| r_if_false e1 e2 : redex (IF FALSE THEN e1 ELSE e2 FI) e2.
+
+Notation "e '⟶r' e'" := (redex e e') (at level 70).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 24 lines">Show code · 24 lines</button></div></div>
 
 <h3>Evaluation contexts</h3>
 <p>The other five rules all say the same kind of thing: where in the expression to look for the next redex. We can abstract over that with the notion of an <strong>evaluation context</strong> (Felleisen and Hieb 1992): an expression with one hole \(\bullet\) in it, at the place where the next step happens.</p>
@@ -336,12 +340,11 @@ Fixpoint plug (E : ectx) (e : exp) : exp :=
   end.
 
 Notation "E [ e ]" := (plug E e) (at level 2, e at level 99).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 19 lines">Show code · 19 lines</button></div></div>
-<p class="cite">M. Felleisen and R. Hieb, <em>The revised report on the syntactic theories of sequential control and state</em>, Theoretical Computer Science 103(2), 1992.</p>
 <h3>Steps, with evaluation contexts</h3>
 <p>Now one rule does the job of all nine: take the redex out of its context, do the work, and put the result back.</p>
-<div class="rules"><div>\[\frac{r \longrightarrow_{\mathsf{redex}} r'}{E[r] \longrightarrow E[r']}\]</div></div>
+<div class="rules"><div>\[\frac{r \longrightarrow_{\mathsf{r}} r'}{E[r] \longrightarrow E[r']}\]</div></div>
 <p>With \(E = \bullet\) this is one of the four redex rules. Every other form of \(E\) is one of the five rules that only say where to look.</p>
-<p>For example, \((1 + 2) + 3 \longrightarrow 3 + 3\), with \(E = \bullet + 3\) and the redex \(1 + 2 \longrightarrow_{\mathsf{redex}} 3\).</p>
+<p>For example, \((1 + 2) + 3 \longrightarrow 3 + 3\), with \(E = \bullet + 3\) and the redex \(1 + 2 \longrightarrow_{\mathsf{r}} 3\).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-8">Reserved Notation "e '⟶' e'" (at level 70).
 
 Inductive step : exp -&gt; exp -&gt; Prop :=
@@ -585,6 +588,63 @@ Definition safe (e : exp) : Prop := forall e', e ⟶* e' -&gt; not_stuck e'.</te
 </figure>
 <p>Yes. Soundness says the well-typed expressions sit inside the safe ones. The other direction fails: \(\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ 1\ \mathsf{else}\ \mathsf{true} + 1\) always evaluates to \(1\), so it is safe, but it has no type, because its else branch \(\mathsf{true} + 1\) has none. The type system is conservative: it rejects some safe programs so that it never accepts an unsafe one.</p>
 </details>
+<p><strong>A research field.</strong> Choosing what "going wrong" means, designing a type system that rules it out, and proving a soundness theorem for it is a large part of programming languages research. A few examples, each ruling out a different kind of bad behavior:</p>
+<ul>
+  <li><strong>Refinement types</strong> attach logical conditions to types, such as \(\{ n : \mathsf{int} \mid n > 0 \}\), to rule out errors like division by zero or out-of-bounds array access (Freeman and Pfenning 1991; Rondon, Kawaguchi and Jhala 2008).</li>
+  <li><strong>Linear types</strong> require a value to be used exactly once, which rules out using a resource after it is freed or closing a file twice (Girard 1987; Wadler 1990). Rust's ownership types are a close relative (Jung et al. 2018).</li>
+  <li><strong>Graded modal types</strong> annotate types with a grade saying how a value may be used: how many times, at what privacy level, with which effects (Brunel et al. 2014; Orchard, Liepelt and Eades 2019).</li>
+  <li><strong>Security typing</strong> labels data as public or secret and rules out secret inputs influencing public outputs. Its soundness theorem is called noninterference (Volpano, Smith and Irvine 1996; Sabelfeld and Myers 2003).</li>
+  <li><strong>Session types</strong> describe communication protocols, ruling out a program that sends the wrong message at the wrong time (Honda 1993; Honda, Vasconcelos and Kubo 1998).</li>
+  <li><strong>Implicit computational complexity</strong> designs type systems whose well-typed programs are exactly the ones in a complexity class, ruling out programs that run too long. For example, Girard's light linear logic (Girard 1998) and Lafont's soft linear logic (Lafont 2004) capture polynomial time, elementary linear logic (Girard 1998) captures elementary time, and Hofmann's safe linear recursion (Hofmann 1997) and non-size-increasing types, LFPL (Hofmann 1999), capture polynomial time in a typed λ-calculus, building on Bellantoni and Cook's safe recursion (1992). Here the soundness theorem reads: every well-typed program runs within the bound.</li>
+  <li><strong>Dependent type theory</strong> lets types mention values. Read through the Curry–Howard correspondence, a type is a proposition and a program of that type is a proof, so type checking is proof checking (Howard 1980; Martin-Löf 1984). What it rules out is a "proof" that isn't one: every program must terminate, since a program that runs forever could have any type, even \(\mathsf{False}\). Its soundness theorem is consistency: there is no closed proof of \(\mathsf{False}\). Rocq is one, based on the calculus of constructions (Coquand and Huet 1988), and every <code>Qed</code> on this page is Rocq's type checker checking a proof.</li>
+</ul>
+
+<details class="question">
+<summary>What these type systems look like</summary>
+<p>For each one: the shape of the judgment, one rule that does the characteristic work, and a small example. The notation is simplified from the papers.</p>
+
+<p><strong>Refinement types.</strong> Types carry a logical condition: \(\{ n : \mathsf{int} \mid \varphi \}\) is the integers satisfying \(\varphi\). The key rule weakens the condition when a logic solver proves the implication:</p>
+<div class="rules"><div>\[\frac{\Gamma \vdash e : \{ n : \mathsf{int} \mid \varphi \} \quad \Gamma \models \varphi \Rightarrow \psi}{\Gamma \vdash e : \{ n : \mathsf{int} \mid \psi \}}\]</div></div>
+<p>Example: with \(\mathsf{div} : \mathsf{int} \to \{ n : \mathsf{int} \mid n \neq 0 \} \to \mathsf{int}\), the call \(\mathsf{div}\ 10\ 0\) is rejected: \(0\) has type \(\{ n : \mathsf{int} \mid n = 0 \}\), and \(n = 0 \Rightarrow n \neq 0\) is false. \(\mathsf{div}\ 10\ 5\) is accepted.</p>
+
+<p><strong>Linear types.</strong> Every variable in the context must be used exactly once, so contexts are split between premises instead of shared:</p>
+<div class="rules">
+  <div>\[\frac{}{x{:}\tau \vdash x : \tau}\]</div>
+  <div>\[\frac{\Gamma_1 \vdash e_1 : \tau_1 \multimap \tau_2 \quad \Gamma_2 \vdash e_2 : \tau_1}{\Gamma_1, \Gamma_2 \vdash e_1\, e_2 : \tau_2}\]</div>
+</div>
+<p>Example: \(\lambda f{:}\mathsf{file}.\ \mathsf{close}\ f\) is accepted, but \(\lambda f{:}\mathsf{file}.\ (\mathsf{close}\ f;\ \mathsf{close}\ f)\) is rejected: \(f\) would have to go to both halves of the context split, and it can go to only one.</p>
+
+<p><strong>Graded modal types.</strong> Each variable carries a grade \(r\) saying how it may be used, here a count:</p>
+<div class="display">\[ x :_{r} \tau \;\vdash\; e : \tau' \]</div>
+<p>Example: \(x :_{2} \mathsf{int} \vdash x + x : \mathsf{int}\), because \(x\) is used twice, so \(\lambda x.\, x + x\) gets a type saying it uses its argument twice. With grades from a different set, such as privacy levels, the same machinery tracks who may see a value.</p>
+
+<p><strong>Security typing.</strong> Types carry a level, \(\mathsf{int}_L\) (public) or \(\mathsf{int}_H\) (secret), and information may only flow upward, \(L \sqsubseteq H\):</p>
+<div class="rules"><div>\[\frac{\Gamma \vdash e : \mathsf{int}_{\ell} \quad \ell \sqsubseteq \ell'}{\Gamma \vdash e : \mathsf{int}_{\ell'}}\]</div></div>
+<p>Example: with \(h : \mathsf{int}_H\) and \(l : \mathsf{int}_L\), the assignment \(l := h\) is rejected, and so is \(\mathsf{if}\ h > 0\ \mathsf{then}\ l := 1\ \mathsf{else}\ l := 0\): the branch taken reveals something about \(h\), so code under a secret test may only write secret variables. Noninterference then says changing \(h\) never changes what \(l\) ends up holding.</p>
+
+<p><strong>Session types.</strong> A channel's type is the protocol it follows: \(!\mathsf{int}.\,?\mathsf{bool}.\,\mathsf{end}\) means send an int, then receive a Boolean, then stop. The two ends of a channel get <em>dual</em> types, with sends and receives swapped:</p>
+<div class="display">\[ c : !\mathsf{int}.\,?\mathsf{bool}.\,\mathsf{end} \qquad\qquad \overline{c} : ?\mathsf{int}.\,!\mathsf{bool}.\,\mathsf{end} \]</div>
+<p>Example: a client that runs \(\mathsf{send}\ c\ 5\) and then \(\mathsf{recv}\ c\) is accepted. One that receives first is rejected, because it doesn't follow the protocol and would wait forever for the server.</p>
+
+<p><strong>Implicit computational complexity.</strong> Three examples, for two complexity classes.</p>
+<p><em>Polynomial time, by safe recursion</em> (Bellantoni and Cook 1992). A function's arguments are split into <em>normal</em> ones, written before a semicolon, which recursion may go down, and <em>safe</em> ones, after it, which may only be passed along or extended by a constructor. A recursive call's result may only be used in a safe position:</p>
+<div class="display">\[
+\begin{aligned}
+\mathsf{add}(0;\, y) &= y & \mathsf{add}(x{+}1;\, y) &= \mathsf{add}(x;\, y) + 1 \\
+\mathsf{mul}(0, y;\,) &= 0 & \mathsf{mul}(x{+}1, y;\,) &= \mathsf{add}(y;\, \mathsf{mul}(x, y;\,))
+\end{aligned}
+\]</div>
+<p>Both are accepted: in \(\mathsf{mul}\), the recursive result goes into \(\mathsf{add}\)'s safe slot. Exponentiation is rejected: \(\mathsf{exp}(x{+}1;\,) = \mathsf{add}(\mathsf{exp}(x;\,);\, \mathsf{exp}(x;\,))\) would put a recursive result into a normal slot, where it could be recursed on again, and that is how running time blows up.</p>
+<p><em>Polynomial time, by counting cells.</em> In Hofmann's LFPL, building a list cell costs a token of a special type \(\diamond\), and tokens are linear:</p>
+<div class="display">\[ \mathsf{cons} : \diamond \multimap \tau \multimap \mathsf{list}\ \tau \multimap \mathsf{list}\ \tau \]</div>
+<p>A list comes with one token per cell, so a function can never output more cells than it was given. Example: reversing a list is accepted, since it reuses each cell's token. Doubling a list, which builds two cells for each one, is rejected, because there aren't enough tokens. Without that growth, iteration stays within polynomial time.</p>
+<p><em>Logarithmic space, by not building data</em> (Jones 1999). A <em>cons-free</em> program may look at its input and walk over it, but it may never build new data: no list cells, no new numbers beyond a fixed set. First-order cons-free programs compute exactly the problems in logarithmic space: all they can remember is a fixed number of positions in the input, and a position takes \(\log n\) bits. Example: checking whether a list has even length, by walking down it and flipping a Boolean, is cons-free. Reversing a list is not, because it builds a new list. Allowing general recursion in the same programs gives exactly polynomial time instead.</p>
+
+<p><strong>Dependent type theory.</strong> In a dependent function type \(\Pi x{:}A.\, B\), the result type \(B\) may mention the argument \(x\):</p>
+<div class="rules"><div>\[\frac{\Gamma, x{:}A \vdash e : B}{\Gamma \vdash \lambda x{:}A.\, e : \Pi x{:}A.\, B}\]</div></div>
+<p>A statement like "every \(n\) satisfies \(n + 0 = n\)" is the type \(\Pi n{:}\mathsf{nat}.\, n + 0 = n\), and a proof of it is a function that, given \(n\), returns evidence that \(n + 0 = n\). In Rocq, <code>forall n : nat, n + 0 = n</code> is that type, and the proof script after <code>Proof.</code> builds such a function, which the type checker then checks. The termination requirement shows up as a rejected definition: <code>Fixpoint loop (n : nat) : False := loop n.</code> would prove \(\mathsf{False}\) by running forever, so Rocq refuses it, because the recursive call is not on a smaller argument.</p>
+</details>
+<p>Each comes with its own version of the theorem we prove here: well-typed programs don't do the bad thing.</p>
 
 <p>The theorem talks about whole runs, which can be any length. The standard way to prove it (Wright and Felleisen 1994) is to split it into two facts about a <em>single</em> step:</p>
 <div class="thm">
@@ -699,9 +759,9 @@ Proof.
     inversion Ht; subst. exists x, e. reflexivity.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 38 lines">Show code · 38 lines</button></div></div>
 
-<h3>Steps inside a context</h3>
+<h3>Steps inside a context (congruence)</h3>
 <div class="thm">
-  <p><span class="name">Steps inside a context.</span> If \(e \longrightarrow e'\), then \(E[e] \longrightarrow E[e']\) for any evaluation context \(E\).</p>
+  <p><span class="name">Steps inside a context (congruence).</span> If \(e \longrightarrow e'\), then \(E[e] \longrightarrow E[e']\) for any evaluation context \(E\).</p>
 </div>
 <p class="proof"><em>Proof.</em> The step \(e \longrightarrow e'\) is \(E'[r] \longrightarrow E'[r']\) for some context \(E'\) and redex \(r\). Putting \(E'\) into the hole of \(E\) gives one bigger context, and \(E[E'[r]] \longrightarrow E[E'[r']]\) is the step rule with that context.</p>
 <p>In Rocq, <code>compose E E'</code> is that bigger context, and <code>plug_compose</code> says plugging into it is plugging twice: \((\mathsf{compose}\ E\ E')[e] = E[E'[e]]\).</p>
@@ -757,15 +817,26 @@ Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" titl
   <div>\[\frac{\Gamma \vdash e_1 : \mathsf{int} \quad \Gamma \vdash e_2 : \mathsf{int}}{\Gamma \vdash e_1 + e_2 : \mathsf{int}}\]</div>
   <div>\[\frac{\Gamma \vdash e : \mathsf{bool} \quad \Gamma \vdash e_1 : \tau \quad \Gamma \vdash e_2 : \tau}{\Gamma \vdash \mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 : \tau}\]</div>
 </details>
-<p class="proof"><em>Proof.</em> By induction on the derivation of \(\vdash e : \tau\), one case per typing rule.</p>
+<p><strong>The idea.</strong> We go through the typing rules one at a time.</p>
+<ul>
+  <li>A variable \(x\) is impossible: there is nothing in scope.</li>
+  <li>\(n\), \(\mathsf{true}\), \(\mathsf{false}\) and \(\lambda x{:}\tau_1.\, e\) are values, so they are not stuck.</li>
+  <li>Applications, sums and ifs are never values, so we have to show that they step. How? By the induction hypothesis every subterm is not stuck: it is a value, or it steps to something.</li>
+</ul>
+<p>For example, take an application \(e_1\, e_2\). The induction hypotheses say \(\mathsf{not\ stuck}(e_1)\) and \(\mathsf{not\ stuck}(e_2)\), so we work by cases:</p>
+<ul>
+  <li>If \(e_1\) steps, the whole application steps, by a congruence: the step happens inside the context \(\bullet\, e_2\).</li>
+  <li>If \(e_1\) is a value, then it must be a \(\lambda\): its type is a function type, so canonical forms says so. Now consider \(e_2\):
+    <ul>
+      <li>if \(e_2\) is a value, we perform the substitution: \(e_1\, e_2\) is a β-redex;</li>
+      <li>otherwise \(e_2\) steps, so we do a congruence, inside the context \(e_1\, \bullet\).</li>
+    </ul>
+  </li>
+</ul>
+<p class="proof"><em>Proof.</em> By induction on the derivation of \(\vdash e : \tau\), one case per typing rule. The variable, value and application cases are as above.</p>
 <ul class="proof">
-  <li><strong>\(x\):</strong> impossible. The variable rule needs \(x{:}\tau\) in the context, and the context is empty.</li>
-  <li><strong>\(n\), \(\mathsf{true}\), \(\mathsf{false}\), \(\lambda x{:}\tau_1.\, e\):</strong> values.</li>
-  <li><strong>\(e_1\, e_2\):</strong> the induction hypothesis says \(\mathsf{not\ stuck}(e_1)\).
-    <br>If \(e_1\) steps, so does \(e_1\, e_2\), by steps inside a context with \(E = \bullet\, e_2\): a left hole.
-    <br>If \(e_1\) is a value, use the induction hypothesis \(\mathsf{not\ stuck}(e_2)\). If \(e_2\) steps, so does \(e_1\, e_2\), with \(E = e_1\, \bullet\): a right hole, allowed because \(e_1\) is a value. If \(e_2\) is a value too, canonical forms makes \(e_1\) a \(\lambda x{:}\tau_1.\, e\), so \(e_1\, e_2\) is a β-redex, with \(E = \bullet\).</li>
-  <li><strong>\(e_1 + e_2\):</strong> the same pattern. Look left; once the left is a value, canonical forms makes it a number \(n_1\); then look right; once both are numbers, \(n_1 + n_2\) is a redex.</li>
-  <li><strong>\(\mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2\):</strong> if the condition steps, so does the \(\mathsf{if}\), with \(E = \mathsf{if}\ \bullet\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2\). Once it is a value, canonical forms makes it \(\mathsf{true}\) or \(\mathsf{false}\), and either way the \(\mathsf{if}\) is a redex.</li>
+  <li><strong>\(e_1 + e_2\):</strong> similar to application. If \(e_1\) steps, do a congruence inside \(\bullet + e_2\). If \(e_1\) is a value, canonical forms makes it a number \(n_1\), since its type is \(\mathsf{int}\). Then if \(e_2\) steps, do a congruence inside \(n_1 + \bullet\); if \(e_2\) is a value, it is a number \(n_2\) too, and \(n_1 + n_2\) is a redex.</li>
+  <li><strong>\(\mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2\):</strong> similar, with only the condition to look at. If it steps, do a congruence inside \(\mathsf{if}\ \bullet\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2\). If it is a value, canonical forms makes it \(\mathsf{true}\) or \(\mathsf{false}\), and an if rule applies.</li>
 </ul>
 <p>Canonical forms is what turns "a value of the right type" into "the shape a redex rule needs".</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-19">Theorem progress e τ : ⊢ e : τ -&gt; not_stuck e.
@@ -843,7 +914,214 @@ Proof.
       exists (IF e' THEN e1 ELSE e2 FI).
       apply (step_in_context (IfC Hole e1 e2)). apply Hs.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 75 lines">Show code · 75 lines</button></div></div>
-<p class="cite">R. Milner, <em>A theory of type polymorphism in programming</em>, Journal of Computer and System Sciences 17(3), 1978. A. K. Wright and M. Felleisen, <em>A syntactic approach to type soundness</em>, Information and Computation 115(1), 1994.</p>
+<h3>Weakening</h3>
+<p>Write \(\Gamma \subseteq \Gamma'\) for: every \(x{:}\tau \in \Gamma\) is also \(x{:}\tau \in \Gamma'\).</p>
+<div class="thm">
+  <p><span class="name">Weakening.</span> If \(\Gamma \subseteq \Gamma'\) and \(\Gamma \vdash e : \tau\), then \(\Gamma' \vdash e : \tau\).</p>
+</div>
+<p class="proof"><em>Proof idea.</em> By induction on the derivation of \(\Gamma \vdash e : \tau\). The induction hypothesis is about each premise of the last rule: if the premise is \(\Gamma_0 \vdash e_0 : \tau_0\), then \(\Gamma_0' \vdash e_0 : \tau_0\) for <em>every</em> \(\Gamma_0'\) with \(\Gamma_0 \subseteq \Gamma_0'\). It has to cover every bigger context, because the \(\lambda\) case uses it with \(\Gamma, x{:}\tau_1\).</p>
+<ul class="proof">
+  <li><strong>Cases \(n\), \(\mathsf{true}\), \(\mathsf{false}\):</strong> these rules have no premises, so there is no induction hypothesis, and they never look at the context, so the same rule gives the type in \(\Gamma'\).</li>
+  <li><strong>Case \(x\):</strong> the premise is \(x{:}\tau \in \Gamma\), a lookup rather than a typing, so again no induction hypothesis. Since \(\Gamma \subseteq \Gamma'\), also \(x{:}\tau \in \Gamma'\), and the variable rule gives \(\Gamma' \vdash x : \tau\).</li>
+  <li><strong>Case \(\lambda x{:}\tau_1.\, e\):</strong> the premise checks the body in a bigger context, \(\Gamma, x{:}\tau_1 \vdash e : \tau_2\). Both contexts get the same \(x{:}\tau_1\) added, so \(\Gamma, x{:}\tau_1 \subseteq \Gamma', x{:}\tau_1\): looking up \(x\), both find \(x{:}\tau_1\) at the front; looking up any other variable, both look further, in \(\Gamma\) and \(\Gamma'\). The induction hypothesis gives \(\Gamma', x{:}\tau_1 \vdash e : \tau_2\), and the \(\lambda\) rule gives \(\Gamma' \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2\).</li>
+  <li><strong>Cases application, \(+\), \(\mathsf{if}\):</strong> these rules pass the same context to every premise. Use the induction hypothesis on each premise to move it to \(\Gamma'\), then apply the same rule.</li>
+</ul>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-20">Definition incl (Γ Γ' : ctx) : Prop :=
+  forall x τ, lookup Γ x = Some τ -&gt; lookup Γ' x = Some τ.
+
+Lemma weakening Γ Γ' e τ : incl Γ Γ' -&gt; Γ ⊢ e : τ -&gt; Γ' ⊢ e : τ.
+Proof.
+  intros Hincl Ht.
+  revert Γ' Hincl.
+  induction Ht as [ Γ n | Γ | Γ | Γ x τ Hx | Γ x τ1 e τ2 He IH
+                  | Γ e1 e2 τ1 τ2 H1 IH1 H2 IH2 | Γ e1 e2 H1 IH1 H2 IH2
+                  | Γ e e1 e2 τ H IH H1 IH1 H2 IH2 ];
+    intros Γ' Hincl.
+  - apply t_num.
+  - apply t_true.
+  - apply t_false.
+  - (* Case x: x:τ ∈ Γ ⊆ Γ' *)
+    apply t_var. apply Hincl. apply Hx.
+  - (* Case λx:τ1. e: the body is checked in Γ, x:τ1, so show
+       Γ, x:τ1 ⊆ Γ', x:τ1 and use the IH *)
+    apply t_lam. apply IH.
+    intros y σ. simpl.
+    destruct (String.eqb y x).
+    + (* y is x: both sides find x:τ1 at the front *)
+      intros Hy. apply Hy.
+    + (* y is not x: both sides look further, in Γ and Γ' *)
+      apply Hincl.
+  - (* the remaining rules just pass the context to their premises *)
+    apply t_app with (τ1 := τ1).
+    + apply IH1. apply Hincl.
+    + apply IH2. apply Hincl.
+  - apply t_plus.
+    + apply IH1. apply Hincl.
+    + apply IH2. apply Hincl.
+  - apply t_if.
+    + apply IH. apply Hincl.
+    + apply IH1. apply Hincl.
+    + apply IH2. apply Hincl.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 37 lines">Show code · 37 lines</button></div></div>
+
+<h3>The substitution lemma</h3>
+<p>On paper (TAPL §9.3), the substitution lemma is:</p>
+<div class="thm">
+  <p><span class="name">Substitution lemma, on paper.</span> If \(\Gamma, x{:}\sigma \vdash e : \tau\) and \(\Gamma \vdash v : \sigma\), then \(\Gamma \vdash e[x \mapsto v] : \tau\).</p>
+</div>
+<p>There \(v\) may use the variables of \(\Gamma\), and \(e[x \mapsto v]\) is capture-avoiding: bound variables are renamed so that no free variable of \(v\) gets captured. In the \(\lambda\) case one renames \(\lambda y\) so that \(y \ne x\) and \(y\) is not free in \(v\), and then pushes the substitution inside; reordering and hiding entries of the context are left implicit.</p>
+<div class="thm">
+  <p><span class="name">Substitution lemma, ours.</span> If \(\Gamma, x{:}\sigma \vdash e : \tau\) and \(\vdash v : \sigma\), then \(\Gamma \vdash e[x \mapsto v] : \tau\).</p>
+</div>
+<p>The only change is that \(v\) is typed in the <em>empty</em> context, so \(v\) is closed. Our substitution never renames, which is fine because nothing in a closed \(v\) can be captured. And it is all preservation needs: evaluation never looks inside a \(\lambda\), so in a closed program the argument of every β step is closed. In return, the proof does by hand the context bookkeeping that the paper proof leaves implicit.</p>
+<p class="proof"><em>Proof idea.</em> By induction on the expression \(e\). The induction hypothesis is about each immediate subexpression \(e_0\) of \(e\): for <em>every</em> \(\Gamma\) and \(\tau\), if \(\Gamma, x{:}\sigma \vdash e_0 : \tau\) then \(\Gamma \vdash e_0[x \mapsto v] : \tau\). It has to cover every \(\Gamma\), because the \(\lambda\) case uses it with \(\Gamma, y{:}\tau_y\). The assumption \(\vdash v : \sigma\) is used only in the case \(y = x\).</p>
+<ul class="proof">
+  <li><strong>Cases \(n\), \(\mathsf{true}\), \(\mathsf{false}\):</strong> no subexpressions, so no induction hypothesis. Substitution does nothing, and these rules never look at the context, so the same rule gives the type in \(\Gamma\).</li>
+  <li><strong>Case \(y\):</strong> no subexpressions, so no induction hypothesis. Two cases.
+    <ul>
+      <li>\(y = x\): the premise is \(x{:}\tau \in \Gamma, x{:}\sigma\), so \(\tau = \sigma\), and \(e[x \mapsto v] = v\). We have \(\vdash v : \sigma\) in the empty context; weakening moves it to \(\Gamma\).</li>
+      <li>\(y \ne x\): \(e[x \mapsto v] = y\), and \(y{:}\tau \in \Gamma, x{:}\sigma\) with \(y \ne x\) means \(y{:}\tau \in \Gamma\). The variable rule gives \(\Gamma \vdash y : \tau\).</li>
+    </ul>
+  </li>
+  <li><strong>Case \(\lambda y{:}\tau_y.\, e_0\):</strong> here \(\tau = \tau_y \to \tau_2\), and the body is checked as \(\Gamma, x{:}\sigma, y{:}\tau_y \vdash e_0 : \tau_2\). Two cases.
+    <ul>
+      <li>\(y = x\): substitution stops, so \(e[x \mapsto v] = e\), and the induction hypothesis isn't needed. The inner \(x{:}\tau_y\) hides the outer \(x{:}\sigma\), so \(\Gamma, x{:}\sigma, x{:}\tau_y \subseteq \Gamma, x{:}\tau_y\). Weakening moves the body's typing there, and the \(\lambda\) rule gives the type in \(\Gamma\).</li>
+      <li>\(y \ne x\): \(e[x \mapsto v] = \lambda y{:}\tau_y.\, e_0[x \mapsto v]\). Since \(y \ne x\), the order of the two entries doesn't matter, so weakening reorders \(\Gamma, x{:}\sigma, y{:}\tau_y\) to \(\Gamma, y{:}\tau_y, x{:}\sigma\). Now the induction hypothesis, with \(\Gamma, y{:}\tau_y\) in place of \(\Gamma\), gives \(\Gamma, y{:}\tau_y \vdash e_0[x \mapsto v] : \tau_2\), and the \(\lambda\) rule finishes.</li>
+    </ul>
+  </li>
+  <li><strong>Cases application, \(+\), \(\mathsf{if}\):</strong> substitution goes into each piece, and these rules pass the same context to every premise. Use the induction hypothesis on each premise, then apply the same rule.</li>
+</ul>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-21">Lemma substitution Γ x τ1 v e τ :
+  (x, τ1) :: Γ ⊢ e : τ -&gt; ⊢ v : τ1 -&gt; Γ ⊢ e [x ↦ v] : τ.
+Proof.
+  intros Ht Hv.
+  revert Γ τ Ht.
+  induction e as [ n | | | y | y τy body IH | e1 IH1 e2 IH2 | e1 IH1 e2 IH2
+                 | e IH e1 IH1 e2 IH2 ];
+    intros Γ τ Ht; simpl.
+  - inversion Ht; subst. apply t_num.
+  - inversion Ht; subst. apply t_true.
+  - inversion Ht; subst. apply t_false.
+  - (* Case y.  Ht says y:τ ∈ Γ, x:τ1 *)
+    inversion Ht as [ | | | Γ0 y0 τ0 Hy | | | | ]; subst.
+    simpl in Hy.
+    destruct (String.eqb y x).
+    + (* y = x: then τ = τ1, and e[x ↦ v] = v.  v is closed, so it has
+         type τ in any Γ: weaken from the empty context. *)
+      injection Hy as Hτ. subst.
+      apply weakening with (Γ := nil).
+      * intros z σ Hz. discriminate Hz.
+      * apply Hv.
+    + (* y ≠ x: the variable stays, and y:τ ∈ Γ *)
+      apply t_var. apply Hy.
+  - (* Case λy:τy. body.  Ht says  Γ, x:τ1, y:τy ⊢ body : τ2 *)
+    inversion Ht as [ | | | | Γ0 y0 τ0 body0 τ2 Hbody | | | ]; subst.
+    destruct (String.eqb_spec y x) as [Hyx | Hyx].
+    + (* y = x: substitution stops.  The inner x hides the outer one, so
+         Γ, x:τ1, x:τy types the same as Γ, x:τy *)
+      subst y. apply t_lam.
+      apply weakening with (Γ := (x, τy) :: (x, τ1) :: Γ).
+      * intros z σ. simpl.
+        destruct (String.eqb z x).
+        -- intros Hz. apply Hz.
+        -- intros Hz. apply Hz.
+      * apply Hbody.
+    + (* y ≠ x: swap the order to Γ, y:τy, x:τ1, then use the IH *)
+      apply t_lam. apply IH.
+      apply weakening with (Γ := (y, τy) :: (x, τ1) :: Γ).
+      * intros z σ. simpl.
+        destruct (String.eqb_spec z y) as [Hzy | Hzy];
+          destruct (String.eqb_spec z x) as [Hzx | Hzx].
+        -- (* z = y and z = x: but y ≠ x *)
+           subst. contradiction.
+        -- intros Hz. apply Hz.
+        -- intros Hz. apply Hz.
+        -- intros Hz. apply Hz.
+      * apply Hbody.
+  - (* the remaining forms: invert the typing, use the IH on each piece *)
+    inversion Ht as [ | | | | | Γ0 e10 e20 τa τb Hfun Harg | | ]; subst.
+    apply t_app with (τ1 := τa).
+    + apply IH1. apply Hfun.
+    + apply IH2. apply Harg.
+  - inversion Ht as [ | | | | | | Γ0 e10 e20 H1 H2 | ]; subst.
+    apply t_plus.
+    + apply IH1. apply H1.
+    + apply IH2. apply H2.
+  - inversion Ht as [ | | | | | | | Γ0 e0 e10 e20 τ0 Hb H1 H2 ]; subst.
+    apply t_if.
+    + apply IH. apply Hb.
+    + apply IH1. apply H1.
+    + apply IH2. apply H2.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 62 lines">Show code · 62 lines</button></div></div>
+
+<h3>Redex preservation</h3>
+<div class="thm">
+  <p><span class="name">Redex preservation.</span> If \(\vdash e : \tau\) and \(e \longrightarrow_{\mathsf{r}} e'\), then \(\vdash e' : \tau\).</p>
+</div>
+<p>Only β needs real work, and that is the substitution lemma.</p>
+<p class="proof"><em>Proof idea.</em> No induction: just one case per redex rule, so there is no induction hypothesis. In each case, read the types of the pieces off the typing derivation of the left side: its last rule is the typing rule for that form of expression. The substitution lemma is used only in the β case.</p>
+<ul class="proof">
+  <li><strong>Case β:</strong> \((\lambda x{:}\sigma.\, e_0)\, v \longrightarrow_{\mathsf{r}} e_0[x \mapsto v]\).
+    <ul>
+      <li>The last rule of \(\vdash (\lambda x{:}\sigma.\, e_0)\, v : \tau\) is the application rule, so \(\vdash \lambda x{:}\sigma.\, e_0 : \sigma \to \tau\) and \(\vdash v : \sigma\).</li>
+      <li>The last rule of \(\vdash \lambda x{:}\sigma.\, e_0 : \sigma \to \tau\) is the \(\lambda\) rule, so \(x{:}\sigma \vdash e_0 : \tau\).</li>
+      <li>The substitution lemma, with \(\Gamma\) empty, gives \(\vdash e_0[x \mapsto v] : \tau\).</li>
+    </ul>
+  </li>
+  <li><strong>Case \(n_1 + n_2 \longrightarrow_{\mathsf{r}} n_3\):</strong> the \(+\) rule gives the sum type \(\mathsf{int}\), and the number \(n_3\) has type \(\mathsf{int}\) too.</li>
+  <li><strong>Cases \(\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow_{\mathsf{r}} e_1\) and \(\mathsf{if}\ \mathsf{false}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow_{\mathsf{r}} e_2\):</strong> the if rule needs both branches at type \(\tau\), so the branch we step to has type \(\tau\).</li>
+</ul>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-22">Theorem redex_preservation e e' τ : ⊢ e : τ -&gt; e ⟶r e' -&gt; ⊢ e' : τ.
+Proof.
+  intros Ht Hr.
+  destruct Hr as [x τx body v Hv | n1 n2 | e1 e2 | e1 e2].
+  - (* β: (λx:τx. body) v ⟶ body[x ↦ v].
+       t_app gives ⊢ λx:τx. body : τ1 ⇒ τ and ⊢ v : τ1;
+       t_lam then gives τx = τ1 and x:τ1 ⊢ body : τ. *)
+    inversion Ht as [ | | | | | Γ e1 e2 τ1 τ2 Hlam Harg | | ]; subst.
+    inversion Hlam as [ | | | | Γ0 x0 τ0 body0 τ0' Hbody | | | ]; subst.
+    (* the substitution lemma, with Γ empty *)
+    apply substitution with (τ1 := τ1).
+    + apply Hbody.
+    + apply Harg.
+  - (* n1 + n2 ⟶ n3: the sum has type int, and so does the number *)
+    inversion Ht; subst. apply t_num.
+  - (* if true then e1 else e2 ⟶ e1: t_if types e1 at τ *)
+    inversion Ht as [ | | | | | | | Γ e0 e10 e20 τ0 Hb H1 H2 ]; subst.
+    apply H1.
+  - (* if false then e1 else e2 ⟶ e2: t_if types e2 at τ *)
+    inversion Ht as [ | | | | | | | Γ e0 e10 e20 τ0 Hb H1 H2 ]; subst.
+    apply H2.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 22 lines">Show code · 22 lines</button></div></div>
+
+
+<h2>References</h2>
+<ul class="refs">
+  <li>S. Bellantoni and S. Cook, <em>A new recursion-theoretic characterization of the polytime functions</em>, Computational Complexity 2, 1992.</li>
+  <li>A. Brunel, M. Gaboardi, D. Mazza and S. Zdancewic, <em>A core quantitative coeffect calculus</em>, ESOP 2014.</li>
+  <li>T. Coquand and G. Huet, <em>The calculus of constructions</em>, Information and Computation 76(2–3), 1988.</li>
+  <li>M. Felleisen and R. Hieb, <em>The revised report on the syntactic theories of sequential control and state</em>, Theoretical Computer Science 103(2), 1992.</li>
+  <li>T. Freeman and F. Pfenning, <em>Refinement types for ML</em>, PLDI 1991.</li>
+  <li>J.-Y. Girard, <em>Linear logic</em>, Theoretical Computer Science 50(1), 1987.</li>
+  <li>J.-Y. Girard, <em>Light linear logic</em>, Information and Computation 143(2), 1998.</li>
+  <li>M. Hofmann, <em>A mixed modal/linear lambda calculus with applications to Bellantoni–Cook safe recursion</em>, CSL 1997.</li>
+  <li>M. Hofmann, <em>Linear types and non-size-increasing polynomial time computation</em>, LICS 1999.</li>
+  <li>K. Honda, <em>Types for dyadic interaction</em>, CONCUR 1993.</li>
+  <li>K. Honda, V. T. Vasconcelos and M. Kubo, <em>Language primitives and type discipline for structured communication-based programming</em>, ESOP 1998.</li>
+  <li>W. A. Howard, <em>The formulae-as-types notion of construction</em>, in To H. B. Curry: Essays on Combinatory Logic, Lambda Calculus and Formalism, 1980.</li>
+  <li>N. D. Jones, <em>LOGSPACE and PTIME characterized by programming languages</em>, Theoretical Computer Science 228(1–2), 1999.</li>
+  <li>R. Jung, J.-H. Jourdan, R. Krebbers and D. Dreyer, <em>RustBelt: securing the foundations of the Rust programming language</em>, POPL 2018.</li>
+  <li>Y. Lafont, <em>Soft linear logic and polynomial time</em>, Theoretical Computer Science 318(1–2), 2004.</li>
+  <li>P. Martin-Löf, <em>Intuitionistic Type Theory</em>, Bibliopolis, 1984.</li>
+  <li>R. Milner, <em>A theory of type polymorphism in programming</em>, Journal of Computer and System Sciences 17(3), 1978.</li>
+  <li>D. Orchard, V.-B. Liepelt and H. Eades III, <em>Quantitative program reasoning with graded modal types</em>, ICFP 2019.</li>
+  <li>B. C. Pierce, <em>Types and Programming Languages</em>, MIT Press, 2002.</li>
+  <li>P. Rondon, M. Kawaguchi and R. Jhala, <em>Liquid types</em>, PLDI 2008.</li>
+  <li>A. Sabelfeld and A. C. Myers, <em>Language-based information-flow security</em>, IEEE Journal on Selected Areas in Communications 21(1), 2003.</li>
+  <li>D. Volpano, G. Smith and C. Irvine, <em>A sound type system for secure flow analysis</em>, Journal of Computer Security 4(2–3), 1996.</li>
+  <li>P. Wadler, <em>Linear types can change the world!</em>, Programming Concepts and Methods, 1990.</li>
+  <li>A. K. Wright and M. Felleisen, <em>A syntactic approach to type soundness</em>, Information and Computation 115(1), 1994.</li>
+</ul>
 
 
 </div>
