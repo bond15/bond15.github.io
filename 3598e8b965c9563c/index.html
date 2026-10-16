@@ -101,6 +101,25 @@ body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #do
   --ok-bg: #19273b; --pending-bg: #3b3313; --failed-bg: #4a1f26;
 }
 /* editors */
+/* a question with its answer folded underneath */
+#document details.question { border: 1px solid var(--line); border-radius: 8px; padding: .6rem 1rem; margin: 1rem 0; background: var(--bg); }
+#document details.question > summary { cursor: pointer; font-family: var(--font-display); font-weight: 650; color: var(--head); }
+#document details.question[open] > summary { margin-bottom: .4rem; }
+/* nested-sets diagram */
+.venn { margin: 1rem 0; }
+.venn svg { display: block; width: 100%; max-width: 600px; height: auto; margin: 0 auto; }
+.venn .v-all { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+.venn .v-safe { fill: var(--ok-bg); stroke: var(--navy); stroke-width: 1.5; }
+.venn .v-typed { fill: var(--pending-bg); stroke: var(--maize); stroke-width: 2; }
+.venn .v-label { fill: var(--fg); font-family: var(--font-display); font-weight: 650; font-size: 20px; }
+.venn .v-ex { fill: var(--fg); font-family: var(--font-body); font-style: italic; font-size: 18px; }
+#document .cite { font-size: .85rem; color: var(--muted); }
+/* step rules that do the real work */
+.rules > div.work { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 6px; padding: 0 .7rem; }
+.work-key { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 4px; padding: 0 .3rem; }
+/* math marked new with \\class{hl-new}{...}: maize marker behind the text */
+mjx-container .hl-new { color: var(--fg); }
+mjx-container .hl-new rect { fill: var(--pending-bg) !important; stroke: var(--maize) !important; stroke-width: 20 !important; }
 .cm-s-d6.CodeMirror { background: var(--code-bg) !important; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; }
 .cm-s-d6 .CodeMirror-gutters { background: var(--code-bg) !important; border-right: 1px solid var(--line) !important; }
 .cm-s-d6 .CodeMirror-linenumber { color: var(--muted) !important; }
@@ -157,13 +176,13 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 <div class="display">\[
 \begin{aligned}
 \tau &::= \mathsf{int} \mid \mathsf{bool} \mid \tau_1 \to \tau_2 \\
-e &::= n \mid \mathsf{true} \mid \mathsf{false} \mid x \mid \lambda x{:}\tau.\, e \mid e_1\, e_2 \\
+e &::= n \mid \mathsf{true} \mid \mathsf{false} \mid x \mid \lambda \class{hl-new}{\bbox[yellow,1pt]{x{:}\tau}}.\, e \mid e_1\, e_2 \\
   &\quad\mid e_1 + e_2 \mid \mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2
 \end{aligned}
 \]</div>
-<p>Here \(n\) ranges over integers and \(x\) over variable names. A \(\lambda\) says what type its argument has, so expressions mention types; that is all types are used for so far.</p>
+<p>Here \(n\) ranges over integers and \(x\) over variable names. The highlighted \(\class{hl-new}{\bbox[yellow,1pt]{x{:}\tau}}\) is what's new compared to the untyped λ-calculus: a \(\lambda\) says what type its argument has, so expressions mention types. That is all types are used for so far.</p>
 <p>In Rocq each form is one constructor of <code>exp</code>. The language's symbols differ from Rocq's own, so they can't be confused: <code>⊕</code> is \(+\), <code>TRUE</code>/<code>FALSE</code> are \(\mathsf{true}\)/\(\mathsf{false}\), <code>INT</code>/<code>BOOL</code>/<code>⇒</code> are the types, and <code>e1 · e2</code> is application.</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-1">From Coq Require Import ZArith String.
+<div class="cell is-collapsed"><textarea class="coq" id="coq-1">From Coq Require Import ZArith String List.
 Open Scope Z_scope.
 Open Scope string_scope.
 
@@ -220,6 +239,611 @@ Example succ_is : succ = Lam "x" TInt (Plus (Var "x") (Num 1)).
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 11 lines">Show code · 11 lines</button></div></div>
 <p>The grammar also allows expressions that make no sense, like \(\mathsf{true} + 1\). Ruling those out is what the type system is for.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-3">Definition nonsense : exp := TRUE ⊕ const 1.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 1 line">Show code · 1 line</button></div></div>
+<h2>2. Evaluation</h2>
+<h3>Values</h3>
+<p>A <strong>value</strong> is a finished answer:</p>
+<div class="display">\[
+v ::= n \mid \mathsf{true} \mid \mathsf{false} \mid \lambda x{:}\tau.\, e
+\]</div>
+<p>A \(\lambda\) is a value whatever its body is: evaluation doesn't look inside it. In Rocq, <code>value e</code> says that \(e\) has one of these four forms.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-4">Inductive value : exp -&gt; Prop :=
+| v_num n : value (const n)
+| v_true : value TRUE
+| v_false : value FALSE
+| v_lam x τ e : value (λ x : τ , e).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
+<p>Values are a subset of expressions. This is how Rocq represents a subset: for a type \(A\) and a property \(P\), the type \(\{ x : A \mid P\,x \}\) (a sigma type, or subset type) has the \(x\)'s in \(A\) with property \(P\). An element of it is a pair: an \(x\), together with a proof of \(P\,x\).</p>
+<p>So the values, as a type, are <code>val</code> \(= \{ e : \mathsf{exp} \mid \mathsf{value}\ e \}\): an expression together with a proof that it is a value. <code>exp_of v</code> forgets the proof and gives back the expression.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-5">Definition val : Type := { e : exp | value e }.
+
+Definition exp_of (v : val) : exp := proj1_sig v.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
+<h3>Small-step rules</h3>
+<p>One step, \(e \longrightarrow e'\), is given by these nine rules. The <span class="work-key">highlighted</span> four do the real work. The other five only say where to look next: the function, then the argument; the left summand, then the right one; the condition of an if.</p>
+<div class="rules">
+  <div class="work">\[\frac{}{(\lambda x{:}\tau.\, e)\, v \longrightarrow e[x \mapsto v]}\]</div>
+  <div>\[\frac{e_1 \longrightarrow e_1'}{e_1\, e_2 \longrightarrow e_1'\, e_2}\]</div>
+  <div>\[\frac{e_2 \longrightarrow e_2'}{v\, e_2 \longrightarrow v\, e_2'}\]</div>
+  <div class="work">\[\frac{}{n_1 + n_2 \longrightarrow n_3}\ (n_3 = n_1 + n_2)\]</div>
+  <div>\[\frac{e_1 \longrightarrow e_1'}{e_1 + e_2 \longrightarrow e_1' + e_2}\]</div>
+  <div>\[\frac{e_2 \longrightarrow e_2'}{n + e_2 \longrightarrow n + e_2'}\]</div>
+  <div>\[\frac{e \longrightarrow e'}{\mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow \mathsf{if}\ e'\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2}\]</div>
+  <div class="work">\[\frac{}{\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow e_1}\]</div>
+  <div class="work">\[\frac{}{\mathsf{if}\ \mathsf{false}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow e_2}\]</div>
+</div>
+<h3>Redexes</h3>
+<p>So we will pull out the "real" reduction rules as their own step, written \(r \longrightarrow_{\mathsf{redex}} r'\). The expression \(r\) on the left is a <strong>redex</strong>, short for reducible expression.</p>
+<div class="rules">
+  <div>\[(\lambda x{:}\tau.\, e)\, v \longrightarrow_{\mathsf{redex}} e[x \mapsto v]\]</div>
+  <div>\[n_1 + n_2 \longrightarrow_{\mathsf{redex}} n_3 \quad (n_3 = n_1 + n_2)\]</div>
+  <div>\[\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow_{\mathsf{redex}} e_1\]</div>
+  <div>\[\mathsf{if}\ \mathsf{false}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow_{\mathsf{redex}} e_2\]</div>
+</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-6">Fixpoint subst (x : name) (v : exp) (e : exp) : exp :=
+  match e with
+  | const n =&gt; const n
+  | TRUE =&gt; TRUE
+  | FALSE =&gt; FALSE
+  | var y =&gt; if String.eqb y x then v else var y
+  | λ y : τ , body =&gt;
+      if String.eqb y x then λ y : τ , body
+      else λ y : τ , subst x v body
+  | e1 · e2 =&gt; subst x v e1 · subst x v e2
+  | e1 ⊕ e2 =&gt; subst x v e1 ⊕ subst x v e2
+  | IF e THEN e1 ELSE e2 FI =&gt;
+      IF subst x v e THEN subst x v e1 ELSE subst x v e2 FI
+  end.
+
+Notation "e [ x ↦ v ]" := (subst x v e) (at level 2, x at level 99).
+
+Inductive redex : exp -&gt; exp -&gt; Prop :=
+| r_beta x τ e v : value v -&gt; redex ((λ x : τ , e) · v) (e [x ↦ v])
+| r_plus n1 n2 : redex (const n1 ⊕ const n2) (const (n1 + n2))
+| r_if_true e1 e2 : redex (IF TRUE THEN e1 ELSE e2 FI) e1
+| r_if_false e1 e2 : redex (IF FALSE THEN e1 ELSE e2 FI) e2.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 22 lines">Show code · 22 lines</button></div></div>
+
+<h3>Evaluation contexts</h3>
+<p>The other five rules all say the same kind of thing: where in the expression to look for the next redex. We can abstract over that with the notion of an <strong>evaluation context</strong> (Felleisen and Hieb 1992): an expression with one hole \(\bullet\) in it, at the place where the next step happens.</p>
+<div class="display">\[
+\begin{aligned}
+E ::= {} & \bullet \mid E\, e \mid v\, E \mid E + e \mid n + E \\
+\mid {} & \mathsf{if}\ E\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2
+\end{aligned}
+\]</div>
+<p>\(E[e]\) is \(E\) with its hole filled by \(e\). Each form of \(E\) is one of the five rules: \(E\, e\) looks in the function first, and \(v\, E\) in the argument once the function is a value; \(E + e\) looks in the left summand, and \(n + E\) in the right one once the left is a number; \(\mathsf{if}\ E\ \cdots\) looks in the condition. There is no \(\lambda x{:}\tau.\, E\): evaluation never looks inside a \(\lambda\).</p>
+<p>Some examples:</p>
+<ul>
+  <li>\((1 + 2) + 3 = E[1 + 2]\) with \(E = \bullet + 3\): the left summand comes first.</li>
+  <li>\(1 + (2 + 3) = E[2 + 3]\) with \(E = 1 + \bullet\): the left summand is already a number, so look on the right.</li>
+  <li>\((\lambda x{:}\mathsf{int}.\, x + 1)\, (1 + 1) = E[1 + 1]\) with \(E = (\lambda x{:}\mathsf{int}.\, x + 1)\, \bullet\): the function is a value, so look in the argument.</li>
+  <li>Not evaluation contexts: \((1 + 2) + \bullet\), because the left summand isn't a number yet, and \(\lambda x{:}\mathsf{int}.\, \bullet\), because evaluation doesn't look inside a \(\lambda\).</li>
+</ul>
+<p>In Rocq, the \(v\) in \(v\, E\) is a <code>val</code>, so it is guaranteed to be a value.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-7">Inductive ectx : Type :=
+| Hole                               (* •                     *)
+| AppL (E : ectx) (e2 : exp)         (* E e2                  *)
+| AppR (v : val) (E : ectx)          (* v E                   *)
+| PlusL (E : ectx) (e2 : exp)        (* E + e2                *)
+| PlusR (n : Z) (E : ectx)           (* n + E                 *)
+| IfC (E : ectx) (e1 e2 : exp).      (* if E then e1 else e2  *)
+
+Fixpoint plug (E : ectx) (e : exp) : exp :=
+  match E with
+  | Hole =&gt; e
+  | AppL E e2 =&gt; plug E e · e2
+  | AppR v E =&gt; exp_of v · plug E e
+  | PlusL E e2 =&gt; plug E e ⊕ e2
+  | PlusR n E =&gt; const n ⊕ plug E e
+  | IfC E e1 e2 =&gt; IF plug E e THEN e1 ELSE e2 FI
+  end.
+
+Notation "E [ e ]" := (plug E e) (at level 2, e at level 99).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 19 lines">Show code · 19 lines</button></div></div>
+<p class="cite">M. Felleisen and R. Hieb, <em>The revised report on the syntactic theories of sequential control and state</em>, Theoretical Computer Science 103(2), 1992.</p>
+<h3>Steps, with evaluation contexts</h3>
+<p>Now one rule does the job of all nine: take the redex out of its context, do the work, and put the result back.</p>
+<div class="rules"><div>\[\frac{r \longrightarrow_{\mathsf{redex}} r'}{E[r] \longrightarrow E[r']}\]</div></div>
+<p>With \(E = \bullet\) this is one of the four redex rules. Every other form of \(E\) is one of the five rules that only say where to look.</p>
+<p>For example, \((1 + 2) + 3 \longrightarrow 3 + 3\), with \(E = \bullet + 3\) and the redex \(1 + 2 \longrightarrow_{\mathsf{redex}} 3\).</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-8">Reserved Notation "e '⟶' e'" (at level 70).
+
+Inductive step : exp -&gt; exp -&gt; Prop :=
+| s_ctx E r r' : redex r r' -&gt; E [r] ⟶ E [r']
+where "e ⟶ e'" := (step e e').
+
+Example step_ex : (const 1 ⊕ const 2) ⊕ const 3 ⟶ const 3 ⊕ const 3.
+Proof.
+  apply (s_ctx (PlusL Hole (const 3))).
+  apply r_plus.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 11 lines">Show code · 11 lines</button></div></div>
+<p>A run. Each step is one use of the rule: choose \(E\); the redex is whatever fills its hole. This run uses both holes of an application: first the function (\(E\, e\)), then, once it is a value, the argument (\(v\, E\)).</p>
+<div class="display">\[
+\begin{array}{lll}
+(\lambda x{:}\mathsf{int}.\, \lambda y{:}\mathsf{int}.\, x + y)\, 1\, (1 + 1) & & \\
+\quad\longrightarrow (\lambda y{:}\mathsf{int}.\, 1 + y)\, (1 + 1) & \quad E = \bullet\, (1 + 1) & \text{left hole} \\
+\quad\longrightarrow (\lambda y{:}\mathsf{int}.\, 1 + y)\, 2 & \quad E = (\lambda y{:}\mathsf{int}.\, 1 + y)\, \bullet & \text{right hole} \\
+\quad\longrightarrow 1 + 2 & \quad E = \bullet & \\
+\quad\longrightarrow 3 & \quad E = \bullet &
+\end{array}
+\]</div>
+<p>In the second step the function is a value, so \(E\) looks in the argument. In Rocq the <code>val</code> in that \(E\) is the function together with the proof <code>v_lam</code> that it is a value.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-9">Example run :
+  (λ "x" : INT , λ "y" : INT , var "x" ⊕ var "y") · const 1 · (const 1 ⊕ const 1)
+    ⟶ (λ "y" : INT , const 1 ⊕ var "y") · (const 1 ⊕ const 1)
+  /\ (λ "y" : INT , const 1 ⊕ var "y") · (const 1 ⊕ const 1)
+    ⟶ (λ "y" : INT , const 1 ⊕ var "y") · const 2
+  /\ (λ "y" : INT , const 1 ⊕ var "y") · const 2 ⟶ const 1 ⊕ const 2
+  /\ const 1 ⊕ const 2 ⟶ const 3.
+Proof.
+  split.
+  { (* E = • (1 + 1), redex β (x ↦ 1) *)
+    apply (s_ctx (AppL Hole (const 1 ⊕ const 1))). apply r_beta. apply v_num. }
+  split.
+  { (* E = (λy:int. 1 + y) •, redex 1 + 1 ⟶ 2 *)
+    apply (s_ctx (AppR (exist _ _ (v_lam "y" INT (const 1 ⊕ var "y"))) Hole)).
+    apply r_plus. }
+  split.
+  { (* E = •, redex β (y ↦ 2) *)
+    apply (s_ctx Hole). apply r_beta. apply v_num. }
+  (* E = •, redex 1 + 2 ⟶ 3 *)
+  apply (s_ctx Hole). apply r_plus.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 21 lines">Show code · 21 lines</button></div></div>
+<h3>Multi-step</h3>
+<p>\(e \longrightarrow^* e'\) means zero or more steps:</p>
+<div class="rules">
+  <div>\[\frac{}{e \longrightarrow^* e}\ (\text{refl})\]</div>
+  <div>\[\frac{e_1 \longrightarrow e_2 \quad e_2 \longrightarrow^* e_3}{e_1 \longrightarrow^* e_3}\ (\text{step})\]</div>
+</div>
+<p>The run above is one multi-step: \((\lambda x{:}\mathsf{int}.\, \lambda y{:}\mathsf{int}.\, x + y)\, 1\, (1 + 1) \longrightarrow^* 3\), by its four steps and then (refl).</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-10">Reserved Notation "e '⟶*' e'" (at level 70).
+
+Inductive multi : exp -&gt; exp -&gt; Prop :=
+| m_refl e : e ⟶* e
+| m_step e1 e2 e3 : e1 ⟶ e2 -&gt; e2 ⟶* e3 -&gt; e1 ⟶* e3
+where "e ⟶* e'" := (multi e e').
+
+Example run_multi :
+  (λ "x" : INT , λ "y" : INT , var "x" ⊕ var "y") · const 1 · (const 1 ⊕ const 1)
+    ⟶* const 3.
+Proof.
+  destruct run as [s1 [s2 [s3 s4]]].
+  apply (m_step _ _ _ s1).
+  apply (m_step _ _ _ s2).
+  apply (m_step _ _ _ s3).
+  apply (m_step _ _ _ s4).
+  apply m_refl.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 18 lines">Show code · 18 lines</button></div></div>
+
+<h3>Stuck</h3>
+<p>For the example below, a one-off definition: an expression is <strong>stuck</strong> when it is not a value and cannot step, so evaluation hasn't finished, but no rule applies. In Rocq it lives in its own <code>Section</code>, as a <code>Let</code> that exists only until the section ends.</p>
+<div class="display">\[
+\mathsf{stuck}(e) \;:\Longleftrightarrow\; e \text{ is not a value} \;\text{ and }\; \text{there is no } e' \text{ with } e \longrightarrow e'
+\]</div>
+<p>A run that gets stuck:</p>
+<div class="display">\[
+(\lambda x{:}\mathsf{int}.\, x + 1)\, \mathsf{true} \longrightarrow \mathsf{true} + 1, \qquad \mathsf{stuck}(\mathsf{true} + 1)
+\]</div>
+<p>The β step doesn't look at the annotation \(x{:}\mathsf{int}\): evaluation never checks types. And \(\mathsf{true} + 1\) is stuck: it isn't a value, and however you write it as \(E[r]\), no redex rule adds a Boolean. Ruling out runs like this is the type system's job.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-11">Section Stuck.
+
+  Let stuck (e : exp) : Prop := ~ value e /\ ~ (exists e', e ⟶ e').
+
+  (** true + 1 is stuck: it is not a value, and it can't step.  For the
+      step, go through the ways to write it as E[r]: no redex rule adds a
+      Boolean. *)
+  Lemma true_plus_one_stuck : stuck (TRUE ⊕ const 1).
+  Proof.
+    (* stuck means two things; prove each *)
+    split.
+    - (* not a value: assume it is one; but no value is a sum *)
+      intros Hv. inversion Hv.
+    - (* can't step: assume a step e'; look at how it was made *)
+      intros [e' Hstep].
+      inversion Hstep as [E r r' Hr Heq].
+      destruct E as [ | E e2 | v E | E e2 | n E | E e1 e2 ]; simpl in Heq.
+      + (* E = •: r = true + 1, and no redex rule adds a Boolean *)
+        subst r. inversion Hr.
+      + (* E e2 is an application, not a sum *)
+        discriminate Heq.
+      + discriminate Heq.
+      + (* E + 1 with E[r] = true: but r is a redex, so E[r] isn't true *)
+        injection Heq as Htrue _.
+        destruct E; simpl in Htrue; try discriminate Htrue.
+        subst r. inversion Hr.
+      + (* n + E: n would be true *)
+        discriminate Heq.
+      + discriminate Heq.
+  Qed.
+
+  (** (λx:int. x + 1) true ⟶ true + 1, and true + 1 is stuck: the run
+      gets stuck.
+
+      The β step doesn't look at the annotation x:int: evaluation never
+      checks types.  Ruling out runs like this is the type system's job. *)
+  Example stuck_run :
+    (λ "x" : INT , var "x" ⊕ const 1) · TRUE ⟶* TRUE ⊕ const 1
+    /\ stuck (TRUE ⊕ const 1).
+  Proof.
+    split.
+    - apply m_step with (e2 := TRUE ⊕ const 1).
+      + apply (s_ctx Hole). apply r_beta. apply v_true.
+      + apply m_refl.
+    - apply true_plus_one_stuck.
+  Qed.
+
+End Stuck.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 48 lines">Show code · 48 lines</button></div></div>
+<h2>3. Typing</h2>
+<h3>Contexts</h3>
+<p>A context lists the variables in scope with their types:</p>
+<div class="display">\[\Gamma ::= \cdot \mid \Gamma, x{:}\tau\]</div>
+<p>\(x{:}\tau \in \Gamma\) means the rightmost \(x\) in \(\Gamma\) has type \(\tau\). So later bindings hide earlier ones, just as an inner \(\lambda x\) hides an outer one. In Rocq a context is a list, and \(\Gamma, x{:}\tau\) puts \(x{:}\tau\) at the front.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-12">Definition ctx := list (name * ty).
+
+Fixpoint lookup (Γ : ctx) (y : name) : option ty :=
+  match Γ with
+  | nil =&gt; None
+  | (x, τ) :: Γ' =&gt; if String.eqb y x then Some τ else lookup Γ' y
+  end.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 7 lines">Show code · 7 lines</button></div></div>
+
+<h3>Typing rules</h3>
+<p>\(\Gamma \vdash e : \tau\) reads "in context \(\Gamma\), \(e\) has type \(\tau\)". There is one rule for each form of expression:</p>
+<div class="rules">
+  <div>\[\frac{}{\Gamma \vdash n : \mathsf{int}}\]</div>
+  <div>\[\frac{}{\Gamma \vdash \mathsf{true} : \mathsf{bool}}\]</div>
+  <div>\[\frac{}{\Gamma \vdash \mathsf{false} : \mathsf{bool}}\]</div>
+  <div>\[\frac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}\]</div>
+  <div>\[\frac{\Gamma, \class{hl-new}{\bbox[yellow,1pt]{x{:}\tau_1}} \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\]</div>
+  <div>\[\frac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}\]</div>
+  <div>\[\frac{\Gamma \vdash e_1 : \mathsf{int} \quad \Gamma \vdash e_2 : \mathsf{int}}{\Gamma \vdash e_1 + e_2 : \mathsf{int}}\]</div>
+  <div>\[\frac{\Gamma \vdash e : \mathsf{bool} \quad \Gamma \vdash e_1 : \tau \quad \Gamma \vdash e_2 : \tau}{\Gamma \vdash \mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 : \tau}\]</div>
+</div>
+<p>The \(\lambda\) rule is the only one that changes the context: to check the body it adds the highlighted \(\class{hl-new}{\bbox[yellow,1pt]{x{:}\tau_1}}\). Every other rule passes \(\Gamma\) along unchanged.</p>
+<p>\(\vdash e : \tau\) means \(\cdot \vdash e : \tau\): \(e\) has type \(\tau\) with no variables in scope, so \(e\) is closed.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-13">Reserved Notation "Γ ⊢ e : τ" (at level 70, e at level 99, τ at level 69).
+
+Inductive has_type : ctx -&gt; exp -&gt; ty -&gt; Prop :=
+| t_num Γ n :
+    Γ ⊢ const n : INT
+| t_true Γ :
+    Γ ⊢ TRUE : BOOL
+| t_false Γ :
+    Γ ⊢ FALSE : BOOL
+| t_var Γ x τ :
+    lookup Γ x = Some τ -&gt;
+    Γ ⊢ var x : τ
+| t_lam Γ x τ1 e τ2 :
+    (x, τ1) :: Γ ⊢ e : τ2 -&gt;
+    Γ ⊢ λ x : τ1 , e : τ1 ⇒ τ2
+| t_app Γ e1 e2 τ1 τ2 :
+    Γ ⊢ e1 : τ1 ⇒ τ2 -&gt; Γ ⊢ e2 : τ1 -&gt;
+    Γ ⊢ e1 · e2 : τ2
+| t_plus Γ e1 e2 :
+    Γ ⊢ e1 : INT -&gt; Γ ⊢ e2 : INT -&gt;
+    Γ ⊢ e1 ⊕ e2 : INT
+| t_if Γ e e1 e2 τ :
+    Γ ⊢ e : BOOL -&gt; Γ ⊢ e1 : τ -&gt; Γ ⊢ e2 : τ -&gt;
+    Γ ⊢ IF e THEN e1 ELSE e2 FI : τ
+where "Γ ⊢ e : τ" := (has_type Γ e τ).
+
+Notation "⊢ e : τ" := (has_type nil e τ)
+  (at level 70, e at level 99, τ at level 69).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 28 lines">Show code · 28 lines</button></div></div>
+<h3>Examples</h3>
+<p>A derivation:</p>
+<div class="display">\[
+\dfrac{\dfrac{\dfrac{x{:}\mathsf{int} \in x{:}\mathsf{int}}{x{:}\mathsf{int} \vdash x : \mathsf{int}} \qquad \dfrac{}{x{:}\mathsf{int} \vdash 1 : \mathsf{int}}}{x{:}\mathsf{int} \vdash x + 1 : \mathsf{int}}}{\vdash \lambda x{:}\mathsf{int}.\, x + 1 : \mathsf{int} \to \mathsf{int}}
+\]</div>
+<p>A non-example: the stuck term \(\mathsf{true} + 1\) from section 2 has no type. The \(+\) rule needs \(\vdash \mathsf{true} : \mathsf{int}\), and the only rule for \(\mathsf{true}\) gives \(\mathsf{bool}\).</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-14">Example succ_type : ⊢ λ "x" : INT , var "x" ⊕ const 1 : INT ⇒ INT.
+Proof.
+  apply t_lam.
+  apply t_plus.
+  - apply t_var. reflexivity.
+  - apply t_num.
+Qed.
+
+Example stuck_untyped : ~ exists τ, ⊢ TRUE ⊕ const 1 : τ.
+Proof.
+  intros [τ H].
+  inversion H as [ | | | | | | Γ e1 e2 Htrue Hone | ]; subst.
+  inversion Htrue.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 14 lines">Show code · 14 lines</button></div></div>
+<h2>4. Type soundness</h2>
+<p>What does the type system buy us? Section 2 ended with a run that gets stuck: \((\lambda x{:}\mathsf{int}.\, x + 1)\, \mathsf{true} \longrightarrow \mathsf{true} + 1\). Evaluation never looks at types, so nothing stops it. Section 3 showed that \(\mathsf{true} + 1\) has no type. Type soundness says this is no accident: no well-typed program ever reaches a stuck expression. In Milner's slogan, well-typed programs cannot "go wrong" (Milner 1978).</p>
+<h3>Not stuck, and safe</h3>
+<p>The lecture's notion is <strong>not stuck</strong>: \(e\) is a value, or it steps.</p>
+<div class="display">\[
+\mathsf{not\ stuck}(e) \;:\Longleftrightarrow\; e \text{ is a value} \;\text{ or }\; e \longrightarrow e' \text{ for some } e'
+\]</div>
+<p>An expression is <strong>safe</strong> when everything it can reach is not stuck:</p>
+<div class="display">\[
+\mathsf{safe}(e) \;:\Longleftrightarrow\; \mathsf{not\ stuck}(e') \text{ for every } e' \text{ with } e \longrightarrow^* e'
+\]</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-15">Definition not_stuck (e : exp) : Prop := value e \/ exists e', e ⟶ e'.
+
+Definition safe (e : exp) : Prop := forall e', e ⟶* e' -&gt; not_stuck e'.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
+
+<h3>The theorem</h3>
+<div class="thm">
+  <p><span class="name">Type soundness.</span> If \(\vdash e : \tau\), then \(\mathsf{safe}(e)\).</p>
+</div>
+<p>This is the lecture's statement with \(\mathsf{safe}\) unfolded: if \(\vdash e : \tau\) and \(e \longrightarrow^* e'\), then \(e'\) is not stuck, that is, it is a value or it steps.</p>
+<details class="question">
+<summary>Are there safe programs that are not well-typed?</summary>
+<figure class="venn">
+<svg viewBox="0 0 600 360" role="img" aria-labelledby="venn-title venn-desc">
+  <title id="venn-title">Well-typed expressions inside safe expressions inside all closed expressions</title>
+  <desc id="venn-desc">Three nested regions. Gets stuck: true + 1 and (λx:int. x + 1) true. Safe but not well-typed: if true then 1 else true + 1. Well-typed: (λx:int. x + 1) 2.</desc>
+  <rect class="v-all" x="8" y="8" width="584" height="344" rx="16"/>
+  <ellipse class="v-safe" cx="345" cy="195" rx="225" ry="135"/>
+  <ellipse class="v-typed" cx="350" cy="235" rx="150" ry="80"/>
+  <text class="v-label" x="28" y="40">Closed expressions</text>
+  <text class="v-label" x="345" y="93" text-anchor="middle">Safe: never get stuck</text>
+  <text class="v-ex" x="345" y="125" text-anchor="middle">if true then 1 else true + 1</text>
+  <text class="v-label" x="350" y="222" text-anchor="middle">Well-typed: ⊢ e : τ</text>
+  <text class="v-ex" x="350" y="255" text-anchor="middle">(λx:int. x + 1) 2</text>
+  <text class="v-label" x="28" y="296">Gets stuck</text>
+  <text class="v-ex" x="28" y="321">true + 1</text>
+  <text class="v-ex" x="28" y="343">(λx:int. x + 1) true</text>
+</svg>
+</figure>
+<p>Yes. Soundness says the well-typed expressions sit inside the safe ones. The other direction fails: \(\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ 1\ \mathsf{else}\ \mathsf{true} + 1\) always evaluates to \(1\), so it is safe, but it has no type, because its else branch \(\mathsf{true} + 1\) has none. The type system is conservative: it rejects some safe programs so that it never accepts an unsafe one.</p>
+</details>
+
+<p>The theorem talks about whole runs, which can be any length. The standard way to prove it (Wright and Felleisen 1994) is to split it into two facts about a <em>single</em> step:</p>
+<div class="thm">
+  <p><span class="name">Progress.</span> If \(\vdash e : \tau\), then \(\mathsf{not\ stuck}(e)\). Unfolded, this is the lecture's statement: \(e\) is a value or \(e \longrightarrow e'\) for some \(e'\).</p>
+  <p><span class="name">Preservation.</span> If \(\vdash e : \tau\) and \(e \longrightarrow e'\), then \(\vdash e' : \tau\).</p>
+</div>
+<p>Progress says a well-typed expression is not stuck <em>right now</em>. Preservation says a step keeps the type, so after the step the expression is still well-typed, and progress applies again. Neither one alone is enough: progress says nothing about the future, and preservation alone allows a well-typed expression that is stuck.</p>
+<p><strong>Proving soundness.</strong> We want to prove \(\vdash e : \tau \implies \mathsf{safe}(e)\). Unfolding \(\mathsf{safe}\), it suffices to show: given \(\vdash e : \tau\) and \(e \longrightarrow^* e'\), that \(e'\) is not stuck.</p>
+<p>We induct on the run \(e \longrightarrow^* e'\), one case for each rule. What the induction proves is "if the start of the run has type \(\tau\), then its end is not stuck", so the induction hypothesis is about the shorter run and its own start.</p>
+<ul class="proof">
+  <li><strong>Case (refl):</strong> the run takes no steps, so \(e' = e\).
+    <br>Assumptions: \(\vdash e : \tau\).
+    <br>Goal: \(\mathsf{not\ stuck}(e)\).
+    <br>Progress gives it directly.</li>
+  <li><strong>Case (step):</strong> the run is a first step \(e \longrightarrow e''\), then the rest \(e'' \longrightarrow^* e'\).
+    <br>Assumptions: \(\vdash e : \tau\); \(e \longrightarrow e''\); \(e'' \longrightarrow^* e'\); and the induction hypothesis for the shorter run, if \(\vdash e'' : \tau\) then \(\mathsf{not\ stuck}(e')\).
+    <br>Goal: \(\mathsf{not\ stuck}(e')\).
+    <br>Preservation, from \(\vdash e : \tau\) and \(e \longrightarrow e''\), gives \(\vdash e'' : \tau\). The induction hypothesis then gives \(\mathsf{not\ stuck}(e')\).</li>
+</ul>
+<p>So everything comes down to progress and preservation. We first prove soundness assuming them, and then prove each one. In Rocq the assumptions are <code>Hypothesis</code> declarations inside a <code>Section</code>. When the section ends, <code>soundness</code> becomes a theorem that takes progress and preservation as arguments, so the assumptions stay visible in its type.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-16">Section Soundness.
+
+  (** Progress: a closed, well-typed expression is not stuck.
+      Unfolding not_stuck, this is the lecture's statement: e is a
+      value or e ⟶ e' for some e'. *)
+  Hypothesis progress :
+    forall e τ, ⊢ e : τ -&gt; not_stuck e.
+
+  (** Preservation: a step keeps the type. *)
+  Hypothesis preservation :
+    forall e e' τ, ⊢ e : τ -&gt; e ⟶ e' -&gt; ⊢ e' : τ.
+
+  (** By induction on the run e ⟶* e'.  Preservation carries the type
+      along each step; progress applies at the end. *)
+  Theorem soundness e τ : ⊢ e : τ -&gt; safe e.
+  Proof.
+    (* Assume ⊢ e : τ (call it Ht).  "safe e" means: for every e' with
+       e ⟶* e', e' is not stuck.  So also take any such e' and the run
+       e ⟶* e' (call it Hrun).  Goal: e' is not stuck. *)
+    intros Ht e' Hrun.
+    (* Induction on the run: one case for each rule of ⟶*, (refl) and
+       (step).  In both cases the goal is about the end of the run. *)
+    induction Hrun as [e | e1 e2 e3 Hs Hrest IH].
+    - (* Case (refl): the run takes no steps, so it ends at e itself,
+         and Ht says ⊢ e : τ.  Progress says exactly that e is not
+         stuck. *)
+      apply (progress e τ Ht).
+    - (* Case (step): the run is one step e1 ⟶ e2 (Hs), followed by the
+         rest of the run e2 ⟶* e3 (Hrest).  Ht says ⊢ e1 : τ.
+         The induction hypothesis IH is about the shorter run Hrest:
+         if ⊢ e2 : τ, then e3 is not stuck.  So it is enough to show
+         ⊢ e2 : τ. *)
+      apply IH.
+      (* Use preservation: a step keeps the type.  For e1 ⟶ e2 it needs
+         two things, ⊢ e1 : τ and the step itself. *)
+      apply preservation with (e := e1).
+      + (* ⊢ e1 : τ is Ht. *)
+        apply Ht.
+      + (* e1 ⟶ e2 is Hs. *)
+        apply Hs.
+  Qed.
+
+End Soundness.
+
+Check soundness.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 45 lines">Show code · 45 lines</button></div></div>
+<h3>Canonical forms</h3>
+<div class="thm">
+  <p><span class="name">Canonical forms.</span> For a value \(v\):</p>
+  <ul>
+    <li>if \(\vdash v : \mathsf{int}\), then \(v\) is a number;</li>
+    <li>if \(\vdash v : \mathsf{bool}\), then \(v\) is \(\mathsf{true}\) or \(\mathsf{false}\);</li>
+    <li>if \(\vdash v : \tau_1 \to \tau_2\), then \(v\) is \(\lambda x{:}\tau_1.\, e\) for some \(x\) and \(e\).</li>
+  </ul>
+</div>
+<p class="proof"><em>Proof.</em> Go through the four kinds of value. For each wrong pairing, such as a \(\lambda\) at type \(\mathsf{int}\), no typing rule gives that type.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-17">Lemma canonical_int v : value v -&gt; ⊢ v : INT -&gt; exists n, v = const n.
+Proof.
+  intros Hv Ht.
+  (* the four kinds of value *)
+  destruct Hv as [n | | | x τ e].
+  - (* a number: this is the one *)
+    exists n. reflexivity.
+  - (* TRUE: only t_true types it, at BOOL, not INT *)
+    inversion Ht.
+  - (* FALSE: the same *)
+    inversion Ht.
+  - (* a λ: only t_lam types it, at a function type, not INT *)
+    inversion Ht.
+Qed.
+
+Lemma canonical_bool v : value v -&gt; ⊢ v : BOOL -&gt; v = TRUE \/ v = FALSE.
+Proof.
+  intros Hv Ht.
+  destruct Hv as [n | | | x τ e].
+  - (* a number: only t_num types it, at INT *)
+    inversion Ht.
+  - left. reflexivity.
+  - right. reflexivity.
+  - (* a λ: only t_lam types it, at a function type *)
+    inversion Ht.
+Qed.
+
+Lemma canonical_arr v τ1 τ2 :
+  value v -&gt; ⊢ v : τ1 ⇒ τ2 -&gt; exists x e, v = λ x : τ1 , e.
+Proof.
+  intros Hv Ht.
+  destruct Hv as [n | | | x τ e].
+  - inversion Ht.
+  - inversion Ht.
+  - inversion Ht.
+  - (* a λ: t_lam says its annotation τ is the argument type τ1 *)
+    inversion Ht; subst. exists x, e. reflexivity.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 38 lines">Show code · 38 lines</button></div></div>
+
+<h3>Steps inside a context</h3>
+<div class="thm">
+  <p><span class="name">Steps inside a context.</span> If \(e \longrightarrow e'\), then \(E[e] \longrightarrow E[e']\) for any evaluation context \(E\).</p>
+</div>
+<p class="proof"><em>Proof.</em> The step \(e \longrightarrow e'\) is \(E'[r] \longrightarrow E'[r']\) for some context \(E'\) and redex \(r\). Putting \(E'\) into the hole of \(E\) gives one bigger context, and \(E[E'[r]] \longrightarrow E[E'[r']]\) is the step rule with that context.</p>
+<p>In Rocq, <code>compose E E'</code> is that bigger context, and <code>plug_compose</code> says plugging into it is plugging twice: \((\mathsf{compose}\ E\ E')[e] = E[E'[e]]\).</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-18">Fixpoint compose (E E' : ectx) : ectx :=
+  match E with
+  | Hole =&gt; E'
+  | AppL E e2 =&gt; AppL (compose E E') e2
+  | AppR v E =&gt; AppR v (compose E E')
+  | PlusL E e2 =&gt; PlusL (compose E E') e2
+  | PlusR n E =&gt; PlusR n (compose E E')
+  | IfC E e1 e2 =&gt; IfC (compose E E') e1 e2
+  end.
+
+Lemma plug_compose E E' e : (compose E E') [e] = E [E' [e]].
+Proof.
+  induction E as [ | E IH e2 | v E IH | E IH e2 | n E IH | E IH e1 e2 ];
+    simpl.
+  - (* E = •: both sides are E'[e] *)
+    reflexivity.
+  (* every other layer: rewrite with the IH underneath it *)
+  - rewrite IH. reflexivity.
+  - rewrite IH. reflexivity.
+  - rewrite IH. reflexivity.
+  - rewrite IH. reflexivity.
+  - rewrite IH. reflexivity.
+Qed.
+
+Lemma step_in_context E e e' : e ⟶ e' -&gt; E [e] ⟶ E [e'].
+Proof.
+  intros Hs.
+  (* the step e ⟶ e' was made by the one rule: e = E'[r], e' = E'[r'] *)
+  destruct Hs as [E' r r' Hr].
+  (* rewrite both sides as plugs into the composed context *)
+  rewrite &lt;- (plug_compose E E' r).
+  rewrite &lt;- (plug_compose E E' r').
+  (* now it is the step rule, with context compose E E' *)
+  apply s_ctx. apply Hr.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 35 lines">Show code · 35 lines</button></div></div>
+
+<h3>Progress</h3>
+<div class="thm">
+  <p><span class="name">Progress.</span> If \(\vdash e : \tau\), then \(\mathsf{not\ stuck}(e)\).</p>
+</div>
+<details class="question">
+<summary>The typing rules, for reference</summary>
+<div class="rules">
+  <div>\[\frac{}{\Gamma \vdash n : \mathsf{int}}\]</div>
+  <div>\[\frac{}{\Gamma \vdash \mathsf{true} : \mathsf{bool}}\]</div>
+  <div>\[\frac{}{\Gamma \vdash \mathsf{false} : \mathsf{bool}}\]</div>
+  <div>\[\frac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}\]</div>
+  <div>\[\frac{\Gamma, \class{hl-new}{\bbox[yellow,1pt]{x{:}\tau_1}} \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\]</div>
+  <div>\[\frac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}\]</div>
+  <div>\[\frac{\Gamma \vdash e_1 : \mathsf{int} \quad \Gamma \vdash e_2 : \mathsf{int}}{\Gamma \vdash e_1 + e_2 : \mathsf{int}}\]</div>
+  <div>\[\frac{\Gamma \vdash e : \mathsf{bool} \quad \Gamma \vdash e_1 : \tau \quad \Gamma \vdash e_2 : \tau}{\Gamma \vdash \mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 : \tau}\]</div>
+</details>
+<p class="proof"><em>Proof.</em> By induction on the derivation of \(\vdash e : \tau\), one case per typing rule.</p>
+<ul class="proof">
+  <li><strong>\(x\):</strong> impossible. The variable rule needs \(x{:}\tau\) in the context, and the context is empty.</li>
+  <li><strong>\(n\), \(\mathsf{true}\), \(\mathsf{false}\), \(\lambda x{:}\tau_1.\, e\):</strong> values.</li>
+  <li><strong>\(e_1\, e_2\):</strong> the induction hypothesis says \(\mathsf{not\ stuck}(e_1)\).
+    <br>If \(e_1\) steps, so does \(e_1\, e_2\), by steps inside a context with \(E = \bullet\, e_2\): a left hole.
+    <br>If \(e_1\) is a value, use the induction hypothesis \(\mathsf{not\ stuck}(e_2)\). If \(e_2\) steps, so does \(e_1\, e_2\), with \(E = e_1\, \bullet\): a right hole, allowed because \(e_1\) is a value. If \(e_2\) is a value too, canonical forms makes \(e_1\) a \(\lambda x{:}\tau_1.\, e\), so \(e_1\, e_2\) is a β-redex, with \(E = \bullet\).</li>
+  <li><strong>\(e_1 + e_2\):</strong> the same pattern. Look left; once the left is a value, canonical forms makes it a number \(n_1\); then look right; once both are numbers, \(n_1 + n_2\) is a redex.</li>
+  <li><strong>\(\mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2\):</strong> if the condition steps, so does the \(\mathsf{if}\), with \(E = \mathsf{if}\ \bullet\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2\). Once it is a value, canonical forms makes it \(\mathsf{true}\) or \(\mathsf{false}\), and either way the \(\mathsf{if}\) is a redex.</li>
+</ul>
+<p>Canonical forms is what turns "a value of the right type" into "the shape a redex rule needs".</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-19">Theorem progress e τ : ⊢ e : τ -&gt; not_stuck e.
+Proof.
+  intros Ht.
+  (* Induction on the typing derivation needs the context to be a
+     variable, so name the empty context Γ and remember that Γ = nil. *)
+  remember (@nil (name * ty)) as Γ.
+  induction Ht as [ Γ n | Γ | Γ | Γ x τ Hx | Γ x τ1 e τ2 He IH
+                  | Γ e1 e2 τ1 τ2 H1 IH1 H2 IH2 | Γ e1 e2 H1 IH1 H2 IH2
+                  | Γ e e1 e2 τ H IH H1 IH1 H2 IH2 ];
+    subst Γ; unfold not_stuck in *.
+  - (* Case n: a value *)
+    left. apply v_num.
+  - (* Case true: a value *)
+    left. apply v_true.
+  - (* Case false: a value *)
+    left. apply v_false.
+  - (* Case x: impossible.  t_var needs x:τ in the context, but the
+       context is empty, so the lookup Hx can't succeed. *)
+    discriminate Hx.
+  - (* Case λx:τ1. e: a value *)
+    left. apply v_lam.
+  - (* Case e1 e2.  It steps, so prove the right side. *)
+    right.
+    (* The IH for e1: e1 is a value, or it steps. *)
+    destruct (IH1 eq_refl) as [Hv1 | Hs1].
+    + (* e1 is a value.  Now the IH for e2. *)
+      destruct (IH2 eq_refl) as [Hv2 | Hs2].
+      * (* Both values.  Canonical forms: e1 has a function type, so it
+           is some λx:τ1. e.  Then e1 e2 is a β-redex, with E = •. *)
+        destruct (canonical_arr e1 τ1 τ2 Hv1 H1) as [x [e Heq]]. subst.
+        exists (e [x ↦ e2]).
+        apply (s_ctx Hole). apply r_beta. apply Hv2.
+      * (* e2 steps to some e2'.  Then e1 e2 ⟶ e1 e2', by steps inside
+           a context with the context e1 • (a right hole); the val in
+           it is e1 with the proof Hv1. *)
+        destruct Hs2 as [e2' Hs2].
+        exists (e1 · e2').
+        apply (step_in_context (AppR (exist _ e1 Hv1) Hole)). apply Hs2.
+    + (* e1 steps to some e1'.  Then e1 e2 ⟶ e1' e2, by steps inside a
+         context with the context • e2 (a left hole). *)
+      destruct Hs1 as [e1' Hs1].
+      exists (e1' · e2).
+      apply (step_in_context (AppL Hole e2)). apply Hs1.
+  - (* Case e1 + e2.  It steps. *)
+    right.
+    destruct (IH1 eq_refl) as [Hv1 | Hs1].
+    + (* e1 is a value of type int: canonical forms makes it a number *)
+      destruct (canonical_int e1 Hv1 H1) as [n1 Heq1]. subst.
+      destruct (IH2 eq_refl) as [Hv2 | Hs2].
+      * (* both numbers: n1 + n2 is a redex, with E = • *)
+        destruct (canonical_int e2 Hv2 H2) as [n2 Heq2]. subst.
+        exists (const (n1 + n2)).
+        apply (s_ctx Hole). apply r_plus.
+      * (* e2 steps: steps inside the context n1 + • *)
+        destruct Hs2 as [e2' Hs2].
+        exists (const n1 ⊕ e2').
+        apply (step_in_context (PlusR n1 Hole)). apply Hs2.
+    + (* e1 steps: steps inside the context • + e2 *)
+      destruct Hs1 as [e1' Hs1].
+      exists (e1' ⊕ e2).
+      apply (step_in_context (PlusL Hole e2)). apply Hs1.
+  - (* Case if e then e1 else e2.  It steps. *)
+    right.
+    destruct (IH eq_refl) as [Hv | Hs].
+    + (* the condition is a value of type bool: TRUE or FALSE, and
+         either way the if is a redex, with E = • *)
+      destruct (canonical_bool e Hv H) as [Heq | Heq]; subst.
+      * exists e1. apply (s_ctx Hole). apply r_if_true.
+      * exists e2. apply (s_ctx Hole). apply r_if_false.
+    + (* the condition steps: steps inside the context
+         if • then e1 else e2 *)
+      destruct Hs as [e' Hs].
+      exists (IF e' THEN e1 ELSE e2 FI).
+      apply (step_in_context (IfC Hole e1 e2)). apply Hs.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 75 lines">Show code · 75 lines</button></div></div>
+<p class="cite">R. Milner, <em>A theory of type polymorphism in programming</em>, Journal of Computer and System Sciences 17(3), 1978. A. K. Wright and M. Felleisen, <em>A syntactic approach to type soundness</em>, Information and Computation 115(1), 1994.</p>
 
 
 </div>
@@ -348,6 +972,13 @@ function workerPrelude(BASE, PIN) {
         if (!coq.provider.getAtPoint()) return;   /* nothing checked after this block */
       }
       coq.goCursor();
+      /* moving the cursor scrolls the editor; a folded one should still
+         show its first lines */
+      if (cell.classList.contains('is-collapsed')) {
+        cm.scrollTo(0, 0);
+        const n = cells[cells.indexOf(cell) + 1];
+        if (n && n.classList.contains('is-collapsed')) editorOf(n).scrollTo(0, 0);
+      }
     });
     cell.addEventListener('mousedown', e => {
       if (cell.classList.contains('is-collapsed') && e.target.closest('.CodeMirror')) setCell(cell, true);
