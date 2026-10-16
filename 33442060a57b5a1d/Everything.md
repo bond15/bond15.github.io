@@ -9,7 +9,7 @@ sitemap: false
 
 # CBPV(𝒯) with one-frame algebraicity
 
-This is a minimal Agda development of the three-page note. Tree reduction moves an operation out through a stack one frame at a time, so it is closed under stacks. Strong normalization is proved with reducibility candidates, and tree adequacy is read off the logical relation. For an affine operational model, configuration reduction is strongly normalizing for every interleaving of Pure and Effect steps, it computes the denotation (configuration adequacy), and the final configuration is unique at ground types. Strong normalization of tree reduction is used only to make the termination measure on configurations well founded.
+This is a minimal Agda development of the three-page note. Tree reduction moves an operation out through a stack one frame at a time, so it is closed under stacks. Strong normalization is proved with reducibility candidates, and tree adequacy is read off the logical relation. For an affine operational model, configuration reduction is strongly normalizing for every interleaving of Pure and Effect steps, it computes the denotation (configuration adequacy), and the final configuration is unique at ground types. Both tree adequacy and the termination measure rest on the strong-normalization logical relation: tree adequacy is read off its derivation of `𝒮⟦ F A ⟧ M`, and the strong normalization it gives makes the termination measure on configurations well founded.
 
 The development depends only on the `cubical` library. It has no postulates, holes or termination pragmas, and every module is checked with `--cubical --safe`. Each name below links to its definition.
 
@@ -67,32 +67,32 @@ Notation: the note's `↦red` is `_⇝_`, its `↦tree` is `_↦_`, and its `�
 
 This page is the literate Agda module `Everything`, which imports every module.
 
-<pre class="Agda"><a id="4548" class="Keyword">module</a> <a id="4555" href="Everything.html" class="Module">Everything</a> <a id="4566" class="Keyword">where</a>
+<pre class="Agda"><a id="4688" class="Keyword">module</a> <a id="4695" href="Everything.html" class="Module">Everything</a> <a id="4706" class="Keyword">where</a>
 
-<a id="4573" class="Keyword">import</a> <a id="4580" href="CBPV.Adequacy.html" class="Module">CBPV.Adequacy</a>
-<a id="4594" class="Keyword">import</a> <a id="4601" href="CBPV.ConfigNormalization.html" class="Module">CBPV.ConfigNormalization</a>
-<a id="4626" class="Keyword">import</a> <a id="4633" href="CBPV.ConfigProgress.html" class="Module">CBPV.ConfigProgress</a>
-<a id="4653" class="Keyword">import</a> <a id="4660" href="CBPV.ConfigReduction.html" class="Module">CBPV.ConfigReduction</a>
-<a id="4681" class="Keyword">import</a> <a id="4688" href="CBPV.Denotation.html" class="Module">CBPV.Denotation</a>
-<a id="4704" class="Keyword">import</a> <a id="4711" href="CBPV.DenotationLemmas.html" class="Module">CBPV.DenotationLemmas</a>
-<a id="4733" class="Keyword">import</a> <a id="4740" href="CBPV.Fin.html" class="Module">CBPV.Fin</a>
-<a id="4749" class="Keyword">import</a> <a id="4756" href="CBPV.FreeModel.html" class="Module">CBPV.FreeModel</a>
-<a id="4771" class="Keyword">import</a> <a id="4778" href="CBPV.Measure.html" class="Module">CBPV.Measure</a>
-<a id="4791" class="Keyword">import</a> <a id="4798" href="CBPV.Models.html" class="Module">CBPV.Models</a>
-<a id="4810" class="Keyword">import</a> <a id="4817" href="CBPV.NormalForms.html" class="Module">CBPV.NormalForms</a>
-<a id="4834" class="Keyword">import</a> <a id="4841" href="CBPV.OperationalModel.html" class="Module">CBPV.OperationalModel</a>
-<a id="4863" class="Keyword">import</a> <a id="4870" href="CBPV.Plug.html" class="Module">CBPV.Plug</a>
-<a id="4880" class="Keyword">import</a> <a id="4887" href="CBPV.Polynomial.html" class="Module">CBPV.Polynomial</a>
-<a id="4903" class="Keyword">import</a> <a id="4910" href="CBPV.Reduction.html" class="Module">CBPV.Reduction</a>
-<a id="4925" class="Keyword">import</a> <a id="4932" href="CBPV.Renaming.html" class="Module">CBPV.Renaming</a>
-<a id="4946" class="Keyword">import</a> <a id="4953" href="CBPV.SNFundamental.html" class="Module">CBPV.SNFundamental</a>
-<a id="4972" class="Keyword">import</a> <a id="4979" href="CBPV.SNRelation.html" class="Module">CBPV.SNRelation</a>
-<a id="4995" class="Keyword">import</a> <a id="5002" href="CBPV.Soundness.html" class="Module">CBPV.Soundness</a>
-<a id="5017" class="Keyword">import</a> <a id="5024" href="CBPV.Substitution.html" class="Module">CBPV.Substitution</a>
-<a id="5042" class="Keyword">import</a> <a id="5049" href="CBPV.Syntax.html" class="Module">CBPV.Syntax</a>
-<a id="5061" class="Keyword">import</a> <a id="5068" href="CBPV.Theory.html" class="Module">CBPV.Theory</a>
-<a id="5080" class="Keyword">import</a> <a id="5087" href="CBPV.TreeAdequacy.html" class="Module">CBPV.TreeAdequacy</a>
-<a id="5105" class="Keyword">import</a> <a id="5112" href="CBPV.Trees.html" class="Module">CBPV.Trees</a>
-<a id="5123" class="Keyword">import</a> <a id="5130" href="CBPV.Types.html" class="Module">CBPV.Types</a>
+<a id="4713" class="Keyword">import</a> <a id="4720" href="CBPV.Adequacy.html" class="Module">CBPV.Adequacy</a>
+<a id="4734" class="Keyword">import</a> <a id="4741" href="CBPV.ConfigNormalization.html" class="Module">CBPV.ConfigNormalization</a>
+<a id="4766" class="Keyword">import</a> <a id="4773" href="CBPV.ConfigProgress.html" class="Module">CBPV.ConfigProgress</a>
+<a id="4793" class="Keyword">import</a> <a id="4800" href="CBPV.ConfigReduction.html" class="Module">CBPV.ConfigReduction</a>
+<a id="4821" class="Keyword">import</a> <a id="4828" href="CBPV.Denotation.html" class="Module">CBPV.Denotation</a>
+<a id="4844" class="Keyword">import</a> <a id="4851" href="CBPV.DenotationLemmas.html" class="Module">CBPV.DenotationLemmas</a>
+<a id="4873" class="Keyword">import</a> <a id="4880" href="CBPV.Fin.html" class="Module">CBPV.Fin</a>
+<a id="4889" class="Keyword">import</a> <a id="4896" href="CBPV.FreeModel.html" class="Module">CBPV.FreeModel</a>
+<a id="4911" class="Keyword">import</a> <a id="4918" href="CBPV.Measure.html" class="Module">CBPV.Measure</a>
+<a id="4931" class="Keyword">import</a> <a id="4938" href="CBPV.Models.html" class="Module">CBPV.Models</a>
+<a id="4950" class="Keyword">import</a> <a id="4957" href="CBPV.NormalForms.html" class="Module">CBPV.NormalForms</a>
+<a id="4974" class="Keyword">import</a> <a id="4981" href="CBPV.OperationalModel.html" class="Module">CBPV.OperationalModel</a>
+<a id="5003" class="Keyword">import</a> <a id="5010" href="CBPV.Plug.html" class="Module">CBPV.Plug</a>
+<a id="5020" class="Keyword">import</a> <a id="5027" href="CBPV.Polynomial.html" class="Module">CBPV.Polynomial</a>
+<a id="5043" class="Keyword">import</a> <a id="5050" href="CBPV.Reduction.html" class="Module">CBPV.Reduction</a>
+<a id="5065" class="Keyword">import</a> <a id="5072" href="CBPV.Renaming.html" class="Module">CBPV.Renaming</a>
+<a id="5086" class="Keyword">import</a> <a id="5093" href="CBPV.SNFundamental.html" class="Module">CBPV.SNFundamental</a>
+<a id="5112" class="Keyword">import</a> <a id="5119" href="CBPV.SNRelation.html" class="Module">CBPV.SNRelation</a>
+<a id="5135" class="Keyword">import</a> <a id="5142" href="CBPV.Soundness.html" class="Module">CBPV.Soundness</a>
+<a id="5157" class="Keyword">import</a> <a id="5164" href="CBPV.Substitution.html" class="Module">CBPV.Substitution</a>
+<a id="5182" class="Keyword">import</a> <a id="5189" href="CBPV.Syntax.html" class="Module">CBPV.Syntax</a>
+<a id="5201" class="Keyword">import</a> <a id="5208" href="CBPV.Theory.html" class="Module">CBPV.Theory</a>
+<a id="5220" class="Keyword">import</a> <a id="5227" href="CBPV.TreeAdequacy.html" class="Module">CBPV.TreeAdequacy</a>
+<a id="5245" class="Keyword">import</a> <a id="5252" href="CBPV.Trees.html" class="Module">CBPV.Trees</a>
+<a id="5263" class="Keyword">import</a> <a id="5270" href="CBPV.Types.html" class="Module">CBPV.Types</a>
 </pre>
 {% endraw %}
