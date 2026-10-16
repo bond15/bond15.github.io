@@ -4,6 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<script>
+/* Pick the theme before anything paints: the saved choice, else the OS setting. */
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('jscoq-page-theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark')
+    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
 <title>Discussion 6: STLC Soundness</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jscoq@0.17.1/dist/frontend/index.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;650&amp;family=Spectral:ital,wght@0,400;0,600;1,400&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
@@ -25,6 +35,10 @@
   --font-display: "Commissioner", "Segoe UI", system-ui, sans-serif;
   --font-body: "Spectral", Georgia, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+:root[data-theme="dark"] {
+  --bg: #0f1724; --fg: #e4e8ef; --muted: #9aa4b5; --navy: #8fb4e3; --maize: #ffcb05;
+  --panel: #172234; --line: #2a3850; --head: #ffcb05; --code-bg: #121c2c; --kw: #d7a6f0; --str: #9fd39f; --num: #f2b073; color-scheme: dark;
 }
 #document { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 1.05rem; line-height: 1.6; padding-inline: 16px; padding-block: 1.5rem 4rem; }
 #document .CodeMirror { font-size: .8rem; height: auto; }
@@ -51,13 +65,22 @@ ul { padding-left: 1.2rem; }
 li { margin: .25rem 0; }
 
 #document code { color: var(--fg); }
+/* jsCoq's own stylesheet paints the document white; use the page tokens instead */
+body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #document { background: var(--bg) !important; color: var(--fg) !important; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+#theme-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+#theme-toggle:hover { border-color: var(--navy); }
+#theme-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
 </style>
 </head>
 <body class="jscoq-main">
 <div id="ide-wrapper" class="toggled">
 <div id="code-wrapper">
 <div id="document">
+<div class="topbar">
 <p class="eyebrow" style="margin-top:0">Runs in your browser: click into a code block and press Alt+↓ (Option+↓ on a Mac) to step, or Alt+Enter to run to the cursor. Goals show in the panel on the right.</p>
+<button id="theme-toggle" type="button"></button>
+</div>
 
 <header>
   <p class="eyebrow">CSE 590 · Fall 2026 · Discussion 6</p>
@@ -663,16 +686,32 @@ function workerPrelude(BASE, PIN) {
 <script type="module">
   const JSCOQ = 'https://cdn.jsdelivr.net/npm/jscoq@0.17.1/';
   const { JsCoq } = await import(JSCOQ + 'jscoq.js');
-  JsCoq.start(['textarea.coq'], {
+  const EDITOR_THEME = { light: 'default', dark: 'blackboard' };
+  const theme0 = document.documentElement.getAttribute('data-theme');
+  const button = document.getElementById('theme-toggle');
+  const label = t => { button.textContent = t === 'dark' ? '☀ Light mode' : '☾ Dark mode'; };
+  label(theme0);
+  const coq = await JsCoq.start(['textarea.coq'], {
+    theme: theme0,
     base_path: JSCOQ,
     backend: 'wa',
     prelude: true,
     implicit_libs: true,
     init_pkgs: ['init'],
     all_pkgs: ['coq'],
-    editor: { mode: { 'company-coq': true } },
+    editor: { mode: { 'company-coq': true }, theme: EDITOR_THEME[theme0] },
     focus: false
   });
+  /* The light switch: page colors, jsCoq's panel, and every editor. */
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('jscoq-page-theme', t); } catch (e) {}
+    try { coq.layout.configure({ theme: t }); } catch (e) {}
+    try { coq.provider.configure({ theme: EDITOR_THEME[t] }); } catch (e) {}
+    label(t);
+  }
+  button.addEventListener('click', () =>
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
 </script>
 </body>
 </html>
