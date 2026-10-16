@@ -69,7 +69,18 @@ li { margin: .25rem 0; }
 body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #document { background: var(--bg) !important; color: var(--fg) !important; }
 .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 #theme-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
-#theme-toggle:hover { border-color: var(--navy); }
+#theme-toggle:hover, #fold-toggle:hover { border-color: var(--navy); }
+#fold-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+.topbar .switches { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+/* displayed math scrolls sideways if it must, never up and down */
+.display, .rules > div { overflow-y: hidden; }
+/* folded code cells: the first two lines show, faded out, until opened */
+.cell { margin: .8rem 0 1.2rem; }
+.cell.is-collapsed .CodeMirror { max-height: 3.3em !important; overflow: hidden; cursor: pointer; }
+.cell.is-collapsed .CodeMirror::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2.2em; background: linear-gradient(to bottom, transparent, var(--code-bg)); pointer-events: none; z-index: 10; }
+.cell-toggle { display: block; margin-top: .25rem; font-family: var(--font-display); font-size: .78rem; color: var(--navy); background: none; border: 0; padding: .15rem 0; cursor: pointer; }
+.cell-toggle:hover { text-decoration: underline; }
+.cell-toggle:focus-visible, #fold-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
 #theme-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
 
 /* ---- jsCoq in the page's colors ------------------------------------
@@ -126,7 +137,10 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 <div id="document">
 <div class="topbar">
 <p class="eyebrow" style="margin-top:0">Runs in your browser: click into a code block and press Alt+↓ (Option+↓ on a Mac) to step, or Alt+Enter to run to the cursor. Goals show in the panel on the right.</p>
+<div class="switches">
+<button id="fold-toggle" type="button" aria-pressed="false">Show all code</button>
 <button id="theme-toggle" type="button"></button>
+</div>
 </div>
 
 <header>
@@ -146,7 +160,7 @@ v &::= n \mid \mathsf{true} \mid \mathsf{false} \mid \lambda x{:}\tau.\, e
 \]</div>
 <p>Here \(n\) ranges over integers and \(x\) over variable names. A value \(v\) is a finished answer.</p>
 <p>In Rocq, the language's symbols differ from Rocq's own, so they can't be confused: <code>⊕</code> is \(+\), <code>TRUE</code>/<code>FALSE</code> are \(\mathsf{true}\)/\(\mathsf{false}\), <code>INT</code>/<code>BOOL</code>/<code>⇒</code> are the types, and <code>e1 · e2</code> is application.</p>
-<textarea class="coq" id="coq-1">From Coq Require Import ZArith Bool String List.
+<div class="cell is-collapsed"><textarea class="coq" id="coq-1">From Coq Require Import ZArith Bool String List.
 Open Scope Z_scope.
 Open Scope string_scope.
 
@@ -179,12 +193,12 @@ Notation "'λ' x : τ , e" := (Lam x τ e)
   (at level 99, x at level 0, τ at level 99, e at level 99).
 Notation "e1 · e2" := (App e1 e2) (at level 40, left associativity).
 Notation "e1 ⊕ e2" := (Plus e1 e2) (at level 50, left associativity).
-Notation "'IF' e 'THEN' e1 'ELSE' e2 'FI'" := (If e e1 e2) (at level 80).</textarea>
-<textarea class="coq" id="coq-2">Inductive value : exp -&gt; Prop :=
+Notation "'IF' e 'THEN' e1 'ELSE' e2 'FI'" := (If e e1 e2) (at level 80).</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 34 lines">Show code · 34 lines</button></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-2">Inductive value : exp -&gt; Prop :=
 | v_num n : value (const n)
 | v_true : value TRUE
 | v_false : value FALSE
-| v_lam x τ e : value (λ x : τ , e).</textarea>
+| v_lam x τ e : value (λ x : τ , e).</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div>
 
 <h3>Substitution</h3>
 <p>\(e[x \mapsto v]\) replaces the free \(x\)'s in \(e\) by \(v\) (<code>subst</code>):</p>
@@ -201,7 +215,7 @@ y[x \mapsto v] = \begin{cases} v & y = x \\ y & y \ne x \end{cases}
   <p>The reason is that evaluation contexts have no \(\lambda x{:}\tau.\, E\) form, so evaluation never looks inside a \(\lambda\). In a closed program, the redex \(r\) in \(E[r]\) is not under any binder, so it is closed too, and so is the argument \(v\) of a β-redex \((\lambda x{:}\tau.\, e)\, v\). In the proof this shows up in two places: the substitution lemma assumes \(\vdash v : \tau_1\) in the <em>empty</em> context, and the replacement lemma (§4) types the redex in the empty context.</p>
   <p>Where it would go wrong: if we also reduced under \(\lambda\), then in \(\lambda y{:}\mathsf{int}.\, (\lambda x{:}\mathsf{int}.\, \lambda y{:}\mathsf{int}.\, x)\, y\) the inner β-step would give \(\lambda y{:}\mathsf{int}.\, y\) instead of a function that returns the outer \(y\).</p>
 </div>
-<textarea class="coq" id="coq-3">Fixpoint subst (x : name) (v : exp) (e : exp) : exp :=
+<div class="cell is-collapsed"><textarea class="coq" id="coq-3">Fixpoint subst (x : name) (v : exp) (e : exp) : exp :=
   match e with
   | const n =&gt; const n
   | TRUE =&gt; TRUE
@@ -216,31 +230,31 @@ y[x \mapsto v] = \begin{cases} v & y = x \\ y & y \ne x \end{cases}
       IF subst x v e THEN subst x v e1 ELSE subst x v e2 FI
   end.
 
-Notation "e [ x ↦ v ]" := (subst x v e) (at level 2, x at level 99).</textarea>
+Notation "e [ x ↦ v ]" := (subst x v e) (at level 2, x at level 99).</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 16 lines">Show code · 16 lines</button></div>
 
 <h2>2. Evaluation contexts and \(\longrightarrow\)</h2>
-<p>An evaluation context is a term with one hole \([\,]\), at the place where the next step happens:</p>
+<p>An evaluation context is a term with one hole \(\bullet\), at the place where the next step happens:</p>
 <div class="display">\[
 \begin{aligned}
-E ::= {} & [\,] \mid E\, e \mid v\, E \mid E + e \mid n + E \\
+E ::= {} & \bullet \mid E\, e \mid v\, E \mid E + e \mid n + E \\
 \mid {} & \mathsf{if}\ E\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2
 \end{aligned}
 \]</div>
 <p>Read it as "where to look next": the function, then the argument; the left summand, then the right one; the condition of an if. There is no \(\lambda x{:}\tau.\, E\).</p>
 <p>In \(v\, E\), \(v\) ranges over values, a subset of expressions. In Rocq that subset is the type <code>val</code> \(= \{ e \mid e \text{ is a value} \}\): an expression together with a proof that it is a value. <code>exp_of v</code> is the expression part.</p>
-<textarea class="coq" id="coq-4">Definition val : Type := { e : exp | value e }.
+<div class="cell is-collapsed"><textarea class="coq" id="coq-4">Definition val : Type := { e : exp | value e }.
 
 Definition exp_of (v : val) : exp := proj1_sig v.
 
 Inductive ectx : Type :=
-| Hole                               (* []                    *)
+| Hole                               (* •                     *)
 | AppL (E : ectx) (e2 : exp)         (* E e2                  *)
 | AppR (v : val) (E : ectx)          (* v E                   *)
 | PlusL (E : ectx) (e2 : exp)        (* E + e2                *)
 | PlusR (n : Z) (E : ectx)           (* n + E                 *)
-| IfC (E : ectx) (e1 e2 : exp).      (* if E then e1 else e2  *)</textarea>
-<p>\(E[e]\) is \(E\) with \(e\) put in the hole (<code>plug</code>). For example, \((1 + 2) + 3 = E[1 + 2]\) with \(E = [\,] + 3\).</p>
-<textarea class="coq" id="coq-5">Fixpoint plug (E : ectx) (e : exp) : exp :=
+| IfC (E : ectx) (e1 e2 : exp).      (* if E then e1 else e2  *)</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 11 lines">Show code · 11 lines</button></div>
+<p>\(E[e]\) is \(E\) with \(e\) put in the hole (<code>plug</code>). For example, \((1 + 2) + 3 = E[1 + 2]\) with \(E = \bullet + 3\).</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-5">Fixpoint plug (E : ectx) (e : exp) : exp :=
   match E with
   | Hole =&gt; e
   | AppL E e2 =&gt; plug E e · e2
@@ -250,7 +264,7 @@ Inductive ectx : Type :=
   | IfC E e1 e2 =&gt; IF plug E e THEN e1 ELSE e2 FI
   end.
 
-Notation "E [ e ]" := (plug E e) (at level 2, e at level 99).</textarea>
+Notation "E [ e ]" := (plug E e) (at level 2, e at level 99).</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 11 lines">Show code · 11 lines</button></div>
 
 <p><strong>Head steps</strong> \(r \longrightarrow_h r'\) (<code>head</code>): the four rules that do work, at the top of the term. The \(r\) on the left is called a <strong>redex</strong>.</p>
 <div class="rules">
@@ -259,16 +273,16 @@ Notation "E [ e ]" := (plug E e) (at level 2, e at level 99).</textarea>
   <div>\[\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow_h e_1\]</div>
   <div>\[\mathsf{if}\ \mathsf{false}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow_h e_2\]</div>
 </div>
-<textarea class="coq" id="coq-6">Inductive head : exp -&gt; exp -&gt; Prop :=
+<div class="cell is-collapsed"><textarea class="coq" id="coq-6">Inductive head : exp -&gt; exp -&gt; Prop :=
 | h_beta x τ e v : value v -&gt; head ((λ x : τ , e) · v) (e [x ↦ v])
 | h_plus n1 n2 : head (const n1 ⊕ const n2) (const (n1 + n2))
 | h_if_true e1 e2 : head (IF TRUE THEN e1 ELSE e2 FI) e1
-| h_if_false e1 e2 : head (IF FALSE THEN e1 ELSE e2 FI) e2.</textarea>
+| h_if_false e1 e2 : head (IF FALSE THEN e1 ELSE e2 FI) e2.</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div>
 
 <p><strong>The step relation</strong> (<code>step</code>) is one rule: take the redex out of its context, do the work, put the result back.</p>
 <div class="rules"><div>\[\frac{r \longrightarrow_h r'}{E[r] \longrightarrow E[r']}\]</div></div>
-<p>With \(E = [\,]\) this says that a head step is a step (<code>head_step</code>).</p>
-<textarea class="coq" id="coq-7">Reserved Notation "e '⟶' e'" (at level 70).
+<p>With \(E = \bullet\) this says that a head step is a step (<code>head_step</code>).</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-7">Reserved Notation "e '⟶' e'" (at level 70).
 
 Inductive step : exp -&gt; exp -&gt; Prop :=
 | s_ctx E r r' : head r r' -&gt; E [r] ⟶ E [r']
@@ -277,23 +291,23 @@ where "e ⟶ e'" := (step e e').
 Lemma head_step r r' : head r r' -&gt; r ⟶ r'.
 Proof.
   intros Hhead. exact (s_ctx Hole r r' Hhead).
-Qed.</textarea>
+Qed.</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 10 lines">Show code · 10 lines</button></div>
 <p>\(e \longrightarrow^* e'\) is zero or more steps.</p>
-<textarea class="coq" id="coq-8">Inductive star {A : Type} (R : A -&gt; A -&gt; Prop) : A -&gt; A -&gt; Prop :=
+<div class="cell is-collapsed"><textarea class="coq" id="coq-8">Inductive star {A : Type} (R : A -&gt; A -&gt; Prop) : A -&gt; A -&gt; Prop :=
 | star_refl e : star R e e
 | star_step e1 e2 e3 : R e1 e2 -&gt; star R e2 e3 -&gt; star R e1 e3.
 
 Arguments star_refl {A R}.
 Arguments star_step {A R}.
 
-Notation "e '⟶*' e'" := (star step e e') (at level 70).</textarea>
-<p>A term is <strong>stuck</strong> if it is not a value and cannot step. Example: \(\mathsf{true} + 1\). To check it, go through the ways to write it as \(E[r]\): with \(E = [\,]\), no head rule adds a Boolean; with \(E = E' + 1\), we'd need \(E'[r] = \mathsf{true}\), which no redex gives.</p>
-<textarea class="coq" id="coq-9">Example stuck : ~ exists e', TRUE ⊕ const 1 ⟶ e'.
+Notation "e '⟶*' e'" := (star step e e') (at level 70).</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div>
+<p>A term is <strong>stuck</strong> if it is not a value and cannot step. Example: \(\mathsf{true} + 1\). To check it, go through the ways to write it as \(E[r]\): with \(E = \bullet\), no head rule adds a Boolean; with \(E = E' + 1\), we'd need \(E'[r] = \mathsf{true}\), which no redex gives.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-9">Example stuck : ~ exists e', TRUE ⊕ const 1 ⟶ e'.
 Proof.
   intros [e' H].
   inversion H as [E r r' Hhead Heq].
   destruct E as [ | E e2 | v E | E e2 | n E | E e1 e2 ]; simpl in Heq.
-  - (* E = []: r = TRUE + 1, and no head rule adds a Boolean *)
+  - (* E = •: r = TRUE + 1, and no head rule adds a Boolean *)
     subst r. inversion Hhead.
   - (* E e2 is an application, not a sum *)
     discriminate Heq.
@@ -305,19 +319,19 @@ Proof.
   - (* n + E: n would be TRUE *)
     discriminate Heq.
   - discriminate Heq.
-Qed.</textarea>
+Qed.</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 18 lines">Show code · 18 lines</button></div>
 
 <h2>3. Typing</h2>
 <p>A context lists variables with their types:</p>
 <div class="display">\[\Gamma ::= \cdot \mid \Gamma, x{:}\tau\]</div>
 <p>\(x{:}\tau \in \Gamma\) means the rightmost \(x\) in \(\Gamma\) has type \(\tau\). So later bindings shadow earlier ones, just as an inner \(\lambda x\) shadows an outer one. \(\vdash e : \tau\) means \(\cdot \vdash e : \tau\).</p>
-<textarea class="coq" id="coq-10">Definition ctx := list (name * ty).
+<div class="cell is-collapsed"><textarea class="coq" id="coq-10">Definition ctx := list (name * ty).
 
 Fixpoint lookup (Γ : ctx) (y : name) : option ty :=
   match Γ with
   | nil =&gt; None
   | (x, τ) :: Γ' =&gt; if String.eqb y x then Some τ else lookup Γ' y
-  end.</textarea>
+  end.</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 7 lines">Show code · 7 lines</button></div>
 <div class="rules">
   <div>\[\frac{}{\Gamma \vdash n : \mathsf{int}}\]</div>
   <div>\[\frac{}{\Gamma \vdash \mathsf{true} : \mathsf{bool}}\]</div>
@@ -328,7 +342,7 @@ Fixpoint lookup (Γ : ctx) (y : name) : option ty :=
   <div>\[\frac{\Gamma \vdash e_1 : \mathsf{int} \quad \Gamma \vdash e_2 : \mathsf{int}}{\Gamma \vdash e_1 + e_2 : \mathsf{int}}\]</div>
   <div>\[\frac{\Gamma \vdash e : \mathsf{bool} \quad \Gamma \vdash e_1 : \tau \quad \Gamma \vdash e_2 : \tau}{\Gamma \vdash \mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 : \tau}\]</div>
 </div>
-<textarea class="coq" id="coq-11">Reserved Notation "Γ ⊢ e : τ" (at level 70, e at level 99, τ at level 69).
+<div class="cell is-collapsed"><textarea class="coq" id="coq-11">Reserved Notation "Γ ⊢ e : τ" (at level 70, e at level 99, τ at level 69).
 
 Inductive has_type : ctx -&gt; exp -&gt; ty -&gt; Prop :=
 | t_num Γ n :
@@ -355,14 +369,14 @@ Inductive has_type : ctx -&gt; exp -&gt; ty -&gt; Prop :=
 where "Γ ⊢ e : τ" := (has_type Γ e τ).
 
 Notation "⊢ e : τ" := (has_type nil e τ)
-  (at level 70, e at level 99, τ at level 69).</textarea>
+  (at level 70, e at level 99, τ at level 69).</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 28 lines">Show code · 28 lines</button></div>
 <p>The stuck term \(\mathsf{true} + 1\) has no type: the \(+\) rule needs \(\vdash \mathsf{true} : \mathsf{int}\), and the only rule for \(\mathsf{true}\) gives \(\mathsf{bool}\).</p>
-<textarea class="coq" id="coq-12">Example stuck_untyped : ~ exists τ, ⊢ TRUE ⊕ const 1 : τ.
+<div class="cell is-collapsed"><textarea class="coq" id="coq-12">Example stuck_untyped : ~ exists τ, ⊢ TRUE ⊕ const 1 : τ.
 Proof.
   intros [τ H].
   inversion H as [ | | | | | | Γ e1 e2 Htrue Hone | ]; subst.
   inversion Htrue.
-Qed.</textarea>
+Qed.</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 6 lines">Show code · 6 lines</button></div>
 
 <h2>4. Type soundness</h2>
 <div class="thm">
@@ -374,7 +388,7 @@ Qed.</textarea>
   </ul>
 </div>
 <p class="proof"><em>Proof.</em> Go through the four kinds of value. For the wrong kinds, no typing rule gives that type.</p>
-<textarea class="coq" id="coq-13">Lemma canonical_int v : value v -&gt; ⊢ v : INT -&gt; exists n, v = const n.
+<div class="cell is-collapsed"><textarea class="coq" id="coq-13">Lemma canonical_int v : value v -&gt; ⊢ v : INT -&gt; exists n, v = const n.
 Proof.
   intros Hv Ht.
   destruct Hv as [n | | | x τ e].
@@ -404,7 +418,7 @@ Proof.
   - inversion Ht.
   - (* t_lam says τ = τ1 *)
     inversion Ht; subst. exists x, e. reflexivity.
-Qed.</textarea>
+Qed.</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 31 lines">Show code · 31 lines</button></div>
 
 <div class="thm">
   <p><span class="name">Progress.</span> If \(\vdash e : \tau\), then \(e\) is a value or \(e \longrightarrow e'\) for some \(e'\).</p>
@@ -412,9 +426,9 @@ Qed.</textarea>
 <p class="proof"><em>Proof.</em> By induction on the typing derivation. A variable can't be typed in \(\cdot\). For \(e_1\, e_2\), \(e_1 + e_2\) and \(\mathsf{if}\), look at the subterm in evaluation position:</p>
 <ul class="proof">
   <li>If it steps, it is \(E[r] \longrightarrow E[r']\). Add one layer of context: for example \(e_1 = E[r]\) gives \(e_1\, e_2 = (E\, e_2)[r]\).</li>
-  <li>If it is a value, canonical forms says what it looks like, and the whole term is a redex. Use \(E = [\,]\).</li>
+  <li>If it is a value, canonical forms says what it looks like, and the whole term is a redex. Use \(E = \bullet\).</li>
 </ul>
-<textarea class="coq" id="coq-14">Theorem progress e τ : ⊢ e : τ -&gt; value e \/ exists e', e ⟶ e'.
+<div class="cell is-collapsed"><textarea class="coq" id="coq-14">Theorem progress e τ : ⊢ e : τ -&gt; value e \/ exists e', e ⟶ e'.
 Proof.
   intros Ht.
   remember (@nil (name * ty)) as Γ.
@@ -476,13 +490,13 @@ Proof.
       destruct Hs as [e' Hs]. destruct Hs as [E r r' Hhead].
       exists (IF E [r'] THEN e1 ELSE e2 FI).
       apply (s_ctx (IfC E e1 e2)). apply Hhead.
-Qed.</textarea>
+Qed.</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 63 lines">Show code · 63 lines</button></div>
 
 <div class="thm">
   <p><span class="name">Weakening.</span> Write \(\Gamma \subseteq \Gamma'\) for: every \(x{:}\tau \in \Gamma\) also has \(x{:}\tau \in \Gamma'\). If \(\Gamma \subseteq \Gamma'\) and \(\Gamma \vdash e : \tau\), then \(\Gamma' \vdash e : \tau\).</p>
 </div>
 <p class="proof">By induction on the derivation; only the variable and \(\lambda\) rules look at \(\Gamma\).</p>
-<textarea class="coq" id="coq-15">Definition incl (Γ Γ' : ctx) : Prop :=
+<div class="cell is-collapsed"><textarea class="coq" id="coq-15">Definition incl (Γ Γ' : ctx) : Prop :=
   forall x τ, lookup Γ x = Some τ -&gt; lookup Γ' x = Some τ.
 
 Lemma weakening Γ Γ' e τ : incl Γ Γ' -&gt; Γ ⊢ e : τ -&gt; Γ' ⊢ e : τ.
@@ -508,7 +522,7 @@ Proof.
   - apply t_plus. apply IH1. apply Hincl. apply IH2. apply Hincl.
   - apply t_if. apply IH. apply Hincl. apply IH1. apply Hincl.
     apply IH2. apply Hincl.
-Qed.</textarea>
+Qed.</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 27 lines">Show code · 27 lines</button></div>
 
 <div class="thm">
   <p><span class="name">Substitution lemma.</span> If \(\Gamma, x{:}\tau_1 \vdash e : \tau\) and \(\vdash v : \tau_1\), then \(\Gamma \vdash e[x \mapsto v] : \tau\).</p>
@@ -520,7 +534,7 @@ Qed.</textarea>
   <li><strong>\(e = \lambda y{:}\tau_y.\, e'\), \(y = x\).</strong> Substitution stops. The inner \(x\) hides the outer one, so \(\Gamma, x{:}\tau_1, x{:}\tau_y \subseteq \Gamma, x{:}\tau_y\), and weakening moves the body's typing over.</li>
   <li><strong>\(e = \lambda y{:}\tau_y.\, e'\), \(y \ne x\).</strong> Swap to \(\Gamma, y{:}\tau_y, x{:}\tau_1\) by weakening, then use the IH.</li>
 </ul>
-<textarea class="coq" id="coq-16">Lemma substitution Γ x τ1 v e τ :
+<div class="cell is-collapsed"><textarea class="coq" id="coq-16">Lemma substitution Γ x τ1 v e τ :
   (x, τ1) :: Γ ⊢ e : τ -&gt; ⊢ v : τ1 -&gt; Γ ⊢ e [x ↦ v] : τ.
 Proof.
   intros Ht Hv.
@@ -574,13 +588,13 @@ Proof.
   - inversion Ht; subst.
     apply t_if. apply IH. assumption. apply IH1. assumption.
     apply IH2. assumption.
-Qed.</textarea>
+Qed.</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 55 lines">Show code · 55 lines</button></div>
 
 <div class="thm">
   <p><span class="name">Head preservation.</span> If \(\vdash r : \tau\) and \(r \longrightarrow_h r'\), then \(\vdash r' : \tau\).</p>
 </div>
 <p class="proof"><em>Proof.</em> The \(+\) and \(\mathsf{if}\) rules are immediate. For β: from \(\vdash (\lambda x{:}\tau_1.\, e)\, v : \tau\) we get \(x{:}\tau_1 \vdash e : \tau\) and \(\vdash v : \tau_1\), so \(\vdash e[x \mapsto v] : \tau\) by the substitution lemma.</p>
-<textarea class="coq" id="coq-17">Lemma head_preservation r r' τ : ⊢ r : τ -&gt; head r r' -&gt; ⊢ r' : τ.
+<div class="cell is-collapsed"><textarea class="coq" id="coq-17">Lemma head_preservation r r' τ : ⊢ r : τ -&gt; head r r' -&gt; ⊢ r' : τ.
 Proof.
   intros Ht Hhead.
   destruct Hhead as [x τx e v Hv | n1 n2 | e1 e2 | e1 e2].
@@ -598,20 +612,20 @@ Proof.
   - (* Case if false then e1 else e2 ⟶ e2 *)
     inversion Ht as [ | | | | | | | Γ e0 e10 e20 τ0 Hb H1 H2 ]; subst.
     apply H2.
-Qed.</textarea>
+Qed.</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 19 lines">Show code · 19 lines</button></div>
 
 <div class="thm">
   <p><span class="name">Replacement.</span> If \(\vdash E[r] : \tau\), then there is a \(\tau'\) with \(\vdash r : \tau'\), and \(\vdash E[r'] : \tau\) for every \(r'\) with \(\vdash r' : \tau'\).</p>
 </div>
 <p>So \(E\) only cares about the type of what's in its hole. The redex is typed in the empty context because \(E\) binds no variables. By induction on \(E\): invert the typing rule for the outer layer and use the IH on the inner one.</p>
-<textarea class="coq" id="coq-18">Lemma replacement E r τ :
+<div class="cell is-collapsed"><textarea class="coq" id="coq-18">Lemma replacement E r τ :
   ⊢ E [r] : τ -&gt;
   exists τ', ⊢ r : τ' /\ (forall r', ⊢ r' : τ' -&gt; ⊢ E [r'] : τ).
 Proof.
   revert τ.
   induction E as [ | E IH e2 | v E IH | E IH e2 | n E IH | E IH e1 e2 ];
     intros τ Ht; simpl in *.
-  - (* Case []: τ' = τ *)
+  - (* Case •: τ' = τ *)
     exists τ. split.
     + apply Ht.
     + intros r' Hr'. apply Hr'.
@@ -647,26 +661,26 @@ Proof.
     exists τ'. split.
     + apply Hr.
     + intros r' Hr'. apply t_if. apply Hfill. apply Hr'. apply H1. apply H2.
-Qed.</textarea>
+Qed.</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 44 lines">Show code · 44 lines</button></div>
 
 <div class="thm">
   <p><span class="name">Preservation.</span> If \(\vdash e : \tau\) and \(e \longrightarrow e'\), then \(\vdash e' : \tau\).</p>
 </div>
 <p class="proof"><em>Proof.</em> The step is \(E[r] \longrightarrow E[r']\) with \(r \longrightarrow_h r'\). Replacement gives \(\vdash r : \tau'\); head preservation gives \(\vdash r' : \tau'\); replacement again gives \(\vdash E[r'] : \tau\).</p>
-<textarea class="coq" id="coq-19">Theorem preservation e e' τ : ⊢ e : τ -&gt; e ⟶ e' -&gt; ⊢ e' : τ.
+<div class="cell is-collapsed"><textarea class="coq" id="coq-19">Theorem preservation e e' τ : ⊢ e : τ -&gt; e ⟶ e' -&gt; ⊢ e' : τ.
 Proof.
   intros Ht Hs.
   destruct Hs as [E r r' Hhead].
   destruct (replacement E r τ Ht) as [τ' [Hr Hfill]].
   apply Hfill.
   apply head_preservation with (r := r). apply Hr. apply Hhead.
-Qed.</textarea>
+Qed.</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div>
 
 <div class="thm">
   <p><span class="name">Type soundness.</span> If \(\vdash e : \tau\) and \(e \longrightarrow^* e'\), then \(e'\) is not stuck: it is a value or it steps.</p>
 </div>
 <p class="proof"><em>Proof.</em> By induction on the number of steps. Preservation keeps \(\vdash e' : \tau\) along the way, and progress applies at the end.</p>
-<textarea class="coq" id="coq-20">Theorem soundness e e' τ :
+<div class="cell is-collapsed"><textarea class="coq" id="coq-20">Theorem soundness e e' τ :
   ⊢ e : τ -&gt; e ⟶* e' -&gt; value e' \/ exists e'', e' ⟶ e''.
 Proof.
   intros Ht Hrun.
@@ -675,7 +689,7 @@ Proof.
     apply progress with (τ := τ). apply Ht.
   - (* Case (step): e1 ⟶ e2 ⟶* e3.  Preservation, then the IH *)
     apply IH. apply preservation with (e := e1). apply Ht. apply Hs.
-Qed.</textarea>
+Qed.</textarea><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 10 lines">Show code · 10 lines</button></div>
 
 
 </div>
@@ -760,6 +774,44 @@ function workerPrelude(BASE, PIN) {
   }
   button.addEventListener('click', () =>
     setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+  /* Folded code cells.  A cell opens when you click its button or click
+     into its code, and by itself when Coq reports an error inside it. */
+  const cells = [...document.querySelectorAll('.cell')];
+  function setCell(cell, open) {
+    cell.classList.toggle('is-collapsed', !open);
+    const b = cell.querySelector('.cell-toggle');
+    b.setAttribute('aria-expanded', String(open));
+    b.textContent = open ? 'Hide code' : b.dataset.label;
+    const cm = cell.querySelector('.CodeMirror');
+    if (cm && cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  for (const cell of cells) {
+    cell.querySelector('.cell-toggle').addEventListener('click', () =>
+      setCell(cell, cell.classList.contains('is-collapsed')));
+    cell.addEventListener('mousedown', e => {
+      if (cell.classList.contains('is-collapsed') && e.target.closest('.CodeMirror')) setCell(cell, true);
+    });
+    cell.addEventListener('focusin', () => {
+      if (cell.classList.contains('is-collapsed')) setCell(cell, true);
+    });
+  }
+  /* A folded editor only draws its first lines, so look at Coq's marks
+     in the editor itself, not at the page, to spot an error. */
+  setInterval(() => {
+    for (const cell of cells) {
+      if (!cell.classList.contains('is-collapsed')) continue;
+      const cm = cell.querySelector('.CodeMirror')?.CodeMirror;
+      if (cm && cm.getAllMarks().some(m => (m.className || '').includes('coq-eval-failed'))) setCell(cell, true);
+    }
+  }, 500);
+  const fold = document.getElementById('fold-toggle');
+  fold.addEventListener('click', () => {
+    const open = fold.getAttribute('aria-pressed') !== 'true';
+    fold.setAttribute('aria-pressed', String(open));
+    fold.textContent = open ? 'Fold all code' : 'Show all code';
+    for (const cell of cells) setCell(cell, open);
+  });
 </script>
 </body>
 </html>
