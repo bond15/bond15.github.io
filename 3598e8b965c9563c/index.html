@@ -588,45 +588,34 @@ Definition safe (e : exp) : Prop := forall e', e ⟶* e' -&gt; not_stuck e'.</te
 </figure>
 <p>Yes. Soundness says the well-typed expressions sit inside the safe ones. The other direction fails: \(\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ 1\ \mathsf{else}\ \mathsf{true} + 1\) always evaluates to \(1\), so it is safe, but it has no type, because its else branch \(\mathsf{true} + 1\) has none. The type system is conservative: it rejects some safe programs so that it never accepts an unsafe one.</p>
 </details>
-<p><strong>A research field.</strong> Choosing what "going wrong" means, designing a type system that rules it out, and proving a soundness theorem for it is a large part of programming languages research. A few examples, each ruling out a different kind of bad behavior:</p>
-<ul>
-  <li><strong>Refinement types</strong> attach logical conditions to types, such as \(\{ n : \mathsf{int} \mid n > 0 \}\), to rule out errors like division by zero or out-of-bounds array access (Freeman and Pfenning 1991; Rondon, Kawaguchi and Jhala 2008).</li>
-  <li><strong>Linear types</strong> require a value to be used exactly once, which rules out using a resource after it is freed or closing a file twice (Girard 1987; Wadler 1990). Rust's ownership types are a close relative (Jung et al. 2018).</li>
-  <li><strong>Graded modal types</strong> annotate types with a grade saying how a value may be used: how many times, at what privacy level, with which effects (Brunel et al. 2014; Orchard, Liepelt and Eades 2019).</li>
-  <li><strong>Security typing</strong> labels data as public or secret and rules out secret inputs influencing public outputs. Its soundness theorem is called noninterference (Volpano, Smith and Irvine 1996; Sabelfeld and Myers 2003).</li>
-  <li><strong>Session types</strong> describe communication protocols, ruling out a program that sends the wrong message at the wrong time (Honda 1993; Honda, Vasconcelos and Kubo 1998).</li>
-  <li><strong>Implicit computational complexity</strong> designs type systems whose well-typed programs are exactly the ones in a complexity class, ruling out programs that run too long. For example, Girard's light linear logic (Girard 1998) and Lafont's soft linear logic (Lafont 2004) capture polynomial time, elementary linear logic (Girard 1998) captures elementary time, and Hofmann's safe linear recursion (Hofmann 1997) and non-size-increasing types, LFPL (Hofmann 1999), capture polynomial time in a typed λ-calculus, building on Bellantoni and Cook's safe recursion (1992). Here the soundness theorem reads: every well-typed program runs within the bound.</li>
-  <li><strong>Dependent type theory</strong> lets types mention values. Read through the Curry–Howard correspondence, a type is a proposition and a program of that type is a proof, so type checking is proof checking (Howard 1980; Martin-Löf 1984). What it rules out is a "proof" that isn't one: every program must terminate, since a program that runs forever could have any type, even \(\mathsf{False}\). Its soundness theorem is consistency: there is no closed proof of \(\mathsf{False}\). Rocq is one, based on the calculus of constructions (Coquand and Huet 1988), and every <code>Qed</code> on this page is Rocq's type checker checking a proof.</li>
-</ul>
-
 <details class="question">
-<summary>What these type systems look like</summary>
-<p>For each one: the shape of the judgment, one rule that does the characteristic work, and a small example. The notation is simplified from the papers.</p>
+<summary>Type systems in research</summary>
+<p>Choosing what "going wrong" means, designing a type system that rules it out, and proving a soundness theorem for it is a large part of programming languages research. Here are a few, each ruling out a different kind of bad behavior. For each: what it rules out, one rule that does the characteristic work, and a small example. The notation is simplified from the papers.</p>
 
-<p><strong>Refinement types.</strong> Types carry a logical condition: \(\{ n : \mathsf{int} \mid \varphi \}\) is the integers satisfying \(\varphi\). The key rule weakens the condition when a logic solver proves the implication:</p>
+<p><strong>Refinement types</strong> (Freeman and Pfenning 1991; Rondon, Kawaguchi and Jhala 2008) attach logical conditions to types: \(\{ n : \mathsf{int} \mid \varphi \}\) is the integers satisfying \(\varphi\). They rule out errors like division by zero or out-of-bounds array access. The key rule weakens the condition when a logic solver proves the implication:</p>
 <div class="rules"><div>\[\frac{\Gamma \vdash e : \{ n : \mathsf{int} \mid \varphi \} \quad \Gamma \models \varphi \Rightarrow \psi}{\Gamma \vdash e : \{ n : \mathsf{int} \mid \psi \}}\]</div></div>
 <p>Example: with \(\mathsf{div} : \mathsf{int} \to \{ n : \mathsf{int} \mid n \neq 0 \} \to \mathsf{int}\), the call \(\mathsf{div}\ 10\ 0\) is rejected: \(0\) has type \(\{ n : \mathsf{int} \mid n = 0 \}\), and \(n = 0 \Rightarrow n \neq 0\) is false. \(\mathsf{div}\ 10\ 5\) is accepted.</p>
 
-<p><strong>Linear types.</strong> Every variable in the context must be used exactly once, so contexts are split between premises instead of shared:</p>
+<p><strong>Linear types</strong> (Girard 1987; Wadler 1990) require every variable to be used exactly once, which rules out using a resource after it is freed or closing a file twice. Rust's ownership types are a close relative (Jung et al. 2018). Contexts are split between premises instead of shared:</p>
 <div class="rules">
   <div>\[\frac{}{x{:}\tau \vdash x : \tau}\]</div>
   <div>\[\frac{\Gamma_1 \vdash e_1 : \tau_1 \multimap \tau_2 \quad \Gamma_2 \vdash e_2 : \tau_1}{\Gamma_1, \Gamma_2 \vdash e_1\, e_2 : \tau_2}\]</div>
 </div>
 <p>Example: \(\lambda f{:}\mathsf{file}.\ \mathsf{close}\ f\) is accepted, but \(\lambda f{:}\mathsf{file}.\ (\mathsf{close}\ f;\ \mathsf{close}\ f)\) is rejected: \(f\) would have to go to both halves of the context split, and it can go to only one.</p>
 
-<p><strong>Graded modal types.</strong> Each variable carries a grade \(r\) saying how it may be used, here a count:</p>
+<p><strong>Graded modal types</strong> (Brunel et al. 2014; Orchard, Liepelt and Eades 2019) give each variable a grade \(r\) saying how it may be used: how many times, at what privacy level, with which effects. Here the grade is a count:</p>
 <div class="display">\[ x :_{r} \tau \;\vdash\; e : \tau' \]</div>
 <p>Example: \(x :_{2} \mathsf{int} \vdash x + x : \mathsf{int}\), because \(x\) is used twice, so \(\lambda x.\, x + x\) gets a type saying it uses its argument twice. With grades from a different set, such as privacy levels, the same machinery tracks who may see a value.</p>
 
-<p><strong>Security typing.</strong> Types carry a level, \(\mathsf{int}_L\) (public) or \(\mathsf{int}_H\) (secret), and information may only flow upward, \(L \sqsubseteq H\):</p>
+<p><strong>Security typing</strong> (Volpano, Smith and Irvine 1996; Sabelfeld and Myers 2003) gives types a level, \(\mathsf{int}_L\) (public) or \(\mathsf{int}_H\) (secret), and rules out secret inputs influencing public outputs. Information may only flow upward, \(L \sqsubseteq H\):</p>
 <div class="rules"><div>\[\frac{\Gamma \vdash e : \mathsf{int}_{\ell} \quad \ell \sqsubseteq \ell'}{\Gamma \vdash e : \mathsf{int}_{\ell'}}\]</div></div>
-<p>Example: with \(h : \mathsf{int}_H\) and \(l : \mathsf{int}_L\), the assignment \(l := h\) is rejected, and so is \(\mathsf{if}\ h > 0\ \mathsf{then}\ l := 1\ \mathsf{else}\ l := 0\): the branch taken reveals something about \(h\), so code under a secret test may only write secret variables. Noninterference then says changing \(h\) never changes what \(l\) ends up holding.</p>
+<p>Example: with \(h : \mathsf{int}_H\) and \(l : \mathsf{int}_L\), the assignment \(l := h\) is rejected, and so is \(\mathsf{if}\ h > 0\ \mathsf{then}\ l := 1\ \mathsf{else}\ l := 0\): the branch taken reveals something about \(h\), so code under a secret test may only write secret variables. The soundness theorem is called noninterference: changing \(h\) never changes what \(l\) ends up holding.</p>
 
-<p><strong>Session types.</strong> A channel's type is the protocol it follows: \(!\mathsf{int}.\,?\mathsf{bool}.\,\mathsf{end}\) means send an int, then receive a Boolean, then stop. The two ends of a channel get <em>dual</em> types, with sends and receives swapped:</p>
+<p><strong>Session types</strong> (Honda 1993; Honda, Vasconcelos and Kubo 1998) describe communication protocols, ruling out a program that sends the wrong message at the wrong time. A channel's type is the protocol it follows: \(!\mathsf{int}.\,?\mathsf{bool}.\,\mathsf{end}\) means send an int, then receive a Boolean, then stop. The two ends of a channel get <em>dual</em> types, with sends and receives swapped:</p>
 <div class="display">\[ c : !\mathsf{int}.\,?\mathsf{bool}.\,\mathsf{end} \qquad\qquad \overline{c} : ?\mathsf{int}.\,!\mathsf{bool}.\,\mathsf{end} \]</div>
 <p>Example: a client that runs \(\mathsf{send}\ c\ 5\) and then \(\mathsf{recv}\ c\) is accepted. One that receives first is rejected, because it doesn't follow the protocol and would wait forever for the server.</p>
 
-<p><strong>Implicit computational complexity.</strong> Three examples, for two complexity classes.</p>
+<p><strong>Implicit computational complexity</strong> designs type systems whose well-typed programs are exactly the ones in a complexity class, ruling out programs that run too long. Girard's light linear logic (Girard 1998) and Lafont's soft linear logic (Lafont 2004) capture polynomial time, elementary linear logic (Girard 1998) captures elementary time, and Hofmann's safe linear recursion (Hofmann 1997) and LFPL (Hofmann 1999) capture polynomial time in a typed λ-calculus. Here the soundness theorem reads: every well-typed program runs within the bound. Three examples, for two complexity classes:</p>
 <p><em>Polynomial time, by safe recursion</em> (Bellantoni and Cook 1992). A function's arguments are split into <em>normal</em> ones, written before a semicolon, which recursion may go down, and <em>safe</em> ones, after it, which may only be passed along or extended by a constructor. A recursive call's result may only be used in a safe position:</p>
 <div class="display">\[
 \begin{aligned}
@@ -635,16 +624,17 @@ Definition safe (e : exp) : Prop := forall e', e ⟶* e' -&gt; not_stuck e'.</te
 \end{aligned}
 \]</div>
 <p>Both are accepted: in \(\mathsf{mul}\), the recursive result goes into \(\mathsf{add}\)'s safe slot. Exponentiation is rejected: \(\mathsf{exp}(x{+}1;\,) = \mathsf{add}(\mathsf{exp}(x;\,);\, \mathsf{exp}(x;\,))\) would put a recursive result into a normal slot, where it could be recursed on again, and that is how running time blows up.</p>
-<p><em>Polynomial time, by counting cells.</em> In Hofmann's LFPL, building a list cell costs a token of a special type \(\diamond\), and tokens are linear:</p>
+<p><em>Polynomial time, by counting cells</em> (Hofmann 1999). In LFPL, building a list cell costs a token of a special type \(\diamond\), and tokens are linear:</p>
 <div class="display">\[ \mathsf{cons} : \diamond \multimap \tau \multimap \mathsf{list}\ \tau \multimap \mathsf{list}\ \tau \]</div>
 <p>A list comes with one token per cell, so a function can never output more cells than it was given. Example: reversing a list is accepted, since it reuses each cell's token. Doubling a list, which builds two cells for each one, is rejected, because there aren't enough tokens. Without that growth, iteration stays within polynomial time.</p>
 <p><em>Logarithmic space, by not building data</em> (Jones 1999). A <em>cons-free</em> program may look at its input and walk over it, but it may never build new data: no list cells, no new numbers beyond a fixed set. First-order cons-free programs compute exactly the problems in logarithmic space: all they can remember is a fixed number of positions in the input, and a position takes \(\log n\) bits. Example: checking whether a list has even length, by walking down it and flipping a Boolean, is cons-free. Reversing a list is not, because it builds a new list. Allowing general recursion in the same programs gives exactly polynomial time instead.</p>
 
-<p><strong>Dependent type theory.</strong> In a dependent function type \(\Pi x{:}A.\, B\), the result type \(B\) may mention the argument \(x\):</p>
+<p><strong>Dependent type theory</strong> (Howard 1980; Martin-Löf 1984) lets types mention values. Read through the Curry–Howard correspondence, a type is a proposition and a program of that type is a proof, so type checking is proof checking. What it rules out is a "proof" that isn't one: every program must terminate, since a program that runs forever could have any type, even \(\mathsf{False}\). Its soundness theorem is consistency: there is no closed proof of \(\mathsf{False}\). In a dependent function type \(\Pi x{:}A.\, B\), the result type \(B\) may mention the argument \(x\):</p>
 <div class="rules"><div>\[\frac{\Gamma, x{:}A \vdash e : B}{\Gamma \vdash \lambda x{:}A.\, e : \Pi x{:}A.\, B}\]</div></div>
-<p>A statement like "every \(n\) satisfies \(n + 0 = n\)" is the type \(\Pi n{:}\mathsf{nat}.\, n + 0 = n\), and a proof of it is a function that, given \(n\), returns evidence that \(n + 0 = n\). In Rocq, <code>forall n : nat, n + 0 = n</code> is that type, and the proof script after <code>Proof.</code> builds such a function, which the type checker then checks. The termination requirement shows up as a rejected definition: <code>Fixpoint loop (n : nat) : False := loop n.</code> would prove \(\mathsf{False}\) by running forever, so Rocq refuses it, because the recursive call is not on a smaller argument.</p>
-</details>
+<p>Example: "every \(n\) satisfies \(n + 0 = n\)" is the type \(\Pi n{:}\mathsf{nat}.\, n + 0 = n\), and a proof of it is a function that, given \(n\), returns evidence that \(n + 0 = n\). Rocq is a dependent type theory, based on the calculus of constructions (Coquand and Huet 1988): <code>forall n : nat, n + 0 = n</code> is that type, the proof script after <code>Proof.</code> builds such a function, and every <code>Qed</code> on this page is Rocq's type checker checking a proof. The termination requirement shows up as a rejected definition: <code>Fixpoint loop (n : nat) : False := loop n.</code> would prove \(\mathsf{False}\) by running forever, so Rocq refuses it, because the recursive call is not on a smaller argument.</p>
+
 <p>Each comes with its own version of the theorem we prove here: well-typed programs don't do the bad thing.</p>
+</details>
 
 <p>The theorem talks about whole runs, which can be any length. The standard way to prove it (Wright and Felleisen 1994) is to split it into two facts about a <em>single</em> step:</p>
 <div class="thm">
