@@ -776,7 +776,9 @@ function workerPrelude(BASE, PIN) {
     setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
 
   /* Folded code cells.  A cell opens when you click its button or click
-     into its code, and by itself when Coq reports an error inside it. */
+     into its code, and by itself when Coq reports an error inside it.
+     Stepping into a folded cell leaves it folded; the goals panel still
+     follows along. */
   const cells = [...document.querySelectorAll('.cell')];
   function setCell(cell, open) {
     cell.classList.toggle('is-collapsed', !open);
@@ -791,9 +793,6 @@ function workerPrelude(BASE, PIN) {
       setCell(cell, cell.classList.contains('is-collapsed')));
     cell.addEventListener('mousedown', e => {
       if (cell.classList.contains('is-collapsed') && e.target.closest('.CodeMirror')) setCell(cell, true);
-    });
-    cell.addEventListener('focusin', () => {
-      if (cell.classList.contains('is-collapsed')) setCell(cell, true);
     });
   }
   /* A folded editor only draws its first lines, so look at Coq's marks
