@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html><head><meta name="robots" content="noindex, nofollow"><meta charset="utf-8"><title>CBPV.Types</title><link rel="stylesheet" href="Agda.css"></head><body><pre class="Agda"><a id="1" class="Comment">{-
+  Types and contexts of CBPV(𝒯).
+
+    A ::= 0 | 1 | A + A&#39; | A × A&#39; | U B
+    B ::= ⊤ | A → B | B &amp; B&#39; | F A
+
+  Contexts are snoc lists; variables are de Bruijn indices.
+-}</a>
+<a id="177" class="Keyword">module</a> <a id="184" href="CBPV.Types.html" class="Module">CBPV.Types</a> <a id="195" class="Keyword">where</a>
+
+<a id="202" class="Keyword">open</a> <a id="207" class="Keyword">import</a> <a id="214" href="Cubical.Foundations.Prelude.html" class="Module">Cubical.Foundations.Prelude</a>
+
+<a id="243" class="Keyword">infixr</a> <a id="250" class="Number">30</a> <a id="253" href="CBPV.Types.html#470" class="InductiveConstructor Operator">_⇒_</a>
+<a id="257" class="Keyword">infixl</a> <a id="264" class="Number">35</a> <a id="267" href="CBPV.Types.html#382" class="InductiveConstructor Operator">_⊕_</a>
+<a id="271" class="Keyword">infixl</a> <a id="278" class="Number">36</a> <a id="281" href="CBPV.Types.html#386" class="InductiveConstructor Operator">_⊗_</a>
+<a id="285" class="Keyword">infixl</a> <a id="292" class="Number">35</a> <a id="295" href="CBPV.Types.html#500" class="InductiveConstructor Operator">_&amp;_</a>
+<a id="299" class="Keyword">infixl</a> <a id="306" class="Number">20</a> <a id="309" href="CBPV.Types.html#589" class="InductiveConstructor Operator">_▸_</a>
+
+<a id="314" class="Keyword">data</a> <a id="VTy"></a><a id="319" href="CBPV.Types.html#319" class="Datatype">VTy</a> <a id="323" class="Symbol">:</a> <a id="325" href="Agda.Primitive.html#388" class="Primitive">Type</a>
+<a id="330" class="Keyword">data</a> <a id="CTy"></a><a id="335" href="CBPV.Types.html#335" class="Datatype">CTy</a> <a id="339" class="Symbol">:</a> <a id="341" href="Agda.Primitive.html#388" class="Primitive">Type</a>
+
+<a id="347" class="Keyword">data</a> <a id="352" href="CBPV.Types.html#319" class="Datatype">VTy</a> <a id="356" class="Keyword">where</a>
+  <a id="VTy.𝟘"></a><a id="364" href="CBPV.Types.html#364" class="InductiveConstructor">𝟘</a> <a id="VTy.𝟙"></a><a id="366" href="CBPV.Types.html#366" class="InductiveConstructor">𝟙</a>       <a id="374" class="Symbol">:</a> <a id="376" href="CBPV.Types.html#319" class="Datatype">VTy</a>
+  <a id="VTy._⊕_"></a><a id="382" href="CBPV.Types.html#382" class="InductiveConstructor Operator">_⊕_</a> <a id="VTy._⊗_"></a><a id="386" href="CBPV.Types.html#386" class="InductiveConstructor Operator">_⊗_</a>   <a id="392" class="Symbol">:</a> <a id="394" href="CBPV.Types.html#319" class="Datatype">VTy</a> <a id="398" class="Symbol">→</a> <a id="400" href="CBPV.Types.html#319" class="Datatype">VTy</a> <a id="404" class="Symbol">→</a> <a id="406" href="CBPV.Types.html#319" class="Datatype">VTy</a>
+  <a id="VTy.U"></a><a id="412" href="CBPV.Types.html#412" class="InductiveConstructor">U</a>         <a id="422" class="Symbol">:</a> <a id="424" href="CBPV.Types.html#335" class="Datatype">CTy</a> <a id="428" class="Symbol">→</a> <a id="430" href="CBPV.Types.html#319" class="Datatype">VTy</a>
+
+<a id="435" class="Keyword">data</a> <a id="440" href="CBPV.Types.html#335" class="Datatype">CTy</a> <a id="444" class="Keyword">where</a>
+  <a id="CTy.⊤"></a><a id="452" href="CBPV.Types.html#452" class="InductiveConstructor">⊤</a>         <a id="462" class="Symbol">:</a> <a id="464" href="CBPV.Types.html#335" class="Datatype">CTy</a>
+  <a id="CTy._⇒_"></a><a id="470" href="CBPV.Types.html#470" class="InductiveConstructor Operator">_⇒_</a>       <a id="480" class="Symbol">:</a> <a id="482" href="CBPV.Types.html#319" class="Datatype">VTy</a> <a id="486" class="Symbol">→</a> <a id="488" href="CBPV.Types.html#335" class="Datatype">CTy</a> <a id="492" class="Symbol">→</a> <a id="494" href="CBPV.Types.html#335" class="Datatype">CTy</a>
+  <a id="CTy._&amp;_"></a><a id="500" href="CBPV.Types.html#500" class="InductiveConstructor Operator">_&amp;_</a>       <a id="510" class="Symbol">:</a> <a id="512" href="CBPV.Types.html#335" class="Datatype">CTy</a> <a id="516" class="Symbol">→</a> <a id="518" href="CBPV.Types.html#335" class="Datatype">CTy</a> <a id="522" class="Symbol">→</a> <a id="524" href="CBPV.Types.html#335" class="Datatype">CTy</a>
+  <a id="CTy.F"></a><a id="530" href="CBPV.Types.html#530" class="InductiveConstructor">F</a>         <a id="540" class="Symbol">:</a> <a id="542" href="CBPV.Types.html#319" class="Datatype">VTy</a> <a id="546" class="Symbol">→</a> <a id="548" href="CBPV.Types.html#335" class="Datatype">CTy</a>
+
+<a id="553" class="Keyword">data</a> <a id="Ctx"></a><a id="558" href="CBPV.Types.html#558" class="Datatype">Ctx</a> <a id="562" class="Symbol">:</a> <a id="564" href="Agda.Primitive.html#388" class="Primitive">Type</a> <a id="569" class="Keyword">where</a>
+  <a id="Ctx.ε"></a><a id="577" href="CBPV.Types.html#577" class="InductiveConstructor">ε</a>   <a id="581" class="Symbol">:</a> <a id="583" href="CBPV.Types.html#558" class="Datatype">Ctx</a>
+  <a id="Ctx._▸_"></a><a id="589" href="CBPV.Types.html#589" class="InductiveConstructor Operator">_▸_</a> <a id="593" class="Symbol">:</a> <a id="595" href="CBPV.Types.html#558" class="Datatype">Ctx</a> <a id="599" class="Symbol">→</a> <a id="601" href="CBPV.Types.html#319" class="Datatype">VTy</a> <a id="605" class="Symbol">→</a> <a id="607" href="CBPV.Types.html#558" class="Datatype">Ctx</a>
+
+<a id="612" class="Keyword">data</a> <a id="Var"></a><a id="617" href="CBPV.Types.html#617" class="Datatype">Var</a> <a id="621" class="Symbol">:</a> <a id="623" href="CBPV.Types.html#558" class="Datatype">Ctx</a> <a id="627" class="Symbol">→</a> <a id="629" href="CBPV.Types.html#319" class="Datatype">VTy</a> <a id="633" class="Symbol">→</a> <a id="635" href="Agda.Primitive.html#388" class="Primitive">Type</a> <a id="640" class="Keyword">where</a>
+  <a id="Var.vz"></a><a id="648" href="CBPV.Types.html#648" class="InductiveConstructor">vz</a> <a id="651" class="Symbol">:</a> <a id="653" class="Symbol">∀</a> <a id="655" class="Symbol">{</a><a id="656" href="CBPV.Types.html#656" class="Bound">Γ</a> <a id="658" href="CBPV.Types.html#658" class="Bound">A</a><a id="659" class="Symbol">}</a>   <a id="663" class="Symbol">→</a> <a id="665" href="CBPV.Types.html#617" class="Datatype">Var</a> <a id="669" class="Symbol">(</a><a id="670" href="CBPV.Types.html#656" class="Bound">Γ</a> <a id="672" href="CBPV.Types.html#589" class="InductiveConstructor Operator">▸</a> <a id="674" href="CBPV.Types.html#658" class="Bound">A</a><a id="675" class="Symbol">)</a> <a id="677" href="CBPV.Types.html#658" class="Bound">A</a>
+  <a id="Var.vs"></a><a id="681" href="CBPV.Types.html#681" class="InductiveConstructor">vs</a> <a id="684" class="Symbol">:</a> <a id="686" class="Symbol">∀</a> <a id="688" class="Symbol">{</a><a id="689" href="CBPV.Types.html#689" class="Bound">Γ</a> <a id="691" href="CBPV.Types.html#691" class="Bound">A</a> <a id="693" href="CBPV.Types.html#693" class="Bound">B</a><a id="694" class="Symbol">}</a> <a id="696" class="Symbol">→</a> <a id="698" href="CBPV.Types.html#617" class="Datatype">Var</a> <a id="702" href="CBPV.Types.html#689" class="Bound">Γ</a> <a id="704" href="CBPV.Types.html#691" class="Bound">A</a> <a id="706" class="Symbol">→</a> <a id="708" href="CBPV.Types.html#617" class="Datatype">Var</a> <a id="712" class="Symbol">(</a><a id="713" href="CBPV.Types.html#689" class="Bound">Γ</a> <a id="715" href="CBPV.Types.html#589" class="InductiveConstructor Operator">▸</a> <a id="717" href="CBPV.Types.html#693" class="Bound">B</a><a id="718" class="Symbol">)</a> <a id="720" href="CBPV.Types.html#691" class="Bound">A</a>
+
+</pre></body></html>
