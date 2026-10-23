@@ -75,6 +75,7 @@ body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #do
 /* displayed math scrolls sideways if it must, never up and down */
 .display, .rules > div { overflow-y: hidden; }
 #document .iso-diagram { color: var(--fg); margin: .6rem auto; max-width: 30rem; }
+#document p.aside { font-size: .85em; color: var(--muted); }
 #document .iso-diagram svg { display: block; width: 100%; height: auto; }
 /* a program, one line per piece, left aligned */
 #document .display.prog { margin: .15rem 0; padding-left: 1.5rem; }
@@ -92,6 +93,14 @@ body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #do
 /* opacity, not visibility: a stage's own visible parts must not show through */
 #document.presenting .frames > .frame.off-frame, #document.presenting .frames > .frame.off-step { opacity: 0; }
 .rules.ch > .ch-name { margin-left: -1.2rem; font-size: .9em; overflow: visible; }
+/* the rule correspondence as a table: typing rule | logic rule | name, labeled on top */
+#document .ch-table { display: grid; grid-template-columns: max-content max-content max-content; justify-content: safe center; align-items: center; column-gap: 1.2rem; row-gap: .3rem; margin: .8rem 0 1rem; overflow-x: auto; }
+#document .ch-table .piece { min-width: auto; max-width: none; overflow: visible; }
+#document .ch-table > .rules.ch { display: contents; }
+#document .ch-table .ch-name { margin-left: 0; justify-self: start; }
+#document .ch-table .ch-label { order: -1; text-align: center; font-family: var(--font-display); font-weight: 650; color: var(--head); padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
+#document .ch-table .ch-label span { display: block; font-family: var(--font-body); font-weight: 400; font-size: .8em; color: var(--muted); }
+#document .ch-table .ch-label.ipl { grid-column: 2 / span 2; }
 /* folded code cells: the first two lines show, faded out, until opened */
 .cell { margin: .8rem 0 1.2rem; }
 .cell.is-collapsed .CodeMirror { max-height: 3.3em !important; overflow: hidden; cursor: pointer; }
@@ -764,15 +773,48 @@ End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="bu
 </table>
 <hr class="slide-break">
 <p>Erase the terms from a typing rule and you get a rule of logic. From easiest to hardest: \(()\) proves \(\top\); a case on \(\mathbf{0}\) is &ldquo;from false, anything&rdquo;; a pair is a proof of \(\varphi \wedge \psi\) from a proof of each; a case is a proof by cases; a \(\lambda\) proves \(\varphi \Rightarrow \psi\) by assuming \(\varphi\) and proving \(\psi\); and application is modus ponens:</p>
-<div class="rules ch pieces"><div class="piece">\[\frac{}{\vdash () : \mathbf{1}}\;{\scriptstyle \mathbf{1}\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{}{\top}\]</div><div class="piece ch-name">\(\top\mathrm{I}\)</div></div>
-<div class="rules ch pieces"><div class="piece">\[\frac{\vdash e : \mathbf{0}}{\vdash \mathsf{case}_{\mathbf{0}}\ e\ \{\} : \tau}\;{\scriptstyle \mathbf{0}\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\bot}{\xi}\]</div><div class="piece ch-name">\(\bot\mathrm{E}\)</div></div>
-<div class="rules ch pieces"><div class="piece">\[\frac{\vdash e_1 : \tau_1 \quad \vdash e_2 : \tau_2}{\vdash (e_1, e_2) : \tau_1 \times \tau_2}\;{\scriptstyle \times\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \quad \psi}{\varphi \wedge \psi}\]</div><div class="piece ch-name">\(\wedge\mathrm{I}\)</div></div>
-<div class="rules ch pieces"><div class="piece">\[\frac{\vdash e : \tau_1 \times \tau_2}{\vdash e.1 : \tau_1}\;{\scriptstyle \times\mathrm{E}_1}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \wedge \psi}{\varphi}\]</div><div class="piece ch-name">\(\wedge\mathrm{E}_1\)</div></div>
+<div class="pieces ch-table">
+<div class="rules ch"><div class="piece">\[\frac{}{\vdash () : \mathbf{1}}\;{\scriptstyle \mathbf{1}\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{}{\top}\]</div><div class="piece ch-name">\(\top\mathrm{I}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\vdash e : \mathbf{0}}{\vdash \mathsf{case}_{\mathbf{0}}\ e\ \{\} : \tau}\;{\scriptstyle \mathbf{0}\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\bot}{\xi}\]</div><div class="piece ch-name">\(\bot\mathrm{E}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\vdash e_1 : \tau_1 \quad \vdash e_2 : \tau_2}{\vdash (e_1, e_2) : \tau_1 \times \tau_2}\;{\scriptstyle \times\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \quad \psi}{\varphi \wedge \psi}\]</div><div class="piece ch-name">\(\wedge\mathrm{I}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\vdash e : \tau_1 \times \tau_2}{\vdash e.1 : \tau_1}\;{\scriptstyle \times\mathrm{E}_1}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \wedge \psi}{\varphi}\]</div><div class="piece ch-name">\(\wedge\mathrm{E}_1\)</div></div>
 <hr class="slide-break">
-<div class="rules ch pieces"><div class="piece">\[\frac{\vdash e : \tau_1}{\vdash \mathsf{in}_1\ e : \tau_1 + \tau_2}\;{\scriptstyle +\mathrm{I}_1}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi}{\varphi \vee \psi}\]</div><div class="piece ch-name">\(\vee\mathrm{I}_1\)</div></div>
-<div class="rules ch pieces"><div class="piece">\[\frac{\vdash e : \tau_1 + \tau_2 \quad x_1{:}\tau_1 \vdash e_1 : \tau \quad x_2{:}\tau_2 \vdash e_2 : \tau}{\vdash \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} : \tau}\;{\scriptstyle +\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \vee \psi \quad \varphi \vdash \xi \quad \psi \vdash \xi}{\xi}\]</div><div class="piece ch-name">\(\vee\mathrm{E}\)</div></div>
-<div class="rules ch pieces"><div class="piece">\[\frac{x{:}\tau_1 \vdash e : \tau_2}{\vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\;{\scriptstyle {\to}\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \vdash \psi}{\varphi \Rightarrow \psi}\]</div><div class="piece ch-name">\({\Rightarrow}\mathrm{I}\)</div></div>
-<div class="rules ch pieces"><div class="piece">\[\frac{\vdash e_1 : \tau_1 \to \tau_2 \quad \vdash e_2 : \tau_1}{\vdash e_1\, e_2 : \tau_2}\;{\scriptstyle {\to}\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \Rightarrow \psi \quad \varphi}{\psi}\]</div><div class="piece ch-name">\({\Rightarrow}\mathrm{E}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\vdash e : \tau_1}{\vdash \mathsf{in}_1\ e : \tau_1 + \tau_2}\;{\scriptstyle +\mathrm{I}_1}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi}{\varphi \vee \psi}\]</div><div class="piece ch-name">\(\vee\mathrm{I}_1\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\vdash e : \tau_1 + \tau_2 \quad x_1{:}\tau_1 \vdash e_1 : \tau \quad x_2{:}\tau_2 \vdash e_2 : \tau}{\vdash \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} : \tau}\;{\scriptstyle +\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \vee \psi \quad \varphi \vdash \xi \quad \psi \vdash \xi}{\xi}\]</div><div class="piece ch-name">\(\vee\mathrm{E}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{x{:}\tau_1 \vdash e : \tau_2}{\vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\;{\scriptstyle {\to}\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \vdash \psi}{\varphi \Rightarrow \psi}\]</div><div class="piece ch-name">\({\Rightarrow}\mathrm{I}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\vdash e_1 : \tau_1 \to \tau_2 \quad \vdash e_2 : \tau_1}{\vdash e_1\, e_2 : \tau_2}\;{\scriptstyle {\to}\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \Rightarrow \psi \quad \varphi}{\psi}\]</div><div class="piece ch-name">\({\Rightarrow}\mathrm{E}\)</div></div>
+<div class="rules ch ch-labels"><div class="piece ch-label">STLC<span>simply typed λ-calculus</span></div><div class="piece ch-label ipl">IPL<span>intuitionistic propositional logic</span></div></div>
+</div>
+<h3>Curry–Howard–Lambek</h3>
+<p>The correspondence has a third corner. Our language, with \(\times\), \(+\), \(\mathbf{1}\), \(\mathbf{0}\) and \(\to\), is also the language of <strong>bicartesian closed categories</strong> (BCCCs): a type is an object, a program is a morphism (programs that are equal up to β and η are the same morphism), \(\times\) and \(+\) are the product and coproduct, \(\mathbf{1}\) and \(\mathbf{0}\) are the terminal and initial objects, and \(\to\) is the exponential. Lambek showed this for \(\times\), \(\mathbf{1}\) and \(\to\), the <em>cartesian closed</em> part. Together this is the <strong>Curry–Howard–Lambek correspondence</strong>:</p>
+<div class="iso-diagram chl-diagram" role="img" aria-label="A triangle: STLC, the simply typed lambda calculus, at the top; IPL, intuitionistic propositional logic, at the bottom left; BCCC, bicartesian closed categories, at the bottom right. Curry–Howard joins STLC and IPL; Lambek joins STLC and BCCC; categorical logic joins IPL and BCCC.">
+<svg viewBox="0 0 600 270" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" stroke="currentColor" stroke-width="1.6">
+    <path d="M250,86 L135,186"/>
+    <path d="M350,86 L465,186"/>
+    <path d="M152,209 L442,209"/>
+  </g>
+  <g fill="currentColor" font-family="Commissioner, sans-serif" text-anchor="middle">
+    <text x="300" y="30" font-size="20" font-weight="650">STLC</text>
+    <text x="120" y="215" font-size="20" font-weight="650">IPL</text>
+    <text x="480" y="215" font-size="20" font-weight="650">BCCC</text>
+  </g>
+  <g fill="currentColor" font-family="Spectral, Georgia, serif" font-size="14" text-anchor="middle">
+    <text x="300" y="50">simply typed λ-calculus</text>
+    <text x="300" y="68" font-style="italic">types, programs</text>
+    <text x="120" y="235">intuitionistic propositional logic</text>
+    <text x="120" y="253" font-style="italic">propositions, proofs</text>
+    <text x="480" y="235">bicartesian closed categories</text>
+    <text x="480" y="253" font-style="italic">objects, morphisms</text>
+  </g>
+  <g fill="currentColor" font-family="Commissioner, sans-serif" font-size="14">
+    <text x="190" y="128" text-anchor="end">Curry–Howard</text>
+    <text x="410" y="128" text-anchor="start">Lambek</text>
+    <text x="300" y="200" text-anchor="middle">categorical logic</text>
+  </g>
+</svg>
+</div>
+<p class="aside">These categories are always <em>distributive</em>: since \(\tau_1 \times -\) has a right adjoint, \(\tau_1 \to -\), it preserves coproducts and the initial object. So \(\tau_1 \times (\tau_2 + \tau_3) \cong \tau_1 \times \tau_2 + \tau_1 \times \tau_3\) and \(\tau \times \mathbf{0} \cong \mathbf{0}\) from Part 2 hold in every bicartesian closed category.</p>
 <h3>Part 2 was logic</h3>
 <p>Now look back at the programs in Part 2, and read each type as a proposition. Every program we wrote was a proof:</p>
 <table class="ref pieces">
@@ -1097,7 +1139,7 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
   const unfolds = [...doc.querySelectorAll(':scope > details.unfold')];
   const rows = [...doc.querySelectorAll(':scope > .pieces')];
   /* the boxes around pieces: shown on a slide when one of their pieces is */
-  const holders = [...unfolds.flatMap(d => [d, ...d.querySelectorAll('.rules')]), ...rows];
+  const holders = [...unfolds, ...rows].flatMap(d => [d, ...d.querySelectorAll('.rules')]);
   const units = [...doc.children].flatMap(el =>
     el.matches('details.unfold, .pieces') ? [...el.querySelectorAll('.piece, hr.slide-break')] : [el]);
   for (const el of units) {
