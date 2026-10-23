@@ -80,7 +80,14 @@ body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #do
 #document .display.prog { margin: .15rem 0; padding-left: 1.5rem; }
 #document .display.prog + :not(.display.prog) { margin-top: .9rem; }
 #document .display.prog mjx-container[display="true"] { text-align: left !important; margin: .3em 0 !important; }
-.rules.ch { margin: .2rem 0; }
+.rules.ch { margin: .2rem 0; align-items: center; }
+/* a tree built in stages: the page shows the last stage; slides show one at a time, in one place */
+#document .frames > .frame:not(.keep) { display: none; }
+#document.presenting .frames { display: grid; }
+#document.presenting .frames > .frame { display: block; grid-area: 1 / 1; align-self: end; }
+/* opacity, not visibility: a stage's own visible parts must not show through */
+#document.presenting .frames > .frame.off-frame, #document.presenting .frames > .frame.off-step { opacity: 0; }
+.rules.ch > .ch-name { margin-left: -1.2rem; font-size: .9em; overflow: visible; }
 /* folded code cells: the first two lines show, faded out, until opened */
 .cell { margin: .8rem 0 1.2rem; }
 .cell.is-collapsed .CodeMirror { max-height: 3.3em !important; overflow: hidden; cursor: pointer; }
@@ -178,7 +185,9 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 #document.presenting h3 { font-size: 1.2em; margin-top: .4rem; }
 #document.presenting .topbar button { font-size: .8rem; }
 #document.presenting table.ref { font-size: .85em; }
-#document.presenting details .display, #document.presenting details .rules { font-size: .72em; }
+#document.presenting details:not(.unfold) .display, #document.presenting details:not(.unfold) .rules { font-size: .72em; }
+#document.presenting details.unfold { border: 0; padding: 0; margin: 0; background: none; }
+#document.presenting details.unfold > summary { display: none; }
 #document.presenting .slide-only { display: block; }
 #document.presenting #slide-context { font-family: var(--font-display); font-weight: 650; font-size: .8rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 .4rem; }
 #document.presenting #slide-context:empty { display: none; }
@@ -209,41 +218,48 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
   <p class="lede">Each piece of math is followed by its Rocq code from <code>Discussion 7/Discussion7.v</code>, in file order.</p>
 </header>
 
-<h2>1. Products and sums as data</h2>
-<details class="question">
+<h2 class="one-slide">1. Products and sums as data</h2>
+<details class="question unfold">
 <summary>The lecture's language, for reference: functions, products and sums</summary>
-<div class="display">\[
+<div class="display piece">\[
+\tau ::= \mathbf{0} \mid \mathbf{1} \mid \tau_1 \times \tau_2 \mid \tau_1 + \tau_2 \mid \tau_1 \to \tau_2
+\]</div>
+<div class="display piece">\[
 \begin{aligned}
-\tau &::= \mathbf{0} \mid \mathbf{1} \mid \tau_1 \times \tau_2 \mid \tau_1 + \tau_2 \mid \tau_1 \to \tau_2 \\
-e &::= x \mid \lambda x{:}\tau.\, e \mid e_1\, e_2 \\
-  &\quad\mid () \mid (e_1, e_2) \mid e.1 \mid e.2 \\
-  &\quad\mid \mathsf{case}_{\mathbf{0}}\ e\ \{\} \mid \mathsf{in}_1\ e \mid \mathsf{in}_2\ e \mid \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} \\
-v &::= \lambda x{:}\tau.\, e \mid () \mid (v_1, v_2) \mid \mathsf{in}_1\ v \mid \mathsf{in}_2\ v
+e ::={}& x \mid \lambda x{:}\tau.\, e \mid e_1\, e_2 \\
+  &\mid () \mid (e_1, e_2) \mid e.1 \mid e.2 \\
+  &\mid \mathsf{case}_{\mathbf{0}}\ e\ \{\} \mid \mathsf{in}_1\ e \mid \mathsf{in}_2\ e \mid \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\}
 \end{aligned}
 \]</div>
+<div class="display piece">\[
+v ::= \lambda x{:}\tau.\, e \mid () \mid (v_1, v_2) \mid \mathsf{in}_1\ v \mid \mathsf{in}_2\ v
+\]</div>
+<hr class="slide-break">
 <div class="rules">
-  <div>\[\frac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}\]</div>
-  <div>\[\frac{\Gamma, x{:}\tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\]</div>
-  <div>\[\frac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}\]</div>
-  <div>\[(\lambda x{:}\tau.\, e)\, v \longrightarrow e[x \mapsto v]\]</div>
+  <div class="piece">\[\frac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}\]</div>
+  <div class="piece">\[\frac{\Gamma, x{:}\tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\]</div>
+  <div class="piece">\[\frac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}\]</div>
+  <div class="piece">\[(\lambda x{:}\tau.\, e)\, v \longrightarrow e[x \mapsto v]\]</div>
 </div>
+<hr class="slide-break">
 <div class="rules">
-  <div>\[\frac{}{\Gamma \vdash () : \mathbf{1}}\]</div>
-  <div>\[\frac{\Gamma \vdash e_1 : \tau_1 \quad \Gamma \vdash e_2 : \tau_2}{\Gamma \vdash (e_1, e_2) : \tau_1 \times \tau_2}\]</div>
-  <div>\[\frac{\Gamma \vdash e : \tau_1 \times \tau_2}{\Gamma \vdash e.i : \tau_i}\]</div>
-  <div>\[(v_1, v_2).i \longrightarrow v_i\]</div>
+  <div class="piece">\[\frac{}{\Gamma \vdash () : \mathbf{1}}\]</div>
+  <div class="piece">\[\frac{\Gamma \vdash e_1 : \tau_1 \quad \Gamma \vdash e_2 : \tau_2}{\Gamma \vdash (e_1, e_2) : \tau_1 \times \tau_2}\]</div>
+  <div class="piece">\[\frac{\Gamma \vdash e : \tau_1 \times \tau_2}{\Gamma \vdash e.i : \tau_i}\]</div>
+  <div class="piece">\[(v_1, v_2).i \longrightarrow v_i\]</div>
 </div>
+<hr class="slide-break">
 <div class="rules">
-  <div>\[\frac{\Gamma \vdash e : \mathbf{0}}{\Gamma \vdash \mathsf{case}_{\mathbf{0}}\ e\ \{\} : \tau}\]</div>
-  <div>\[\frac{\Gamma \vdash e : \tau_1}{\Gamma \vdash \mathsf{in}_1\ e : \tau_1 + \tau_2}\]</div>
-  <div>\[\frac{\Gamma \vdash e : \tau_2}{\Gamma \vdash \mathsf{in}_2\ e : \tau_1 + \tau_2}\]</div>
-  <div>\[\frac{\Gamma \vdash e : \tau_1 + \tau_2 \quad \Gamma, x_1{:}\tau_1 \vdash e_1 : \tau \quad \Gamma, x_2{:}\tau_2 \vdash e_2 : \tau}{\Gamma \vdash \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} : \tau}\]</div>
+  <div class="piece">\[\frac{\Gamma \vdash e : \mathbf{0}}{\Gamma \vdash \mathsf{case}_{\mathbf{0}}\ e\ \{\} : \tau}\]</div>
+  <div class="piece">\[\frac{\Gamma \vdash e : \tau_1}{\Gamma \vdash \mathsf{in}_1\ e : \tau_1 + \tau_2}\]</div>
+  <div class="piece">\[\frac{\Gamma \vdash e : \tau_2}{\Gamma \vdash \mathsf{in}_2\ e : \tau_1 + \tau_2}\]</div>
+  <div class="piece">\[\frac{\begin{array}{c}\Gamma \vdash e : \tau_1 + \tau_2 \\ \Gamma, x_1{:}\tau_1 \vdash e_1 : \tau \quad \Gamma, x_2{:}\tau_2 \vdash e_2 : \tau\end{array}}{\Gamma \vdash \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} : \tau}\]</div>
 </div>
-<div class="display">\[
-\begin{aligned}
-\mathsf{case}_+\ (\mathsf{in}_1\ v)\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} &\longrightarrow e_1[x_1 \mapsto v] \\
-\mathsf{case}_+\ (\mathsf{in}_2\ v)\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} &\longrightarrow e_2[x_2 \mapsto v]
-\end{aligned}
+<div class="display piece">\[
+\begin{aligned}&\mathsf{case}_+\ (\mathsf{in}_1\ v)\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} \\ &\qquad \longrightarrow e_1[x_1 \mapsto v]\end{aligned}
+\]</div>
+<div class="display piece">\[
+\begin{aligned}&\mathsf{case}_+\ (\mathsf{in}_2\ v)\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} \\ &\qquad \longrightarrow e_2[x_2 \mapsto v]\end{aligned}
 \]</div>
 </details>
 
@@ -309,7 +325,7 @@ Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run
 <p>This is why they are called <em>algebraic</em> data types. For example, \(\mathsf{bool} \times \mathsf{bool}\) has \(2 \cdot 2 = 4\) values, and \(\mathbf{1} + \mathbf{1}\) has \(1 + 1 = 2\), as many as \(\mathsf{bool}\). That is why \(\mathsf{bool}\) is also written \(\mathbf{2}\).</p>
 </details>
 
-<h2>2. Isomorphisms</h2>
+<h2 class="one-slide">2. Isomorphisms</h2>
 <p>Here are some equations from grade school, true for all numbers \(n\), \(m\) and \(k\):</p>
 <div class="display">\[
 \begin{gathered}
@@ -371,7 +387,7 @@ Definition iso {τ₁ τ₂ : Type} (f : τ₁ → τ₂) (g : τ₂ → τ₁) 
 <hr class="slide-break">
 <p>Each isomorphism below is a pair of programs \(f\) and \(g\) in the lecture's language. Try writing each program from its type before reading it. In Rocq, each pair sits in a module of its own, so every one can be called <code>f</code> and <code>g</code>; from outside, they are <code>ProdUnit.f</code>, <code>Dist.g</code>, and so on. In Rocq, the proof that the two programs undo each other always has the same shape: split into the two directions; in each, take the value apart, one case per way it can be built; then each case computes, and <code>reflexivity</code> finishes it.</p>
 
-<h3>\(\tau \times \mathbf{1} \cong \tau\)</h3>
+<h3 class="own-slide">\(\tau \times \mathbf{1} \cong \tau\)</h3>
 <p>Like \(n \cdot 1 = n\). The second part of the pair can only be \(()\), so it carries no information.</p>
 <div class="display prog">\[
 f : \tau \times \mathbf{1} \to \tau
@@ -404,7 +420,7 @@ Qed.
 End ProdUnit.
 End ProdUnit.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 18 lines">Show code · 18 lines</button></div></div>
 
-<h3>\(\tau + \mathbf{0} \cong \tau\)</h3>
+<h3 class="own-slide">\(\tau + \mathbf{0} \cong \tau\)</h3>
 <p>Like \(n + 0 = n\). The \(\mathsf{in}_2\) side would hold a value of \(\mathbf{0}\), which can't exist, so only \(\mathsf{in}_1\) ever happens.</p>
 <div class="display prog">\[
 f : \tau + \mathbf{0} \to \tau
@@ -439,7 +455,7 @@ Qed.
 End SumEmpty.
 End SumEmpty.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 20 lines">Show code · 20 lines</button></div></div>
 
-<h3>\(\tau \times \mathbf{0} \cong \mathbf{0}\)</h3>
+<h3 class="own-slide">\(\tau \times \mathbf{0} \cong \mathbf{0}\)</h3>
 <p>Like \(n \cdot 0 = 0\). A pair would need a value of \(\mathbf{0}\), so there are no such pairs, and the proofs have no cases.</p>
 <div class="display prog">\[
 f : \tau \times \mathbf{0} \to \mathbf{0}
@@ -472,7 +488,7 @@ Qed.
 End ProdEmpty.
 End ProdEmpty.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 18 lines">Show code · 18 lines</button></div></div>
 
-<h3>\(\tau_1 \times \tau_2 \cong \tau_2 \times \tau_1\)</h3>
+<h3 class="own-slide">\(\tau_1 \times \tau_2 \cong \tau_2 \times \tau_1\)</h3>
 <p>Like \(n \cdot m = m \cdot n\). Both programs swap the pair, and swapping twice gives it back.</p>
 <div class="display prog">\[
 f : \tau_1 \times \tau_2 \to \tau_2 \times \tau_1
@@ -503,7 +519,7 @@ Qed.
 End ProdComm.
 End ProdComm.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 16 lines">Show code · 16 lines</button></div></div>
 
-<h3>\(\tau_1 \times (\tau_2 + \tau_3) \cong \tau_1 \times \tau_2 + \tau_1 \times \tau_3\)</h3>
+<h3 class="own-slide">\(\tau_1 \times (\tau_2 + \tau_3) \cong \tau_1 \times \tau_2 + \tau_1 \times \tau_3\)</h3>
 <p>Like \(n(m + k) = nm + nk\). A pair whose second part is "a \(\tau_2\) or a \(\tau_3\)" is the same as "a pair with a \(\tau_2\), or a pair with a \(\tau_3\)".</p>
 <div class="display prog">\[
 f : \tau_1 \times (\tau_2 + \tau_3) \to \tau_1 \times \tau_2 + \tau_1 \times \tau_3
@@ -546,7 +562,7 @@ Qed.
 End Dist.
 End Dist.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 20 lines">Show code · 20 lines</button></div></div>
 
-<h3>\((\tau_1 \times \tau_2 \to \tau_3) \cong (\tau_1 \to \tau_2 \to \tau_3)\)</h3>
+<h3 class="own-slide">\((\tau_1 \times \tau_2 \to \tau_3) \cong (\tau_1 \to \tau_2 \to \tau_3)\)</h3>
 <p>Like \(c^{a \cdot b} = (c^b)^a\). A function of a pair is the same as a function that takes its two arguments one at a time. \(f\) is usually called \(\mathsf{curry}\), and \(g\) \(\mathsf{uncurry}\).</p>
 <div class="display prog">\[
 f : (\tau_1 \times \tau_2 \to \tau_3) \to (\tau_1 \to \tau_2 \to \tau_3)
@@ -583,7 +599,7 @@ Qed.
 End Curry.
 End Curry.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 21 lines">Show code · 21 lines</button></div></div>
 
-<h3>\(\mathsf{bool} \cong \mathbf{1} + \mathbf{1}\)</h3>
+<h3 class="own-slide">\(\mathsf{bool} \cong \mathbf{1} + \mathbf{1}\)</h3>
 <p>\(\mathsf{true}\) is \(\mathsf{in}_1\ ()\), \(\mathsf{false}\) is \(\mathsf{in}_2\ ()\), and \(\mathsf{if}\) is a case. So the lecture's language doesn't need \(\mathsf{bool}\) built in: sums give it to us.</p>
 <div class="display prog">\[
 f : \mathsf{bool} \to \mathbf{1} + \mathbf{1}
@@ -612,7 +628,7 @@ Qed.
 
 End BoolSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 14 lines">Show code · 14 lines</button></div></div>
 
-<h3>\(\mathsf{option}\ \tau \cong \mathbf{1} + \tau\)</h3>
+<h3 class="own-slide">\(\mathsf{option}\ \tau \cong \mathbf{1} + \tau\)</h3>
 <p>\(\mathsf{None}\) is \(\mathsf{in}_1\ ()\), and \(\mathsf{Some}\ x\) is \(\mathsf{in}_2\ x\): "nothing, or a \(\tau\)". Like \(\mathsf{bool}\), \(\mathsf{option}\) is Rocq's, not the lecture's, so it is taken apart with a Rocq <code>match</code>.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-12">Module OptionSum.
 Section OptionSum.
@@ -635,7 +651,7 @@ Qed.
 End OptionSum.
 End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 20 lines">Show code · 20 lines</button></div></div>
 
-<h2>3. The Curry–Howard correspondence</h2>
+<h2 class="one-slide">3. The Curry–Howard correspondence</h2>
 <p>Read a type as a proposition, and a program of that type as a proof of it: <em>types as propositions</em>. This is the <strong>Curry–Howard correspondence</strong>, between the simply typed λ-calculus and intuitionistic propositional logic:</p>
 <table class="ref">
   <tr><th>type</th><th>proposition</th><th>Rocq</th></tr>
@@ -647,15 +663,15 @@ End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="bu
 </table>
 <hr class="slide-break">
 <p>Erase the terms from a typing rule and you get a rule of logic. From easiest to hardest: \(()\) proves \(\top\); a case on \(\mathbf{0}\) is &ldquo;from false, anything&rdquo;; a pair is a proof of \(\varphi \wedge \psi\) from a proof of each; a case is a proof by cases; a \(\lambda\) proves \(\varphi \Rightarrow \psi\) by assuming \(\varphi\) and proving \(\psi\); and application is modus ponens:</p>
-<div class="rules ch"><div>\[\frac{}{\vdash () : \mathbf{1}}\]</div><div>\[\leadsto\quad \frac{}{\top}\]</div></div>
-<div class="rules ch"><div>\[\frac{\vdash e : \mathbf{0}}{\vdash \mathsf{case}_{\mathbf{0}}\ e\ \{\} : \tau}\]</div><div>\[\leadsto\quad \frac{\bot}{\xi}\]</div></div>
-<div class="rules ch"><div>\[\frac{\vdash e_1 : \tau_1 \quad \vdash e_2 : \tau_2}{\vdash (e_1, e_2) : \tau_1 \times \tau_2}\]</div><div>\[\leadsto\quad \frac{\varphi \quad \psi}{\varphi \wedge \psi}\]</div></div>
-<div class="rules ch"><div>\[\frac{\vdash e : \tau_1 \times \tau_2}{\vdash e.1 : \tau_1}\]</div><div>\[\leadsto\quad \frac{\varphi \wedge \psi}{\varphi}\]</div></div>
+<div class="rules ch pieces"><div class="piece">\[\frac{}{\vdash () : \mathbf{1}}\;{\scriptstyle \mathbf{1}\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{}{\top}\]</div><div class="piece ch-name">\(\top\mathrm{I}\)</div></div>
+<div class="rules ch pieces"><div class="piece">\[\frac{\vdash e : \mathbf{0}}{\vdash \mathsf{case}_{\mathbf{0}}\ e\ \{\} : \tau}\;{\scriptstyle \mathbf{0}\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\bot}{\xi}\]</div><div class="piece ch-name">\(\bot\mathrm{E}\)</div></div>
+<div class="rules ch pieces"><div class="piece">\[\frac{\vdash e_1 : \tau_1 \quad \vdash e_2 : \tau_2}{\vdash (e_1, e_2) : \tau_1 \times \tau_2}\;{\scriptstyle \times\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \quad \psi}{\varphi \wedge \psi}\]</div><div class="piece ch-name">\(\wedge\mathrm{I}\)</div></div>
+<div class="rules ch pieces"><div class="piece">\[\frac{\vdash e : \tau_1 \times \tau_2}{\vdash e.1 : \tau_1}\;{\scriptstyle \times\mathrm{E}_1}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \wedge \psi}{\varphi}\]</div><div class="piece ch-name">\(\wedge\mathrm{E}_1\)</div></div>
 <hr class="slide-break">
-<div class="rules ch"><div>\[\frac{\vdash e : \tau_1}{\vdash \mathsf{in}_1\ e : \tau_1 + \tau_2}\]</div><div>\[\leadsto\quad \frac{\varphi}{\varphi \vee \psi}\]</div></div>
-<div class="rules ch"><div>\[\frac{\vdash e : \tau_1 + \tau_2 \quad x_1{:}\tau_1 \vdash e_1 : \tau \quad x_2{:}\tau_2 \vdash e_2 : \tau}{\vdash \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} : \tau}\]</div><div>\[\leadsto\quad \frac{\varphi \vee \psi \quad \varphi \vdash \xi \quad \psi \vdash \xi}{\xi}\]</div></div>
-<div class="rules ch"><div>\[\frac{x{:}\tau_1 \vdash e : \tau_2}{\vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\]</div><div>\[\leadsto\quad \frac{\varphi \vdash \psi}{\varphi \Rightarrow \psi}\]</div></div>
-<div class="rules ch"><div>\[\frac{\vdash e_1 : \tau_1 \to \tau_2 \quad \vdash e_2 : \tau_1}{\vdash e_1\, e_2 : \tau_2}\]</div><div>\[\leadsto\quad \frac{\varphi \Rightarrow \psi \quad \varphi}{\psi}\]</div></div>
+<div class="rules ch pieces"><div class="piece">\[\frac{\vdash e : \tau_1}{\vdash \mathsf{in}_1\ e : \tau_1 + \tau_2}\;{\scriptstyle +\mathrm{I}_1}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi}{\varphi \vee \psi}\]</div><div class="piece ch-name">\(\vee\mathrm{I}_1\)</div></div>
+<div class="rules ch pieces"><div class="piece">\[\frac{\vdash e : \tau_1 + \tau_2 \quad x_1{:}\tau_1 \vdash e_1 : \tau \quad x_2{:}\tau_2 \vdash e_2 : \tau}{\vdash \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} : \tau}\;{\scriptstyle +\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \vee \psi \quad \varphi \vdash \xi \quad \psi \vdash \xi}{\xi}\]</div><div class="piece ch-name">\(\vee\mathrm{E}\)</div></div>
+<div class="rules ch pieces"><div class="piece">\[\frac{x{:}\tau_1 \vdash e : \tau_2}{\vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\;{\scriptstyle {\to}\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \vdash \psi}{\varphi \Rightarrow \psi}\]</div><div class="piece ch-name">\({\Rightarrow}\mathrm{I}\)</div></div>
+<div class="rules ch pieces"><div class="piece">\[\frac{\vdash e_1 : \tau_1 \to \tau_2 \quad \vdash e_2 : \tau_1}{\vdash e_1\, e_2 : \tau_2}\;{\scriptstyle {\to}\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \Rightarrow \psi \quad \varphi}{\psi}\]</div><div class="piece ch-name">\({\Rightarrow}\mathrm{E}\)</div></div>
 <h3>Part 2 was logic</h3>
 <p>Now look back at the programs in Part 2, and read each type as a proposition. Every program we wrote was a proof:</p>
 <table class="ref">
@@ -671,25 +687,141 @@ End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="bu
 <p>Each isomorphism has a program in each direction, so it proves both directions of an equivalence, such as \(\varphi \wedge (\psi \vee \xi ) \Leftrightarrow (\varphi \wedge \psi ) \vee (\varphi \wedge \xi )\).</p>
 
 <h3>One proof, two readings</h3>
-<p>Take currying, \((\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)\). A leaf with no line above it, such as \(\Delta \vdash \varphi\), uses an assumption. Write \(\Delta\) for all three assumptions, \(\varphi \wedge \psi \Rightarrow \xi, \varphi, \psi\). Here is a proof tree using the rules above:</p>
-<div class="display">\[
-\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi
-  \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle\wedge\mathrm{I}}}
-  {\Delta \vdash \xi}{\scriptstyle\Rightarrow\mathrm{E}}}
-  {\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle\Rightarrow\mathrm{I}}}
-  {\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle\Rightarrow\mathrm{I}}}
-{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle\Rightarrow\mathrm{I}}
+<p>Take currying, \((\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)\). A leaf with no line above it, such as \(\Delta \vdash \varphi\), uses an assumption. Write \(\Delta\) for all three assumptions, \(\varphi \wedge \psi \Rightarrow \xi, \varphi, \psi\). Here is a proof tree using the rules above, built from the goal at the bottom up: each rule turns the goal below its line into the goals above it. Then the same tree becomes a typing derivation, again from the root up: each proposition turns into its type, and then the program that the rule builds appears beside it.</p>
+<div class="pieces frames">
+<div class="display piece frame">\[
+\begin{gathered}
+\style{visibility:hidden}{\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\style{visibility:visible}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}}{\scriptstyle \Rightarrow\mathrm{I}}} \\[10pt]
+\style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
+\end{gathered}
 \]</div>
-<hr class="slide-break">
-<p>Now the same tree as a typing derivation. Each assumption gets a variable, and each line gets the program its rule builds. Write \(\sigma\) for \(\tau_1 \times \tau_2 \to \tau_3\), the type that \(\varphi \wedge \psi \Rightarrow \xi\) becomes, and \(\Gamma\) for \(h{:}\sigma, x{:}\tau_1, y{:}\tau_2\):</p>
-<div class="display">\[
-\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma
-  \quad \dfrac{\Gamma \vdash x : \tau_1 \quad \Gamma \vdash y : \tau_2}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle\wedge\mathrm{I}}}
-  {\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle\Rightarrow\mathrm{E}}}
-  {h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle\Rightarrow\mathrm{I}}}
-  {h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle\Rightarrow\mathrm{I}}}
-{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle\Rightarrow\mathrm{I}}
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\style{visibility:hidden}{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\style{visibility:visible}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}}{\scriptstyle \Rightarrow\mathrm{I}}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
+\style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
+\end{gathered}
 \]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\style{visibility:hidden}{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\style{visibility:visible}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}}{\scriptstyle \Rightarrow\mathrm{I}}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
+\style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\style{visibility:hidden}{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\style{visibility:visible}{\Delta \vdash \xi}}{\scriptstyle \Rightarrow\mathrm{E}}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
+\style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \style{visibility:hidden}{\dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\style{visibility:visible}{\Delta \vdash \varphi \wedge \psi}}{\scriptstyle \wedge\mathrm{I}}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
+\style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
+\end{gathered}
+\]</div>
+<div class="display piece frame keep">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
+\style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\sigma \vdash \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\sigma, \tau_1 \vdash \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\sigma, \tau_1, \tau_2 \vdash \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\sigma, \tau_1, \tau_2 \vdash \sigma \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\sigma, \tau_1, \tau_2 \vdash \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\sigma, \tau_1, \tau_2 \vdash \tau_1 \quad \Delta \vdash \psi}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Gamma \vdash x : \tau_1 \quad \Delta \vdash \psi}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Gamma \vdash x : \tau_1 \quad \sigma, \tau_1, \tau_2 \vdash \tau_2}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+<div class="display piece frame keep">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Gamma \vdash x : \tau_1 \quad \Gamma \vdash y : \tau_2}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]</div>
+</div>
 <p>The program at the root is the proof:</p>
 <div class="display">\[
 \lambda h{:}\tau_1 \times \tau_2 \to \tau_3.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y)
@@ -735,18 +867,42 @@ Definition and_curry {φ ψ ξ : Prop} : (φ /\ ψ → ξ) → (φ → ψ → ξ
   λ f, λ p, λ q, f (conj p q).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 18 lines">Show code · 18 lines</button></div></div>
 <h3>Steps simplify proofs</h3>
 <p>A proof can take a detour: prove \(\varphi \wedge \psi\) by \(\wedge\)I, then immediately use \(\wedge\)E to get back \(\varphi\). The detour can be cut out, leaving the proof of \(\varphi\) we started with:</p>
-<div class="display">\[
-\dfrac{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \psi\end{array}}{\varphi \wedge \psi}{\scriptstyle\wedge\mathrm{I}}}{\varphi}{\scriptstyle\wedge\mathrm{E}_1}
-\quad\leadsto\quad
-\begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array}
+<div class="pieces frames">
+<div class="display piece frame">\[
+\style{visibility:hidden}{\dfrac{\dfrac{\style{visibility:visible}{\begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array}} \quad \begin{array}{c}\mathcal{D}_2 \\ \psi\end{array}}{\varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\varphi}{\scriptstyle \wedge\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array}}
 \]</div>
+<div class="display piece frame">\[
+\style{visibility:hidden}{\dfrac{\dfrac{\style{visibility:visible}{\begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \psi\end{array}}}{\varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\varphi}{\scriptstyle \wedge\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array}}
+\]</div>
+<div class="display piece frame">\[
+\style{visibility:hidden}{\dfrac{\style{visibility:visible}{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \psi\end{array}}{\varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}}{\varphi}{\scriptstyle \wedge\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \psi\end{array}}{\varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\varphi}{\scriptstyle \wedge\mathrm{E}_1} \style{visibility:hidden}{\quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \psi\end{array}}{\varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\varphi}{\scriptstyle \wedge\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array}
+\]</div>
+</div>
 <hr class="slide-break">
 <p>As a typing derivation, \(\mathcal{D}_1\) and \(\mathcal{D}_2\) type values \(v_1\) and \(v_2\), and the detour is a pair that is projected right away:</p>
-<div class="display">\[
-\dfrac{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \vdash v_2 : \tau_2\end{array}}{\vdash (v_1, v_2) : \tau_1 \times \tau_2}{\scriptstyle\wedge\mathrm{I}}}{\vdash (v_1, v_2).1 : \tau_1}{\scriptstyle\wedge\mathrm{E}_1}
-\quad\leadsto\quad
-\begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array}
+<div class="pieces frames">
+<div class="display piece frame">\[
+\style{visibility:hidden}{\dfrac{\dfrac{\style{visibility:visible}{\begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array}} \quad \begin{array}{c}\mathcal{D}_2 \\ \vdash v_2 : \tau_2\end{array}}{\vdash (v_1, v_2) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\vdash (v_1, v_2).1 : \tau_1}{\scriptstyle \times\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array}}
 \]</div>
+<div class="display piece frame">\[
+\style{visibility:hidden}{\dfrac{\dfrac{\style{visibility:visible}{\begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \vdash v_2 : \tau_2\end{array}}}{\vdash (v_1, v_2) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\vdash (v_1, v_2).1 : \tau_1}{\scriptstyle \times\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array}}
+\]</div>
+<div class="display piece frame">\[
+\style{visibility:hidden}{\dfrac{\style{visibility:visible}{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \vdash v_2 : \tau_2\end{array}}{\vdash (v_1, v_2) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}}{\vdash (v_1, v_2).1 : \tau_1}{\scriptstyle \times\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \vdash v_2 : \tau_2\end{array}}{\vdash (v_1, v_2) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\vdash (v_1, v_2).1 : \tau_1}{\scriptstyle \times\mathrm{E}_1} \style{visibility:hidden}{\quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \vdash v_2 : \tau_2\end{array}}{\vdash (v_1, v_2) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\vdash (v_1, v_2).1 : \tau_1}{\scriptstyle \times\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array}
+\]</div>
+</div>
 <p>Compare the programs at the roots with the lecture's step rule:</p>
 <div class="display">\[
 (v_1, v_2).1 \longrightarrow v_1
@@ -763,6 +919,16 @@ Definition and_curry {φ ψ ξ : Prop} : (φ /\ ψ → ξ) → (φ → ψ → ξ
   <tr><td>\(\forall x{:}\tau.\, \varphi(x)\)</td><td><code>forall x : τ, φ x</code></td><td>a function that, given any \(x\), returns a proof of \(\varphi(x)\)</td><td>\(\tau_1 \to \tau_2\)</td></tr>
   <tr><td>\(\exists x{:}\tau.\, \varphi(x)\)</td><td><code>{x : τ | φ x}</code></td><td>a pair of a witness \(x\) and a proof of \(\varphi(x)\)</td><td>\(\tau_1 \times \tau_2\)</td></tr>
 </table>
+<p>Here are their rules. Now \(\varphi\) may mention \(x\), and \(\varphi[x \mapsto e]\) is \(\varphi\) with \(e\) for \(x\):</p>
+<div class="rules">
+  <div>\[\frac{\Gamma, x{:}\tau \vdash e : \varphi}{\Gamma \vdash \lambda x{:}\tau.\, e : \forall x{:}\tau.\, \varphi}\;{\scriptstyle \forall\mathrm{I}}\]</div>
+  <div>\[\frac{\Gamma \vdash e_1 : \forall x{:}\tau.\, \varphi \quad \Gamma \vdash e_2 : \tau}{\Gamma \vdash e_1\, e_2 : \varphi[x \mapsto e_2]}\;{\scriptstyle \forall\mathrm{E}}\]</div>
+</div>
+<div class="rules">
+  <div>\[\frac{\Gamma \vdash e_1 : \tau \quad \Gamma \vdash e_2 : \varphi[x \mapsto e_1]}{\Gamma \vdash (e_1, e_2) : \exists x{:}\tau.\, \varphi}\;{\scriptstyle \exists\mathrm{I}}\]</div>
+  <div>\[\frac{\Gamma \vdash e : \exists x{:}\tau.\, \varphi \quad \Gamma, x{:}\tau, y{:}\varphi \vdash e' : \psi}{\Gamma \vdash \mathsf{case}\ e\ \{(x, y) \to e'\} : \psi}\;{\scriptstyle \exists\mathrm{E}}\ \ (x \text{ not in } \psi)\]</div>
+</div>
+<p>A proof of \(\forall x{:}\tau.\, \varphi\) is a function that works for every \(x\), and using it at \(e_2\) proves \(\varphi\) for that \(e_2\). A proof of \(\exists x{:}\tau.\, \varphi\) is a witness \(e_1\) with a proof that \(\varphi\) holds of it, and using it means taking the pair apart, without knowing which witness it was.</p>
 <p>The result type of a dependent function can mention its argument; \(\tau_1 \to \tau_2\) is the case where it doesn't. The type of the second part of a dependent pair can mention the first; \(\tau_1 \times \tau_2\) is the case where it doesn't. The type of values from Discussion 6, <code>{ e : exp | value e }</code>, is a dependent pair: an expression together with a proof that it is a value. (At <code>Prop</code>, Rocq also writes \(\exists\) as <code>exists x, φ x</code>.)</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-16">Definition refl_all : forall n : nat, n = n := λ n, eq_refl.
 
@@ -807,7 +973,12 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
    of the other slides are just hidden, so the Rocq blocks stay one
    document and running a block still checks everything before it.
    Within a slide, each element after the first appears on its own key
-   press, so a slide is revealed one piece at a time.
+   press, so a slide is revealed one piece at a time.  A folded block
+   marked "unfold" (<details class="unfold">) opens in slide mode, and
+   each .piece inside it counts as an element of its own, as do the
+   .piece parts of an element with class "pieces".  A section whose
+   h2 has class "one-slide" is a single long slide that scrolls, except
+   that an h3 with class "own-slide" still starts a slide of its own.
    Keys: right arrow or Page Down for the next step or slide, left arrow
    or Page Up to go back (what a presentation clicker sends), Escape to
    leave.  The address ends in #slide-N, so a reload stays on the slide. */
@@ -819,11 +990,20 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
   const context = document.getElementById('slide-context');
   const button = document.getElementById('present-toggle');
   const slides = [];
-  let cur = [], section = '';
+  let cur = [], section = '', whole = false;
   const close = () => { cur.steps = cur.length - 1; slides.push(cur); cur = []; };
-  for (const el of doc.children) {
+  const unfolds = [...doc.querySelectorAll(':scope > details.unfold')];
+  const rows = [...doc.querySelectorAll(':scope > .pieces')];
+  /* the boxes around pieces: shown on a slide when one of their pieces is */
+  const holders = [...unfolds.flatMap(d => [d, ...d.querySelectorAll('.rules')]), ...rows];
+  const units = [...doc.children].flatMap(el =>
+    el.matches('details.unfold, .pieces') ? [...el.querySelectorAll('.piece, hr.slide-break')] : [el]);
+  for (const el of units) {
     if (el.classList.contains('topbar') || el.id === 'slide-context') continue;
-    const breaks = el.tagName === 'H2' || el.tagName === 'H3' || el.classList.contains('slide-break');
+    /* a section whose h2 is marked "one-slide" stays one long slide */
+    if (el.tagName === 'H2') whole = el.classList.contains('one-slide');
+    const breaks = el.tagName === 'H2' || el.classList.contains('own-slide') ||
+      (!whole && (el.tagName === 'H3' || el.classList.contains('slide-break')));
     if (breaks && cur.length) close();
     if (el.tagName === 'H2') section = el.textContent;
     if (!cur.length) cur.section = el.tagName === 'H2' ? '' : section;
@@ -835,10 +1015,19 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
   let at = 0, shown = 0;
   function label() {
     const m = slides[at].steps;
-    count.textContent = (at + 1) + ' / ' + slides.length + (m ? '  ·  ' + '●'.repeat(shown) + '○'.repeat(m - shown) : '');
+    const steps = m > 12 ? 'step ' + shown + ' of ' + m : '●'.repeat(shown) + '○'.repeat(m - shown);
+    count.textContent = (at + 1) + ' / ' + slides.length + (m ? '  ·  ' + steps : '');
   }
+  /* frames (pieces of an element with class "frames") replace each other:
+     only the latest one revealed shows, in the same place */
+  const frameSets = [...doc.querySelectorAll(':scope > .frames')];
   function reveal() {
     for (const el of slides[at]) el.classList.toggle('off-step', Number(el.dataset.step) > shown);
+    for (const g of frameSets) {
+      const fs = [...g.children];
+      const last = fs.filter(f => !f.classList.contains('off-step') && !f.classList.contains('off-slide')).at(-1);
+      for (const f of fs) f.classList.toggle('off-frame', f !== last);
+    }
     label();
   }
   /* show slide i with its first k steps revealed (all of them if k is 'all') */
@@ -846,6 +1035,7 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
     at = Math.max(0, Math.min(slides.length - 1, i));
     shown = k === 'all' ? slides[at].steps : 0;
     slides.forEach((els, n) => els.forEach(el => el.classList.toggle('off-slide', n !== at)));
+    for (const h of holders) h.classList.toggle('off-slide', !h.querySelector('.piece:not(.off-slide)'));
     context.textContent = slides[at].section || '';
     reveal();
     history.replaceState(null, '', '#slide-' + (at + 1));
@@ -854,18 +1044,20 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
     for (const el of slides[at])
       for (const cm of el.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
   }
+  /* in a long slide, bring the piece that just appeared or disappeared
+     to the middle of the screen */
+  const piece = k => slides[at].find(el => Number(el.dataset.step) === k);
+  const focusOn = el => { if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
   function next() {
-    if (shown < slides[at].steps) {
-      shown++; reveal();
-      const first = slides[at].find(el => Number(el.dataset.step) === shown);
-      if (first) first.scrollIntoView({ block: 'nearest' });
-    } else if (at < slides.length - 1) show(at + 1, 0);
+    if (shown < slides[at].steps) { shown++; reveal(); focusOn(piece(shown)); }
+    else if (at < slides.length - 1) show(at + 1, 0);
   }
   function prev() {
-    if (shown > 0) { shown--; reveal(); }
+    if (shown > 0) { const gone = piece(shown); shown--; reveal(); focusOn(gone); }
     else if (at > 0) show(at - 1, 'all');
   }
   function start(i) {
+    for (const d of unfolds) { d.dataset.wasOpen = d.open; d.open = true; }
     doc.classList.add('presenting'); nav.classList.add('on');
     button.textContent = '✕ Stop presenting';
     show(i, 0);
@@ -874,6 +1066,9 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
     doc.classList.remove('presenting'); nav.classList.remove('on');
     button.textContent = '▶ Present';
     for (const els of slides) for (const el of els) el.classList.remove('off-slide', 'off-step');
+    for (const h of holders) h.classList.remove('off-slide');
+    for (const g of frameSets) for (const f of g.children) f.classList.remove('off-frame');
+    for (const d of unfolds) d.open = d.dataset.wasOpen === 'true';
     history.replaceState(null, '', location.pathname + location.search);
     const first = slides[at][0];
     if (first) first.scrollIntoView();
