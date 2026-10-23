@@ -318,11 +318,8 @@ Notation "τ₁ → τ₂" := (τ₁ -&gt; τ₂) (at level 99, τ₂ at level 2
 Notation "'λ' x .. y , e" := (fun x =&gt; .. (fun y =&gt; e) ..)
   (at level 200, x binder, y binder, right associativity).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 16 lines">Show code · 16 lines</button></div></div>
 <p>Sums appear in many languages. \(\tau_1 + \tau_2\) is <code>Either[A, B]</code> in Scala, <code>Result&lt;T, E&gt;</code> in Rust, and <code>Either a b</code> in Haskell. In each, \(\mathsf{in}_1\) and \(\mathsf{in}_2\) are <code>Left</code> and <code>Right</code> (Scala, Haskell) or <code>Ok</code> and <code>Err</code> (Rust).</p>
-<p>For example, here is Rust's <code>Result</code>, and a division that fails on zero:</p>
-<pre class="lang"><code>// Rust&#x27;s standard library
-enum Result&lt;T, E&gt; { Ok(T), Err(E) }
-
-fn div(n: i32, d: i32) -&gt; Result&lt;i32, String&gt; {
+<p>For example, Rust's standard library defines <code>enum Result&lt;T, E&gt; { Ok(T), Err(E) }</code>. Here is a division that fails on zero, and a function that takes its result apart:</p>
+<pre class="lang"><code>fn div(n: i32, d: i32) -&gt; Result&lt;i32, String&gt; {
     if d == 0 { Err(String::from(&quot;divide by zero&quot;)) } else { Ok(n / d) }
 }
 
@@ -332,17 +329,14 @@ fn describe(r: Result&lt;i32, String&gt;) -&gt; String {
         Err(msg) =&gt; msg,
     }
 }</code></pre>
-<p>and the same in OCaml, where the type is called <code>result</code>:</p>
-<pre class="lang"><code>(* OCaml&#x27;s standard library *)
-type (&#x27;a, &#x27;e) result = Ok of &#x27;a | Error of &#x27;e
-
-let div n d = if d = 0 then Error &quot;divide by zero&quot; else Ok (n / d)
+<p>OCaml's standard library has the same type, called <code>result</code>: <code>type ('a, 'b) result = Ok of 'a | Error of 'b</code>. The same two functions:</p>
+<pre class="lang"><code>let div n d = if d = 0 then Error &quot;divide by zero&quot; else Ok (n / d)
 
 let describe r =
   match r with
   | Ok q -&gt; &quot;quotient &quot; ^ string_of_int q
   | Error msg -&gt; msg</code></pre>
-<p>In the lecture's terms, <code>div</code> has type \(\mathsf{int} \to \mathsf{int} \to \mathsf{int} + \mathsf{string}\): <code>Ok</code> is \(\mathsf{in}_1\), <code>Err</code> (or <code>Error</code>) is \(\mathsf{in}_2\), and <code>describe</code>'s <code>match</code> is \(\mathsf{case}_+\).</p>
+<p>In the lecture's terms, OCaml's <code>div</code> has type \(\mathsf{int} \to \mathsf{int} \to \mathsf{int} + \mathsf{string}\). Rust's takes both arguments at once, so its type is \(\mathsf{int} \times \mathsf{int} \to \mathsf{int} + \mathsf{string}\): the two are related by currying, from Part 2. In both, <code>Ok</code> is \(\mathsf{in}_1\), <code>Err</code> (or <code>Error</code>) is \(\mathsf{in}_2\), and <code>describe</code>'s <code>match</code> is \(\mathsf{case}_+\).</p>
 <hr class="slide-break">
 <div class="cell is-collapsed"><textarea class="coq" id="coq-2">Check (3, true) : nat × bool.
 Check (3, true).1.
@@ -359,18 +353,6 @@ Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run
 <div class="cell is-collapsed"><textarea class="coq" id="coq-3">Definition absurd {τ : Type} (z : 0) : τ :=
   case₀ z {}.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
 
-<hr class="slide-break">
-<details class="question">
-<summary>Counting values</summary>
-<p>For types with finitely many values, write \(|\tau|\) for how many values \(\tau\) has. A pair picks one of each, a sum picks one side, and a function picks an output for each input:</p>
-<div class="display">\[
-\begin{gathered}
-|\tau_1 \times \tau_2| = |\tau_1| \cdot |\tau_2| \qquad |\tau_1 + \tau_2| = |\tau_1| + |\tau_2| \qquad |\tau_1 \to \tau_2| = |\tau_2|^{|\tau_1|} \\
-|\mathbf{1}| = 1 \qquad |\mathbf{0}| = 0
-\end{gathered}
-\]</div>
-<p>This is why they are called <em>algebraic</em> data types. For example, \(\mathsf{bool} \times \mathsf{bool}\) has \(2 \cdot 2 = 4\) values, and \(\mathbf{1} + \mathbf{1}\) has \(1 + 1 = 2\), as many as \(\mathsf{bool}\). That is why \(\mathsf{bool}\) is also written \(\mathbf{2}\).</p>
-</details>
 
 <h2 class="one-slide">2. Isomorphisms</h2>
 <p>Here are some equations from grade school, true for all numbers \(n\), \(m\) and \(k\):</p>
@@ -432,7 +414,7 @@ Definition section {τ₁ τ₂ : Type} (f : τ₁ → τ₂) (g : τ₂ → τ�
 Definition iso {τ₁ τ₂ : Type} (f : τ₁ → τ₂) (g : τ₂ → τ₁) : Prop :=
   retraction f g /\ section f g.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 6 lines">Show code · 6 lines</button></div></div>
 <hr class="slide-break">
-<p>Each isomorphism below is a pair of programs \(f\) and \(g\) in the lecture's language. Try writing each program from its type before reading it. In Rocq, each pair sits in a module of its own, so every one can be called <code>f</code> and <code>g</code>; from outside, they are <code>ProdUnit.f</code>, <code>Dist.g</code>, and so on. In Rocq, the proof that the two programs undo each other always has the same shape: unfold <code>iso</code> into its two laws and split them; in each, <code>cbv delta [f g]</code> unfolds \(f\) and \(g\), putting in their programs, and <code>cbv beta</code> substitutes the argument (the β step); take the value apart, one case per way it can be built; then <code>simpl</code> runs the rest, and <code>reflexivity</code> sees that both sides are the same. Step through a proof to watch both sides become equal.</p>
+<p>Each isomorphism below is a pair of programs \(f\) and \(g\) in the lecture's language. Try writing each program from its type before reading it. In Rocq, each pair sits in a module of its own, so every one can be called <code>f</code> and <code>g</code>; from outside, they are <code>ProdUnit.f</code>, <code>Dist.g</code>, and so on. In Rocq, the proofs that the two programs undo each other follow the same pattern: unfold <code>iso</code> into its two laws and split them; in each, <code>cbv delta [f g]</code> unfolds \(f\) and \(g\), putting in their programs, and <code>cbv beta</code> substitutes the argument (the β step); take the value apart, one case per way it can be built; then <code>simpl</code> runs the rest, and <code>reflexivity</code> sees that both sides are the same. Step through a proof to watch both sides become equal. The two exceptions: for \(\tau \times \mathbf{0} \cong \mathbf{0}\) there is nothing to compute, since no value can be built, and for curry the values are functions, so the proof first uses <code>funext</code>.</p>
 
 <h3 class="own-slide">\(\tau \times \mathbf{1} \cong \tau\)</h3>
 <p>Like \(n \cdot 1 = n\). The second part of the pair can only be \(()\), so it carries no information.</p>
@@ -1080,7 +1062,7 @@ Proof.
 Qed.
 
 Print and_swap'.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 9 lines">Show code · 9 lines</button></div></div>
-<p>A case is a proof by cases, a case on \(\mathbf{0}\) is ex falso, and distributivity and currying at <code>Prop</code> are the same programs as <code>Dist.f</code> and <code>Curry.f</code>:</p>
+<p>A case is a proof by cases, a case on \(\mathbf{0}\) is ex falso, distributivity at <code>Prop</code> does what <code>Dist.f</code> does, and currying at <code>Prop</code> is the same program as <code>Curry.f</code>:</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-15">Definition or_swap {φ ψ : Prop} (h : φ \/ ψ) : ψ \/ φ :=
   match h with
   | or_introl p =&gt; or_intror p
@@ -1149,9 +1131,9 @@ Definition and_curry {φ ψ ξ : Prop} : (φ /\ ψ → ξ) → (φ → ψ → ξ
 <table class="ref">
   <tr><th>type</th><th>logic</th><th>Rocq</th><th>a proof is</th></tr>
   <tr><td>\(\Pi x{:}\tau.\, \sigma\)</td><td>\(\forall x{:}\tau.\, \varphi\)</td><td><code>forall x : τ, φ x</code></td><td>a function that, given any \(x\), returns a proof of \(\varphi\) for that \(x\)</td></tr>
-  <tr><td>\(\Sigma x{:}\tau.\, \sigma\)</td><td>\(\exists x{:}\tau.\, \varphi\)</td><td><code>{x : τ | φ x}</code></td><td>a pair of a witness \(x\) and a proof of \(\varphi\) for it</td></tr>
+  <tr><td>\(\Sigma x{:}\tau.\, \sigma\)</td><td>\(\exists x{:}\tau.\, \varphi\)</td><td><code>{x : τ | φ x}</code> when φ x is a proposition, <code>{x : τ &amp; σ x}</code> for any type</td><td>a pair of a witness \(x\) and a proof of \(\varphi\) for it</td></tr>
 </table>
-<p>A special case is when \(\sigma\) doesn't mention \(x\): then \(\Pi x{:}\tau.\, \sigma\) is \(\tau \to \sigma\), and \(\Sigma x{:}\tau.\, \sigma\) is \(\tau \times \sigma\). Here are their rules, side by side with the logic. Now \(\sigma\), \(\varphi\) may mention \(x\), and \(\sigma[x \mapsto e]\) is \(\sigma\) with \(e\) for \(x\). In both \(\mathrm{E}\) rules for \(\Sigma\) and \(\exists\), \(x\) must not appear in \(\rho\) or \(\psi\).</p>
+<p>A special case is when \(\sigma\) doesn't mention \(x\): then \(\Pi x{:}\tau.\, \sigma\) is \(\tau \to \sigma\), and \(\Sigma x{:}\tau.\, \sigma\) is \(\tau \times \sigma\). Here are their rules, side by side with the logic. Now \(\sigma\), \(\varphi\) may mention \(x\), and \(\sigma[x \mapsto e]\) is \(\sigma\) with \(e\) for \(x\). In \(\Sigma\mathrm{E}\), \(x\) and \(y\) must not appear in \(\rho\), and in \(\exists\mathrm{E}\), \(x\) must not appear in \(\psi\).</p>
 <div class="pieces ch-table">
 <div class="rules ch"><div class="piece">\[\frac{\Gamma, x{:}\tau \vdash e : \sigma}{\Gamma \vdash \lambda x{:}\tau.\, e : \Pi x{:}\tau.\, \sigma}\;{\scriptstyle \Pi\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{\Gamma, x{:}\tau \vdash \varphi}{\Gamma \vdash \forall x{:}\tau.\, \varphi}\]</div><div class="piece ch-name">\(\forall\mathrm{I}\)</div></div>
 <div class="rules ch"><div class="piece">\[\frac{\Gamma \vdash e_1 : \Pi x{:}\tau.\, \sigma \quad \Gamma \vdash e_2 : \tau}{\Gamma \vdash e_1\, e_2 : \sigma[x \mapsto e_2]}\;{\scriptstyle \Pi\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\Gamma \vdash \forall x{:}\tau.\, \varphi \quad \Gamma \vdash t : \tau}{\Gamma \vdash \varphi[x \mapsto t]}\]</div><div class="piece ch-name">\(\forall\mathrm{E}\)</div></div>
