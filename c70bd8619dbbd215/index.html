@@ -76,6 +76,8 @@ body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #do
 .display, .rules > div { overflow-y: hidden; }
 #document .iso-diagram { color: var(--fg); margin: .6rem auto; max-width: 30rem; }
 #document p.aside { font-size: .85em; color: var(--muted); }
+#document pre.lang { background: var(--code-bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: .6rem .9rem; margin: .6rem 0 .9rem; overflow-x: auto; font-family: var(--font-mono); font-size: .78rem; line-height: 1.45; }
+#document pre.lang code { background: none; padding: 0; font-size: inherit; white-space: pre; }
 #document .iso-diagram svg { display: block; width: 100%; height: auto; }
 /* a program, one line per piece, left aligned */
 #document .display.prog { margin: .15rem 0; padding-left: 1.5rem; }
@@ -312,6 +314,31 @@ Notation "τ₁ → τ₂" := (τ₁ -&gt; τ₂) (at level 99, τ₂ at level 2
 Notation "'λ' x .. y , e" := (fun x =&gt; .. (fun y =&gt; e) ..)
   (at level 200, x binder, y binder, right associativity).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 16 lines">Show code · 16 lines</button></div></div>
 <p>Sums appear in many languages. \(\tau_1 + \tau_2\) is <code>Either[A, B]</code> in Scala, <code>Result&lt;T, E&gt;</code> in Rust, and <code>Either a b</code> in Haskell. In each, \(\mathsf{in}_1\) and \(\mathsf{in}_2\) are <code>Left</code> and <code>Right</code> (Scala, Haskell) or <code>Ok</code> and <code>Err</code> (Rust).</p>
+<p>For example, here is Rust's <code>Result</code>, and a division that fails on zero:</p>
+<pre class="lang"><code>// Rust&#x27;s standard library
+enum Result&lt;T, E&gt; { Ok(T), Err(E) }
+
+fn div(n: i32, d: i32) -&gt; Result&lt;i32, String&gt; {
+    if d == 0 { Err(String::from(&quot;divide by zero&quot;)) } else { Ok(n / d) }
+}
+
+fn describe(r: Result&lt;i32, String&gt;) -&gt; String {
+    match r {
+        Ok(q) =&gt; format!(&quot;quotient {}&quot;, q),
+        Err(msg) =&gt; msg,
+    }
+}</code></pre>
+<p>and the same in OCaml, where the type is called <code>result</code>:</p>
+<pre class="lang"><code>(* OCaml&#x27;s standard library *)
+type (&#x27;a, &#x27;e) result = Ok of &#x27;a | Error of &#x27;e
+
+let div n d = if d = 0 then Error &quot;divide by zero&quot; else Ok (n / d)
+
+let describe r =
+  match r with
+  | Ok q -&gt; &quot;quotient &quot; ^ string_of_int q
+  | Error msg -&gt; msg</code></pre>
+<p>In the lecture's terms, <code>div</code> has type \(\mathsf{int} \to \mathsf{int} \to \mathsf{int} + \mathsf{string}\): <code>Ok</code> is \(\mathsf{in}_1\), <code>Err</code> (or <code>Error</code>) is \(\mathsf{in}_2\), and <code>describe</code>'s <code>match</code> is \(\mathsf{case}_+\).</p>
 <hr class="slide-break">
 <div class="cell is-collapsed"><textarea class="coq" id="coq-2">Check (3, true) : nat × bool.
 Check (3, true).1.
@@ -1058,23 +1085,24 @@ Definition and_curry {φ ψ ξ : Prop} : (φ /\ ψ → ξ) → (φ → ψ → ξ
 
 <h3>What about \(\forall\) and \(\exists\)?</h3>
 <p>Our logic is <em>propositional</em>: it has \(\top\), \(\bot\), \(\wedge\), \(\vee\) and \(\Rightarrow\), but no \(\forall x.\, \varphi(x)\) or \(\exists x.\, \varphi(x)\). A quantified proposition is about a value \(x\): the proposition \(\varphi(x)\) depends on \(x\). On the types side, that is a type that depends on a value, a <strong>dependent type</strong>. The simply typed λ-calculus has none: its types never mention programs.</p>
-<p>Rocq is a dependent type theory, and has both:</p>
+<p>Rocq is a dependent type theory, and has both. On the types side, \(\forall\) is the <strong>dependent function type</strong> \(\Pi\), and \(\exists\) is the <strong>dependent pair type</strong> \(\Sigma\):</p>
 <table class="ref">
-  <tr><th>logic</th><th>Rocq</th><th>a proof is</th><th>special case</th></tr>
-  <tr><td>\(\forall x{:}\tau.\, \varphi(x)\)</td><td><code>forall x : τ, φ x</code></td><td>a function that, given any \(x\), returns a proof of \(\varphi(x)\)</td><td>\(\tau_1 \to \tau_2\)</td></tr>
-  <tr><td>\(\exists x{:}\tau.\, \varphi(x)\)</td><td><code>{x : τ | φ x}</code></td><td>a pair of a witness \(x\) and a proof of \(\varphi(x)\)</td><td>\(\tau_1 \times \tau_2\)</td></tr>
+  <tr><th>type</th><th>logic</th><th>Rocq</th><th>a proof is</th></tr>
+  <tr><td>\(\Pi x{:}\tau.\, \sigma\)</td><td>\(\forall x{:}\tau.\, \varphi\)</td><td><code>forall x : τ, φ x</code></td><td>a function that, given any \(x\), returns a proof of \(\varphi\) for that \(x\)</td></tr>
+  <tr><td>\(\Sigma x{:}\tau.\, \sigma\)</td><td>\(\exists x{:}\tau.\, \varphi\)</td><td><code>{x : τ | φ x}</code></td><td>a pair of a witness \(x\) and a proof of \(\varphi\) for it</td></tr>
 </table>
-<p>Here are their rules. Now \(\varphi\) may mention \(x\), and \(\varphi[x \mapsto e]\) is \(\varphi\) with \(e\) for \(x\):</p>
-<div class="rules">
-  <div>\[\frac{\Gamma, x{:}\tau \vdash e : \varphi}{\Gamma \vdash \lambda x{:}\tau.\, e : \forall x{:}\tau.\, \varphi}\;{\scriptstyle \forall\mathrm{I}}\]</div>
-  <div>\[\frac{\Gamma \vdash e_1 : \forall x{:}\tau.\, \varphi \quad \Gamma \vdash e_2 : \tau}{\Gamma \vdash e_1\, e_2 : \varphi[x \mapsto e_2]}\;{\scriptstyle \forall\mathrm{E}}\]</div>
+<p>A special case is when \(\sigma\) doesn't mention \(x\): then \(\Pi x{:}\tau.\, \sigma\) is \(\tau \to \sigma\), and \(\Sigma x{:}\tau.\, \sigma\) is \(\tau \times \sigma\). Here are their rules, side by side with the logic. Now \(\sigma\), \(\varphi\) may mention \(x\), and \(\sigma[x \mapsto e]\) is \(\sigma\) with \(e\) for \(x\). In both \(\mathrm{E}\) rules for \(\Sigma\) and \(\exists\), \(x\) must not appear in \(\rho\) or \(\psi\).</p>
+<div class="pieces ch-table">
+<div class="rules ch"><div class="piece">\[\frac{\Gamma, x{:}\tau \vdash e : \sigma}{\Gamma \vdash \lambda x{:}\tau.\, e : \Pi x{:}\tau.\, \sigma}\;{\scriptstyle \Pi\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{\Gamma, x{:}\tau \vdash \varphi}{\Gamma \vdash \forall x{:}\tau.\, \varphi}\]</div><div class="piece ch-name">\(\forall\mathrm{I}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\Gamma \vdash e_1 : \Pi x{:}\tau.\, \sigma \quad \Gamma \vdash e_2 : \tau}{\Gamma \vdash e_1\, e_2 : \sigma[x \mapsto e_2]}\;{\scriptstyle \Pi\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\Gamma \vdash \forall x{:}\tau.\, \varphi \quad \Gamma \vdash t : \tau}{\Gamma \vdash \varphi[x \mapsto t]}\]</div><div class="piece ch-name">\(\forall\mathrm{E}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\Gamma \vdash e_1 : \tau \quad \Gamma \vdash e_2 : \sigma[x \mapsto e_1]}{\Gamma \vdash (e_1, e_2) : \Sigma x{:}\tau.\, \sigma}\;{\scriptstyle \Sigma\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{\Gamma \vdash t : \tau \quad \Gamma \vdash \varphi[x \mapsto t]}{\Gamma \vdash \exists x{:}\tau.\, \varphi}\]</div><div class="piece ch-name">\(\exists\mathrm{I}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\Gamma \vdash e : \Sigma x{:}\tau.\, \sigma \quad \Gamma, x{:}\tau, y{:}\sigma \vdash e' : \rho}{\Gamma \vdash \mathsf{case}\ e\ \{(x, y) \to e'\} : \rho}\;{\scriptstyle \Sigma\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\Gamma \vdash \exists x{:}\tau.\, \varphi \quad \Gamma, x{:}\tau, \varphi \vdash \psi}{\Gamma \vdash \psi}\]</div><div class="piece ch-name">\(\exists\mathrm{E}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\Gamma \vdash e : \Sigma x{:}\tau.\, \sigma}{\Gamma \vdash e.1 : \tau}\;{\scriptstyle \Sigma\mathrm{E}_1}\]</div><div class="piece">\[\leadsto\quad \text{no counterpart}\]</div><div class="ch-name"></div></div>
+<div class="rules ch"><div class="piece">\[\frac{\Gamma \vdash e : \Sigma x{:}\tau.\, \sigma}{\Gamma \vdash e.2 : \sigma[x \mapsto e.1]}\;{\scriptstyle \Sigma\mathrm{E}_2}\]</div><div class="piece">\[\leadsto\quad \text{no counterpart}\]</div><div class="ch-name"></div></div>
+<div class="rules ch ch-labels"><div class="piece ch-label">DTT<span>dependent type theory</span></div><div class="piece ch-label ipl">Predicate logic<span>intuitionistic, with ∀ and ∃</span></div></div>
 </div>
-<div class="rules">
-  <div>\[\frac{\Gamma \vdash e_1 : \tau \quad \Gamma \vdash e_2 : \varphi[x \mapsto e_1]}{\Gamma \vdash (e_1, e_2) : \exists x{:}\tau.\, \varphi}\;{\scriptstyle \exists\mathrm{I}}\]</div>
-  <div>\[\frac{\Gamma \vdash e : \exists x{:}\tau.\, \varphi \quad \Gamma, x{:}\tau, y{:}\varphi \vdash e' : \psi}{\Gamma \vdash \mathsf{case}\ e\ \{(x, y) \to e'\} : \psi}\;{\scriptstyle \exists\mathrm{E}}\ \ (x \text{ not in } \psi)\]</div>
-</div>
-<p>A proof of \(\forall x{:}\tau.\, \varphi\) is a function that works for every \(x\), and using it at \(e_2\) proves \(\varphi\) for that \(e_2\). A proof of \(\exists x{:}\tau.\, \varphi\) is a witness \(e_1\) with a proof that \(\varphi\) holds of it, and using it means taking the pair apart, without knowing which witness it was.</p>
-<p>The result type of a dependent function can mention its argument; \(\tau_1 \to \tau_2\) is the case where it doesn't. The type of the second part of a dependent pair can mention the first; \(\tau_1 \times \tau_2\) is the case where it doesn't. The type of values from Discussion 6, <code>{ e : exp | value e }</code>, is a dependent pair: an expression together with a proof that it is a value. (At <code>Prop</code>, Rocq also writes \(\exists\) as <code>exists x, φ x</code>.)</p>
+<p>A proof of \(\forall x{:}\tau.\, \varphi\) is a function that works for every \(x\), and using it at \(t\) proves \(\varphi\) for that \(t\). A proof of \(\exists x{:}\tau.\, \varphi\) is a witness with a proof that \(\varphi\) holds of it, and using it means taking the pair apart, without knowing which witness it was. \(\Sigma\) can do more: its projections read the witness back out, \(e.1\), and \(\exists\) has no rule for that.</p>
+<p>The type of values from Discussion 6, <code>{ e : exp | value e }</code>, is a \(\Sigma\) type: an expression together with a proof that it is a value. At <code>Prop</code>, Rocq writes \(\exists\) as <code>exists x, φ x</code>, which has only the case rule.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-16">Definition refl_all : forall n : nat, n = n := λ n, eq_refl.
 
 Check (forall _ : nat, bool).
