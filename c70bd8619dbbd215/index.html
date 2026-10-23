@@ -74,6 +74,12 @@ body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #do
 .topbar .switches { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
 /* displayed math scrolls sideways if it must, never up and down */
 .display, .rules > div { overflow-y: hidden; }
+#document .iso-diagram { color: var(--fg); margin: .6rem auto; max-width: 30rem; }
+#document .iso-diagram svg { display: block; width: 100%; height: auto; }
+/* a program, one line per piece, left aligned */
+#document .display.prog { margin: .15rem 0; padding-left: 1.5rem; }
+#document .display.prog + :not(.display.prog) { margin-top: .9rem; }
+#document .display.prog mjx-container[display="true"] { text-align: left !important; margin: .3em 0 !important; }
 .rules.ch { margin: .2rem 0; }
 /* folded code cells: the first two lines show, faded out, until opened */
 .cell { margin: .8rem 0 1.2rem; }
@@ -161,6 +167,7 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 
 /* slide mode: one slide of the page at a time, at projector size */
 #document hr.slide-break { display: none; }
+#document.presenting .off-step { visibility: hidden; }
 #document .slide-only { display: none; }
 #document.presenting .off-slide { display: none !important; }
 #document.presenting { font-size: 1.4rem; line-height: 1.5; padding-block: 1rem 5rem; }
@@ -171,6 +178,7 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 #document.presenting h3 { font-size: 1.2em; margin-top: .4rem; }
 #document.presenting .topbar button { font-size: .8rem; }
 #document.presenting table.ref { font-size: .85em; }
+#document.presenting details .display, #document.presenting details .rules { font-size: .72em; }
 #document.presenting .slide-only { display: block; }
 #document.presenting #slide-context { font-family: var(--font-display); font-weight: 650; font-size: .8rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 .4rem; }
 #document.presenting #slide-context:empty { display: none; }
@@ -243,8 +251,8 @@ v &::= \lambda x{:}\tau.\, e \mid () \mid (v_1, v_2) \mid \mathsf{in}_1\ v \mid 
 <p>Rocq already has the lecture's type formers. With a few notations, we can also write them, and their programs, in the lecture's syntax:</p>
 <table class="ref">
   <tr><th>lecture</th><th>Rocq</th></tr>
-  <tr><td>\(\tau_1 \times \tau_2\)</td><td><code>A * B</code></td></tr>
-  <tr><td>\(\tau_1 + \tau_2\)</td><td><code>A + B</code></td></tr>
+  <tr><td>\(\tau_1 \times \tau_2\)</td><td><code>τ₁ * τ₂</code></td></tr>
+  <tr><td>\(\tau_1 + \tau_2\)</td><td><code>τ₁ + τ₂</code></td></tr>
   <tr><td>\(\mathbf{1}\)</td><td><code>unit</code></td></tr>
   <tr><td>\(\mathbf{0}\)</td><td><code>Empty_set</code></td></tr>
   <tr><td>\(()\)</td><td><code>tt</code></td></tr>
@@ -255,7 +263,7 @@ v &::= \lambda x{:}\tau.\, e \mid () \mid (v_1, v_2) \mid \mathsf{in}_1\ v \mid 
 </table>
 <hr class="slide-break">
 <p>In types, <code>1</code> and <code>0</code> now mean <code>unit</code> and <code>Empty_set</code>; in programs they are still the numbers 1 and 0.</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-1">Notation "A × B" := (prod A B) (at level 40, left associativity) : type_scope.
+<div class="cell is-collapsed"><textarea class="coq" id="coq-1">Notation "τ₁ × τ₂" := (prod τ₁ τ₂) (at level 40, left associativity) : type_scope.
 Notation "1" := unit : type_scope.
 Notation "0" := Empty_set : type_scope.
 Notation "()" := tt.
@@ -268,7 +276,7 @@ Notation "'case₊' e '{' 'in₁' x₁ → e₁ | 'in₂' x₂ → e₂ '}'" :=
   (match e with inl x₁ =&gt; e₁ | inr x₂ =&gt; e₂ end)
   (at level 200, e at level 9, x₁ name, x₂ name,
    format "'case₊'  e  '{' 'in₁'  x₁  →  e₁  |  'in₂'  x₂  →  e₂ '}'").
-Notation "A → B" := (A -&gt; B) (at level 99, B at level 200, right associativity) : type_scope.
+Notation "τ₁ → τ₂" := (τ₁ -&gt; τ₂) (at level 99, τ₂ at level 200, right associativity) : type_scope.
 Notation "'λ' x .. y , e" := (fun x =&gt; .. (fun y =&gt; e) ..)
   (at level 200, x binder, y binder, right associativity).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 16 lines">Show code · 16 lines</button></div></div>
 <p>Sums appear in many languages. \(\tau_1 + \tau_2\) is <code>Either[A, B]</code> in Scala, <code>Result&lt;T, E&gt;</code> in Rust, and <code>Either a b</code> in Haskell. In each, \(\mathsf{in}_1\) and \(\mathsf{in}_2\) are <code>Left</code> and <code>Right</code> (Scala, Haskell) or <code>Ok</code> and <code>Err</code> (Rust).</p>
@@ -285,7 +293,7 @@ Definition describe (s : nat + bool) : nat :=
 Example describe_ex : describe (in₂ true) = 1.
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 11 lines">Show code · 11 lines</button></div></div>
 <p>\(\mathbf{0}\) has no introduction form, so it has no values, and a case on it has no branches: this is the lecture's \(\mathsf{case}_{\mathbf{0}}\ e\ \{\}\). From an impossible value, you can return anything.</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-3">Definition absurd {A : Type} (z : 0) : A :=
+<div class="cell is-collapsed"><textarea class="coq" id="coq-3">Definition absurd {τ : Type} (z : 0) : τ :=
   case₀ z {}.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
 
 <hr class="slide-break">
@@ -302,30 +310,87 @@ Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run
 </details>
 
 <h2>2. Isomorphisms</h2>
-<p>Two types are <strong>isomorphic</strong>, \(\tau_1 \cong \tau_2\), when there are programs \(f : \tau_1 \to \tau_2\) and \(g : \tau_2 \to \tau_1\) that undo each other:</p>
+<p>Here are some equations from grade school, true for all numbers \(n\), \(m\) and \(k\):</p>
 <div class="display">\[
-g\,(f\, x) = x \text{ for every } x : \tau_1, \qquad f\,(g\, y) = y \text{ for every } y : \tau_2
+\begin{gathered}
+n \cdot 1 = n \qquad n + 0 = n \qquad n \cdot 0 = 0 \\
+n \cdot m = m \cdot n \qquad 2 = 1 + 1 \\
+n\,(m + k) = n m + n k \\
+k^{n \cdot m} = (k^m)^n
+\end{gathered}
 \]</div>
+<p>They work for types too. Read \(\cdot\) as \(\times\), \(+\) as \(+\), \(k^n\) as \(n \to k\) (a function picks one of \(k\) outputs for each of \(n\) inputs), and \(=\) as \(\cong\):</p>
+<div class="display">\[
+\begin{gathered}
+\tau \times \mathbf{1} \cong \tau \qquad \tau + \mathbf{0} \cong \tau \qquad \tau \times \mathbf{0} \cong \mathbf{0} \\
+\tau_1 \times \tau_2 \cong \tau_2 \times \tau_1 \qquad \mathsf{bool} \cong \mathbf{1} + \mathbf{1} \\
+\tau_1 \times (\tau_2 + \tau_3) \cong \tau_1 \times \tau_2 + \tau_1 \times \tau_3 \\
+(\tau_1 \times \tau_2 \to \tau_3) \cong (\tau_1 \to \tau_2 \to \tau_3)
+\end{gathered}
+\]</div>
+<hr class="slide-break">
+<p>Two types are <strong>isomorphic</strong>, \(\tau_1 \cong \tau_2\), when there are programs \(f : \tau_1 \to \tau_2\) and \(g : \tau_2 \to \tau_1\) that undo each other, in both orders:</p>
+<div class="display">\[
+\begin{aligned}
+&\text{retraction:} && \forall x{:}\tau_1.\; g\,(f\, x) = x && \text{(\(g\) undoes \(f\))} \\
+&\text{section:} && \forall y{:}\tau_2.\; f\,(g\, y) = y && \text{(\(f\) undoes \(g\))}
+\end{aligned}
+\]</div>
+<hr class="slide-break">
+<p>We say \(g\) is a <strong>retraction</strong> of \(f\) when the first holds, and a <strong>section</strong> of \(f\) when the second holds. As a picture, going around either loop does nothing:</p>
+<div class="iso-diagram" role="img" aria-label="Two types, tau one and tau two, with f from tau one to tau two, g back, and a loop on each labeled with the identity">
+<svg viewBox="0 0 560 190" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="iso-head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#iso-head)">
+    <path d="M206,82 Q280,36 354,82"/>
+    <path d="M354,112 Q280,158 206,112"/>
+    <path d="M168,84 C110,40 110,154 168,110"/>
+    <path d="M392,110 C450,154 450,40 392,84"/>
+  </g>
+  <g fill="currentColor" font-family="Spectral, Georgia, serif" font-style="italic" font-size="22" text-anchor="middle">
+    <text x="186" y="104">τ<tspan font-size="15" dy="5">1</tspan></text>
+    <text x="374" y="104">τ<tspan font-size="15" dy="5">2</tspan></text>
+    <text x="280" y="44">f</text>
+    <text x="280" y="164">g</text>
+    <text x="68" y="104" text-anchor="middle">g ∘ f = id</text>
+    <text x="492" y="104" text-anchor="middle">f ∘ g = id</text>
+  </g>
+</svg>
+</div>
 <p>Then \(\tau_1\) and \(\tau_2\) have the same values, with different names.</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-4">Definition iso {A B : Type} (f : A → B) (g : B → A) : Prop :=
-  (forall a, g (f a) = a) /\ (forall b, f (g b) = b).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-4">Definition retraction {τ₁ τ₂ : Type} (f : τ₁ → τ₂) (g : τ₂ → τ₁) : Prop :=
+  forall a : τ₁, g (f a) = a.
+Definition section {τ₁ τ₂ : Type} (f : τ₁ → τ₂) (g : τ₂ → τ₁) : Prop :=
+  forall b : τ₂, f (g b) = b.
+Definition iso {τ₁ τ₂ : Type} (f : τ₁ → τ₂) (g : τ₂ → τ₁) : Prop :=
+  retraction f g /\ section f g.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 6 lines">Show code · 6 lines</button></div></div>
 <hr class="slide-break">
 <p>Each isomorphism below is a pair of programs \(f\) and \(g\) in the lecture's language. Try writing each program from its type before reading it. In Rocq, each pair sits in a module of its own, so every one can be called <code>f</code> and <code>g</code>; from outside, they are <code>ProdUnit.f</code>, <code>Dist.g</code>, and so on. In Rocq, the proof that the two programs undo each other always has the same shape: split into the two directions; in each, take the value apart, one case per way it can be built; then each case computes, and <code>reflexivity</code> finishes it.</p>
 
 <h3>\(\tau \times \mathbf{1} \cong \tau\)</h3>
 <p>Like \(n \cdot 1 = n\). The second part of the pair can only be \(()\), so it carries no information.</p>
-<div class="display">\[
-\begin{aligned}
-f &: \tau \times \mathbf{1} \to \tau & f &= \lambda p{:}\tau \times \mathbf{1}.\, p.1 \\
-g &: \tau \to \tau \times \mathbf{1} & g &= \lambda x{:}\tau.\, (x, ())
-\end{aligned}
+<div class="display prog">\[
+f : \tau \times \mathbf{1} \to \tau
+\]</div>
+<div class="display prog">\[
+f = \lambda p{:}\tau \times \mathbf{1}.\, p.1
+\]</div>
+<div class="display prog">\[
+g : \tau \to \tau \times \mathbf{1}
+\]</div>
+<div class="display prog">\[
+g = \lambda x{:}\tau.\, (x, ())
 \]</div>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-5">Module ProdUnit.
 Section ProdUnit.
-Context {A : Type}.
+Context {τ : Type}.
 
-Definition f : A × 1 → A := λ p, p.1.
-Definition g : A → A × 1 := λ a, (a, ()).
+Definition f : τ × 1 → τ := λ p, p.1.
+Definition g : τ → τ × 1 := λ a, (a, ()).
 
 Lemma prod_unit : iso f g.
 Proof.
@@ -341,18 +406,24 @@ End ProdUnit.</textarea><div class="cell-bar"><button class="cell-run" type="but
 
 <h3>\(\tau + \mathbf{0} \cong \tau\)</h3>
 <p>Like \(n + 0 = n\). The \(\mathsf{in}_2\) side would hold a value of \(\mathbf{0}\), which can't exist, so only \(\mathsf{in}_1\) ever happens.</p>
-<div class="display">\[
-\begin{aligned}
-f &: \tau + \mathbf{0} \to \tau & f &= \lambda s{:}\tau + \mathbf{0}.\, \mathsf{case}_+\ s\ \{\mathsf{in}_1\ x \to x \mid \mathsf{in}_2\ z \to \mathsf{case}_{\mathbf{0}}\ z\ \{\}\} \\
-g &: \tau \to \tau + \mathbf{0} & g &= \lambda x{:}\tau.\, \mathsf{in}_1\ x
-\end{aligned}
+<div class="display prog">\[
+f : \tau + \mathbf{0} \to \tau
+\]</div>
+<div class="display prog">\[
+f = \lambda s{:}\tau + \mathbf{0}.\, \mathsf{case}_+\ s\ \{\mathsf{in}_1\ x \to x \mid \mathsf{in}_2\ z \to \mathsf{case}_{\mathbf{0}}\ z\ \{\}\}
+\]</div>
+<div class="display prog">\[
+g : \tau \to \tau + \mathbf{0}
+\]</div>
+<div class="display prog">\[
+g = \lambda x{:}\tau.\, \mathsf{in}_1\ x
 \]</div>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-6">Module SumEmpty.
 Section SumEmpty.
-Context {A : Type}.
+Context {τ : Type}.
 
-Definition f : A + 0 → A := λ s, case₊ s {in₁ a → a | in₂ z → case₀ z {}}.
-Definition g : A → A + 0 := λ a, in₁ a.
+Definition f : τ + 0 → τ := λ s, case₊ s {in₁ a → a | in₂ z → case₀ z {}}.
+Definition g : τ → τ + 0 := λ a, in₁ a.
 
 Lemma sum_empty : iso f g.
 Proof.
@@ -370,18 +441,24 @@ End SumEmpty.</textarea><div class="cell-bar"><button class="cell-run" type="but
 
 <h3>\(\tau \times \mathbf{0} \cong \mathbf{0}\)</h3>
 <p>Like \(n \cdot 0 = 0\). A pair would need a value of \(\mathbf{0}\), so there are no such pairs, and the proofs have no cases.</p>
-<div class="display">\[
-\begin{aligned}
-f &: \tau \times \mathbf{0} \to \mathbf{0} & f &= \lambda p{:}\tau \times \mathbf{0}.\, p.2 \\
-g &: \mathbf{0} \to \tau \times \mathbf{0} & g &= \lambda z{:}\mathbf{0}.\, \mathsf{case}_{\mathbf{0}}\ z\ \{\}
-\end{aligned}
+<div class="display prog">\[
+f : \tau \times \mathbf{0} \to \mathbf{0}
+\]</div>
+<div class="display prog">\[
+f = \lambda p{:}\tau \times \mathbf{0}.\, p.2
+\]</div>
+<div class="display prog">\[
+g : \mathbf{0} \to \tau \times \mathbf{0}
+\]</div>
+<div class="display prog">\[
+g = \lambda z{:}\mathbf{0}.\, \mathsf{case}_{\mathbf{0}}\ z\ \{\}
 \]</div>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-7">Module ProdEmpty.
 Section ProdEmpty.
-Context {A : Type}.
+Context {τ : Type}.
 
-Definition f : A × 0 → 0 := λ p, p.2.
-Definition g : 0 → A × 0 := λ z, case₀ z {}.
+Definition f : τ × 0 → 0 := λ p, p.2.
+Definition g : 0 → τ × 0 := λ z, case₀ z {}.
 
 Lemma prod_empty : iso f g.
 Proof.
@@ -397,18 +474,24 @@ End ProdEmpty.</textarea><div class="cell-bar"><button class="cell-run" type="bu
 
 <h3>\(\tau_1 \times \tau_2 \cong \tau_2 \times \tau_1\)</h3>
 <p>Like \(n \cdot m = m \cdot n\). Both programs swap the pair, and swapping twice gives it back.</p>
-<div class="display">\[
-\begin{aligned}
-f &: \tau_1 \times \tau_2 \to \tau_2 \times \tau_1 & f &= \lambda p{:}\tau_1 \times \tau_2.\, (p.2, p.1) \\
-g &: \tau_2 \times \tau_1 \to \tau_1 \times \tau_2 & g &= \lambda p{:}\tau_2 \times \tau_1.\, (p.2, p.1)
-\end{aligned}
+<div class="display prog">\[
+f : \tau_1 \times \tau_2 \to \tau_2 \times \tau_1
+\]</div>
+<div class="display prog">\[
+f = \lambda p{:}\tau_1 \times \tau_2.\, (p.2, p.1)
+\]</div>
+<div class="display prog">\[
+g : \tau_2 \times \tau_1 \to \tau_1 \times \tau_2
+\]</div>
+<div class="display prog">\[
+g = \lambda p{:}\tau_2 \times \tau_1.\, (p.2, p.1)
 \]</div>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-8">Module ProdComm.
 Section ProdComm.
-Context {A B : Type}.
+Context {τ₁ τ₂ : Type}.
 
-Definition f : A × B → B × A := λ p, (p.2, p.1).
-Definition g : B × A → A × B := λ p, (p.2, p.1).
+Definition f : τ₁ × τ₂ → τ₂ × τ₁ := λ p, (p.2, p.1).
+Definition g : τ₂ × τ₁ → τ₁ × τ₂ := λ p, (p.2, p.1).
 
 Lemma prod_comm : iso f g.
 Proof.
@@ -422,23 +505,33 @@ End ProdComm.</textarea><div class="cell-bar"><button class="cell-run" type="but
 
 <h3>\(\tau_1 \times (\tau_2 + \tau_3) \cong \tau_1 \times \tau_2 + \tau_1 \times \tau_3\)</h3>
 <p>Like \(n(m + k) = nm + nk\). A pair whose second part is "a \(\tau_2\) or a \(\tau_3\)" is the same as "a pair with a \(\tau_2\), or a pair with a \(\tau_3\)".</p>
-<div class="display">\[
+<div class="display prog">\[
+f : \tau_1 \times (\tau_2 + \tau_3) \to \tau_1 \times \tau_2 + \tau_1 \times \tau_3
+\]</div>
+<div class="display prog">\[
 \begin{aligned}
-f &: \tau_1 \times (\tau_2 + \tau_3) \to \tau_1 \times \tau_2 + \tau_1 \times \tau_3 \\
-f &= \lambda p{:}\tau_1 \times (\tau_2 + \tau_3).\, \mathsf{case}_+\ p.2\ \{\mathsf{in}_1\ y \to \mathsf{in}_1\ (p.1, y) \\
-  &\qquad\qquad \mid \mathsf{in}_2\ z \to \mathsf{in}_2\ (p.1, z)\} \\[6pt]
-g &: \tau_1 \times \tau_2 + \tau_1 \times \tau_3 \to \tau_1 \times (\tau_2 + \tau_3) \\
-g &= \lambda s{:}\tau_1 \times \tau_2 + \tau_1 \times \tau_3.\, \mathsf{case}_+\ s\ \{\mathsf{in}_1\ q \to (q.1, \mathsf{in}_1\ q.2) \\
-  &\qquad\qquad \mid \mathsf{in}_2\ q \to (q.1, \mathsf{in}_2\ q.2)\}
+f &= \lambda p{:}\tau_1 \times (\tau_2 + \tau_3).\\
+  &\qquad \mathsf{case}_+\ p.2\ \{\mathsf{in}_1\ y \to \mathsf{in}_1\ (p.1, y) \\
+  &\qquad\qquad\quad\; \mid \mathsf{in}_2\ z \to \mathsf{in}_2\ (p.1, z)\}
+\end{aligned}
+\]</div>
+<div class="display prog">\[
+g : \tau_1 \times \tau_2 + \tau_1 \times \tau_3 \to \tau_1 \times (\tau_2 + \tau_3)
+\]</div>
+<div class="display prog">\[
+\begin{aligned}
+g &= \lambda s{:}\tau_1 \times \tau_2 + \tau_1 \times \tau_3.\\
+  &\qquad \mathsf{case}_+\ s\ \{\mathsf{in}_1\ q \to (q.1, \mathsf{in}_1\ q.2) \\
+  &\qquad\qquad\quad \mid \mathsf{in}_2\ q \to (q.1, \mathsf{in}_2\ q.2)\}
 \end{aligned}
 \]</div>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-9">Module Dist.
 Section Dist.
-Context {A B C : Type}.
+Context {τ₁ τ₂ τ₃ : Type}.
 
-Definition f : A × (B + C) → A × B + A × C :=
+Definition f : τ₁ × (τ₂ + τ₃) → τ₁ × τ₂ + τ₁ × τ₃ :=
   λ p, case₊ p.2 {in₁ b → in₁ (p.1, b) | in₂ c → in₂ (p.1, c)}.
-Definition g : A × B + A × C → A × (B + C) :=
+Definition g : τ₁ × τ₂ + τ₁ × τ₃ → τ₁ × (τ₂ + τ₃) :=
   λ s, case₊ s {in₁ p → (p.1, in₁ p.2) | in₂ p → (p.1, in₂ p.2)}.
 
 Lemma dist : iso f g.
@@ -455,21 +548,25 @@ End Dist.</textarea><div class="cell-bar"><button class="cell-run" type="button"
 
 <h3>\((\tau_1 \times \tau_2 \to \tau_3) \cong (\tau_1 \to \tau_2 \to \tau_3)\)</h3>
 <p>Like \(c^{a \cdot b} = (c^b)^a\). A function of a pair is the same as a function that takes its two arguments one at a time. \(f\) is usually called \(\mathsf{curry}\), and \(g\) \(\mathsf{uncurry}\).</p>
-<div class="display">\[
-\begin{aligned}
-f &: (\tau_1 \times \tau_2 \to \tau_3) \to (\tau_1 \to \tau_2 \to \tau_3) \\
-f &= \lambda h{:}\tau_1 \times \tau_2 \to \tau_3.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) \\[6pt]
-g &: (\tau_1 \to \tau_2 \to \tau_3) \to (\tau_1 \times \tau_2 \to \tau_3) \\
-g &= \lambda k{:}\tau_1 \to \tau_2 \to \tau_3.\, \lambda p{:}\tau_1 \times \tau_2.\, k\ p.1\ p.2
-\end{aligned}
+<div class="display prog">\[
+f : (\tau_1 \times \tau_2 \to \tau_3) \to (\tau_1 \to \tau_2 \to \tau_3)
+\]</div>
+<div class="display prog">\[
+f = \lambda h{:}\tau_1 \times \tau_2 \to \tau_3.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y)
+\]</div>
+<div class="display prog">\[
+g : (\tau_1 \to \tau_2 \to \tau_3) \to (\tau_1 \times \tau_2 \to \tau_3)
+\]</div>
+<div class="display prog">\[
+g = \lambda k{:}\tau_1 \to \tau_2 \to \tau_3.\, \lambda p{:}\tau_1 \times \tau_2.\, k\ p.1\ p.2
 \]</div>
 <p>Here the values are functions, and two functions are equal when they agree on every input. Rocq can't prove that, so the code assumes it, as <code>funext</code>.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-10">Module Curry.
 Section Curry.
-Context {A B C : Type}.
+Context {τ₁ τ₂ τ₃ : Type}.
 
-Definition f : (A × B → C) → (A → B → C) := λ h, λ a, λ b, h (a, b).
-Definition g : (A → B → C) → (A × B → C) := λ k, λ p, k p.1 p.2.
+Definition f : (τ₁ × τ₂ → τ₃) → (τ₁ → τ₂ → τ₃) := λ h, λ a, λ b, h (a, b).
+Definition g : (τ₁ → τ₂ → τ₃) → (τ₁ × τ₂ → τ₃) := λ k, λ p, k p.1 p.2.
 
 Axiom funext : forall {X Y : Type} (h k : X → Y),
   (forall x, h x = k x) → h = k.
@@ -488,11 +585,17 @@ End Curry.</textarea><div class="cell-bar"><button class="cell-run" type="button
 
 <h3>\(\mathsf{bool} \cong \mathbf{1} + \mathbf{1}\)</h3>
 <p>\(\mathsf{true}\) is \(\mathsf{in}_1\ ()\), \(\mathsf{false}\) is \(\mathsf{in}_2\ ()\), and \(\mathsf{if}\) is a case. So the lecture's language doesn't need \(\mathsf{bool}\) built in: sums give it to us.</p>
-<div class="display">\[
-\begin{aligned}
-f &: \mathsf{bool} \to \mathbf{1} + \mathbf{1} & f &= \lambda b{:}\mathsf{bool}.\, \mathsf{if}\ b\ \mathsf{then}\ \mathsf{in}_1\ ()\ \mathsf{else}\ \mathsf{in}_2\ () \\
-g &: \mathbf{1} + \mathbf{1} \to \mathsf{bool} & g &= \lambda s{:}\mathbf{1} + \mathbf{1}.\, \mathsf{case}_+\ s\ \{\mathsf{in}_1\ x \to \mathsf{true} \mid \mathsf{in}_2\ y \to \mathsf{false}\}
-\end{aligned}
+<div class="display prog">\[
+f : \mathsf{bool} \to \mathbf{1} + \mathbf{1}
+\]</div>
+<div class="display prog">\[
+f = \lambda b{:}\mathsf{bool}.\, \mathsf{if}\ b\ \mathsf{then}\ \mathsf{in}_1\ ()\ \mathsf{else}\ \mathsf{in}_2\ ()
+\]</div>
+<div class="display prog">\[
+g : \mathbf{1} + \mathbf{1} \to \mathsf{bool}
+\]</div>
+<div class="display prog">\[
+g = \lambda s{:}\mathbf{1} + \mathbf{1}.\, \mathsf{case}_+\ s\ \{\mathsf{in}_1\ x \to \mathsf{true} \mid \mathsf{in}_2\ y \to \mathsf{false}\}
 \]</div>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-11">Module BoolSum.
 
@@ -513,14 +616,14 @@ End BoolSum.</textarea><div class="cell-bar"><button class="cell-run" type="butt
 <p>\(\mathsf{None}\) is \(\mathsf{in}_1\ ()\), and \(\mathsf{Some}\ x\) is \(\mathsf{in}_2\ x\): "nothing, or a \(\tau\)". Like \(\mathsf{bool}\), \(\mathsf{option}\) is Rocq's, not the lecture's, so it is taken apart with a Rocq <code>match</code>.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-12">Module OptionSum.
 Section OptionSum.
-Context {A : Type}.
+Context {τ : Type}.
 
-Definition f : option A → 1 + A :=
+Definition f : option τ → 1 + τ :=
   λ o, match o with
        | None =&gt; in₁ ()
        | Some a =&gt; in₂ a
        end.
-Definition g : 1 + A → option A := λ s, case₊ s {in₁ u → None | in₂ a → Some a}.
+Definition g : 1 + τ → option τ := λ s, case₊ s {in₁ u → None | in₂ a → Some a}.
 
 Lemma option_sum : iso f g.
 Proof.
@@ -532,8 +635,8 @@ Qed.
 End OptionSum.
 End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 20 lines">Show code · 20 lines</button></div></div>
 
-<h2>3. Types as propositions</h2>
-<p>Read a type as a proposition, and a program of that type as a proof of it. This is the <strong>Curry–Howard correspondence</strong>, between the simply typed λ-calculus and intuitionistic propositional logic:</p>
+<h2>3. The Curry–Howard correspondence</h2>
+<p>Read a type as a proposition, and a program of that type as a proof of it: <em>types as propositions</em>. This is the <strong>Curry–Howard correspondence</strong>, between the simply typed λ-calculus and intuitionistic propositional logic:</p>
 <table class="ref">
   <tr><th>type</th><th>proposition</th><th>Rocq</th></tr>
   <tr><td>\(\mathbf{1}\)</td><td>\(\top\)</td><td><code>True</code></td></tr>
@@ -593,7 +696,7 @@ End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="bu
 \]</div>
 <p>This is exactly \(f\), that is \(\mathsf{curry}\), from Part 2.</p>
 <hr class="slide-break">
-<p>Rocq has both columns, <code>A × B</code> at <code>Type</code> and <code>φ /\ ψ</code> at <code>Prop</code>, and the programs are the same. Here is the swap program <code>ProdComm.f</code> again, and then the same function as a proof that \(\wedge\) is commutative: <code>conj</code> is the pair for <code>/\</code>.</p>
+<p>Rocq has both columns, <code>τ₁ × τ₂</code> at <code>Type</code> and <code>φ /\ ψ</code> at <code>Prop</code>, and the programs are the same. Here is the swap program <code>ProdComm.f</code> again, and then the same function as a proof that \(\wedge\) is commutative: <code>conj</code> is the pair for <code>/\</code>.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-13">Check ProdComm.f : nat × bool → bool × nat.
 
 Definition and_swap {φ ψ : Prop} (h : φ /\ ψ) : ψ /\ φ :=
@@ -657,10 +760,10 @@ Definition and_curry {φ ψ ξ : Prop} : (φ /\ ψ → ξ) → (φ → ψ → ξ
 <p>Rocq is a dependent type theory, and has both:</p>
 <table class="ref">
   <tr><th>logic</th><th>Rocq</th><th>a proof is</th><th>special case</th></tr>
-  <tr><td>\(\forall x{:}A.\, \varphi(x)\)</td><td><code>forall x : A, P x</code></td><td>a function that, given any \(x\), returns a proof of \(\varphi(x)\)</td><td>\(\tau_1 \to \tau_2\)</td></tr>
-  <tr><td>\(\exists x{:}A.\, \varphi(x)\)</td><td><code>{x : A | P x}</code></td><td>a pair of a witness \(x\) and a proof of \(\varphi(x)\)</td><td>\(\tau_1 \times \tau_2\)</td></tr>
+  <tr><td>\(\forall x{:}\tau.\, \varphi(x)\)</td><td><code>forall x : τ, φ x</code></td><td>a function that, given any \(x\), returns a proof of \(\varphi(x)\)</td><td>\(\tau_1 \to \tau_2\)</td></tr>
+  <tr><td>\(\exists x{:}\tau.\, \varphi(x)\)</td><td><code>{x : τ | φ x}</code></td><td>a pair of a witness \(x\) and a proof of \(\varphi(x)\)</td><td>\(\tau_1 \times \tau_2\)</td></tr>
 </table>
-<p>The result type of a dependent function can mention its argument; \(\tau_1 \to \tau_2\) is the case where it doesn't. The type of the second part of a dependent pair can mention the first; \(\tau_1 \times \tau_2\) is the case where it doesn't. The type of values from Discussion 6, <code>{ e : exp | value e }</code>, is a dependent pair: an expression together with a proof that it is a value. (At <code>Prop</code>, Rocq also writes \(\exists\) as <code>exists x, P x</code>.)</p>
+<p>The result type of a dependent function can mention its argument; \(\tau_1 \to \tau_2\) is the case where it doesn't. The type of the second part of a dependent pair can mention the first; \(\tau_1 \times \tau_2\) is the case where it doesn't. The type of values from Discussion 6, <code>{ e : exp | value e }</code>, is a dependent pair: an expression together with a proof that it is a value. (At <code>Prop</code>, Rocq also writes \(\exists\) as <code>exists x, φ x</code>.)</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-16">Definition refl_all : forall n : nat, n = n := λ n, eq_refl.
 
 Check (forall _ : nat, bool).
@@ -703,8 +806,10 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
    slide break (an <hr class="slide-break">).  Nothing moves: the elements
    of the other slides are just hidden, so the Rocq blocks stay one
    document and running a block still checks everything before it.
-   Keys: right arrow or Page Down for the next slide, left arrow or Page Up
-   for the previous one (what a presentation clicker sends), Escape to
+   Within a slide, each element after the first appears on its own key
+   press, so a slide is revealed one piece at a time.
+   Keys: right arrow or Page Down for the next step or slide, left arrow
+   or Page Up to go back (what a presentation clicker sends), Escape to
    leave.  The address ends in #slide-N, so a reload stays on the slide. */
 (function () {
   const doc = document.getElementById('document');
@@ -715,36 +820,60 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
   const button = document.getElementById('present-toggle');
   const slides = [];
   let cur = [], section = '';
+  const close = () => { cur.steps = cur.length - 1; slides.push(cur); cur = []; };
   for (const el of doc.children) {
     if (el.classList.contains('topbar') || el.id === 'slide-context') continue;
     const breaks = el.tagName === 'H2' || el.tagName === 'H3' || el.classList.contains('slide-break');
-    if (breaks && cur.length) { slides.push(cur); cur = []; }
+    if (breaks && cur.length) close();
     if (el.tagName === 'H2') section = el.textContent;
     if (!cur.length) cur.section = el.tagName === 'H2' ? '' : section;
-    if (!el.classList.contains('slide-break')) cur.push(el);
+    if (el.classList.contains('slide-break')) continue;
+    el.dataset.step = cur.length;
+    cur.push(el);
   }
-  if (cur.length) slides.push(cur);
-  let at = 0;
-  function show(i) {
+  if (cur.length) close();
+  let at = 0, shown = 0;
+  function label() {
+    const m = slides[at].steps;
+    count.textContent = (at + 1) + ' / ' + slides.length + (m ? '  ·  ' + '●'.repeat(shown) + '○'.repeat(m - shown) : '');
+  }
+  function reveal() {
+    for (const el of slides[at]) el.classList.toggle('off-step', Number(el.dataset.step) > shown);
+    label();
+  }
+  /* show slide i with its first k steps revealed (all of them if k is 'all') */
+  function show(i, k) {
     at = Math.max(0, Math.min(slides.length - 1, i));
-    slides.forEach((els, k) => els.forEach(el => el.classList.toggle('off-slide', k !== at)));
+    shown = k === 'all' ? slides[at].steps : 0;
+    slides.forEach((els, n) => els.forEach(el => el.classList.toggle('off-slide', n !== at)));
     context.textContent = slides[at].section || '';
-    count.textContent = (at + 1) + ' / ' + slides.length;
+    reveal();
     history.replaceState(null, '', '#slide-' + (at + 1));
-    scroller.scrollTop = 0;
+    scroller.scrollTop = k === 'all' ? scroller.scrollHeight : 0;
     /* editors that were hidden need to measure themselves again */
     for (const el of slides[at])
       for (const cm of el.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
   }
+  function next() {
+    if (shown < slides[at].steps) {
+      shown++; reveal();
+      const first = slides[at].find(el => Number(el.dataset.step) === shown);
+      if (first) first.scrollIntoView({ block: 'nearest' });
+    } else if (at < slides.length - 1) show(at + 1, 0);
+  }
+  function prev() {
+    if (shown > 0) { shown--; reveal(); }
+    else if (at > 0) show(at - 1, 'all');
+  }
   function start(i) {
     doc.classList.add('presenting'); nav.classList.add('on');
     button.textContent = '✕ Stop presenting';
-    show(i);
+    show(i, 0);
   }
   function stop() {
     doc.classList.remove('presenting'); nav.classList.remove('on');
     button.textContent = '▶ Present';
-    for (const els of slides) for (const el of els) el.classList.remove('off-slide');
+    for (const els of slides) for (const el of els) el.classList.remove('off-slide', 'off-step');
     history.replaceState(null, '', location.pathname + location.search);
     const first = slides[at][0];
     if (first) first.scrollIntoView();
@@ -752,13 +881,13 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
   }
   const presenting = () => doc.classList.contains('presenting');
   button.addEventListener('click', () => presenting() ? stop() : start(at));
-  nav.querySelector('.prev').addEventListener('click', () => show(at - 1));
-  nav.querySelector('.next').addEventListener('click', () => show(at + 1));
+  nav.querySelector('.prev').addEventListener('click', prev);
+  nav.querySelector('.next').addEventListener('click', next);
   document.addEventListener('keydown', e => {
     if (!presenting() || e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.target.closest && e.target.closest('.CodeMirror, input, textarea, select')) return;
-    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); show(at + 1); }
-    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(at - 1); }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
     else if (e.key === 'Escape') stop();
   });
   const m = location.hash.match(/^#slide-(\d+)$/);
