@@ -85,6 +85,10 @@ body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #do
 #document .frames > .frame:not(.keep) { display: none; }
 #document.presenting .frames { display: grid; }
 #document.presenting .frames > .frame { display: block; grid-area: 1 / 1; align-self: end; }
+/* what each stage did, in one sentence: only in slide mode */
+#document .step-note { display: none; }
+#document.presenting .step-note { display: block; text-align: left; font-size: .8em; line-height: 1.4; min-height: 4.2em;
+  margin: .6rem auto 0; max-width: 34em; padding: .5rem .8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
 /* opacity, not visibility: a stage's own visible parts must not show through */
 #document.presenting .frames > .frame.off-frame, #document.presenting .frames > .frame.off-step { opacity: 0; }
 .rules.ch > .ch-name { margin-left: -1.2rem; font-size: .9em; overflow: visible; }
@@ -175,6 +179,8 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 /* slide mode: one slide of the page at a time, at projector size */
 #document hr.slide-break { display: none; }
 #document.presenting .off-step { visibility: hidden; }
+/* collapsed table borders ignore visibility */
+#document.presenting tr.off-step > td, #document.presenting tr.off-step > th { border-color: transparent; }
 #document .slide-only { display: none; }
 #document.presenting .off-slide { display: none !important; }
 #document.presenting { font-size: 1.4rem; line-height: 1.5; padding-block: 1rem 5rem; }
@@ -386,7 +392,7 @@ Definition section {τ₁ τ₂ : Type} (f : τ₁ → τ₂) (g : τ₂ → τ�
 Definition iso {τ₁ τ₂ : Type} (f : τ₁ → τ₂) (g : τ₂ → τ₁) : Prop :=
   retraction f g /\ section f g.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 6 lines">Show code · 6 lines</button></div></div>
 <hr class="slide-break">
-<p>Each isomorphism below is a pair of programs \(f\) and \(g\) in the lecture's language. Try writing each program from its type before reading it. In Rocq, each pair sits in a module of its own, so every one can be called <code>f</code> and <code>g</code>; from outside, they are <code>ProdUnit.f</code>, <code>Dist.g</code>, and so on. In Rocq, the proof that the two programs undo each other always has the same shape: split into the two directions; in each, take the value apart, one case per way it can be built; then in each case <code>cbv delta [f g] beta</code> unfolds \(f\) and \(g\) and substitutes the argument (the β step), <code>simpl</code> runs the rest, and <code>reflexivity</code> sees that both sides are the same. Step through a proof to watch both sides become equal.</p>
+<p>Each isomorphism below is a pair of programs \(f\) and \(g\) in the lecture's language. Try writing each program from its type before reading it. In Rocq, each pair sits in a module of its own, so every one can be called <code>f</code> and <code>g</code>; from outside, they are <code>ProdUnit.f</code>, <code>Dist.g</code>, and so on. In Rocq, the proof that the two programs undo each other always has the same shape: unfold <code>iso</code> into its two laws and split them; in each, <code>cbv delta [f g]</code> unfolds \(f\) and \(g\), putting in their programs, and <code>cbv beta</code> substitutes the argument (the β step); take the value apart, one case per way it can be built; then <code>simpl</code> runs the rest, and <code>reflexivity</code> sees that both sides are the same. Step through a proof to watch both sides become equal.</p>
 
 <h3 class="own-slide">\(\tau \times \mathbf{1} \cong \tau\)</h3>
 <p>Like \(n \cdot 1 = n\). The second part of the pair can only be \(()\), so it carries no information.</p>
@@ -411,21 +417,27 @@ Definition g : τ → τ × 1 := λ a, (a, ()).
 
 Lemma prod_unit : iso f g.
 Proof.
+  unfold iso, retraction, section.  (* the two laws *)
   split.
-  - (* g (f p) = p: a pair is (a, u), and u can only be () *)
-    intros [a u]. destruct u.
-    cbv delta [f g] beta.  (* unfold f and g, and substitute *)
-    simpl.                 (* run the rest *)
+  - (* g (f p) = p *)
+    intros p.
+    cbv delta [f g].  (* unfold f and g: put in their programs *)
+    cbv beta.         (* substitute the argument: the β step *)
+    (* (p.1, ()) = p computes no further until p is a pair (a, u),
+       and u can only be () *)
+    destruct p as [a u]. destruct u.
+    simpl.        (* run the rest *)
     reflexivity.
   - (* f (g a) = a *)
     intros a.
-    cbv delta [f g] beta.
+    cbv delta [f g].
+    cbv beta.
     simpl.
     reflexivity.
 Qed.
 
 End ProdUnit.
-End ProdUnit.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 24 lines">Show code · 24 lines</button></div></div>
+End ProdUnit.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 30 lines">Show code · 30 lines</button></div></div>
 
 <h3 class="own-slide">\(\tau + \mathbf{0} \cong \tau\)</h3>
 <p>Like \(n + 0 = n\). The \(\mathsf{in}_2\) side would hold a value of \(\mathbf{0}\), which can't exist, so only \(\mathsf{in}_1\) ever happens.</p>
@@ -450,22 +462,26 @@ Definition g : τ → τ + 0 := λ a, in₁ a.
 
 Lemma sum_empty : iso f g.
 Proof.
+  unfold iso, retraction, section.
   split.
-  - (* a sum is in₁ a or in₂ z *)
-    intros [a | z].
-    + cbv delta [f g] beta.
-      simpl.
+  - intros s.
+    cbv delta [f g].
+    cbv beta.
+    (* a sum is in₁ a or in₂ z *)
+    destruct s as [a | z].
+    + simpl.
       reflexivity.
     + (* z : 0 has no cases *)
       destruct z.
   - intros a.
-    cbv delta [f g] beta.
+    cbv delta [f g].
+    cbv beta.
     simpl.
     reflexivity.
 Qed.
 
 End SumEmpty.
-End SumEmpty.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 25 lines">Show code · 25 lines</button></div></div>
+End SumEmpty.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 29 lines">Show code · 29 lines</button></div></div>
 
 <h3 class="own-slide">\(\tau \times \mathbf{0} \cong \mathbf{0}\)</h3>
 <p>Like \(n \cdot 0 = 0\). A pair would need a value of \(\mathbf{0}\), so there are no such pairs, and the proofs have no cases.</p>
@@ -490,15 +506,22 @@ Definition g : 0 → τ × 0 := λ z, case₀ z {}.
 
 Lemma prod_empty : iso f g.
 Proof.
+  unfold iso, retraction, section.
   split.
-  - (* a pair (a, z) with z : 0: no cases *)
-    intros [a z]. destruct z.
-  - (* z : 0: no cases *)
-    intros z. destruct z.
+  - intros p.
+    cbv delta [f g].
+    cbv beta.
+    (* a pair (a, z) with z : 0: no cases *)
+    destruct p as [a z]. destruct z.
+  - intros z.
+    cbv delta [f g].
+    cbv beta.
+    (* z : 0: no cases *)
+    destruct z.
 Qed.
 
 End ProdEmpty.
-End ProdEmpty.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 18 lines">Show code · 18 lines</button></div></div>
+End ProdEmpty.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 25 lines">Show code · 25 lines</button></div></div>
 
 <h3 class="own-slide">\(\tau_1 \times \tau_2 \cong \tau_2 \times \tau_1\)</h3>
 <p>Like \(n \cdot m = m \cdot n\). Both programs swap the pair, and swapping twice gives it back.</p>
@@ -523,19 +546,24 @@ Definition g : τ₂ × τ₁ → τ₁ × τ₂ := λ p, (p.2, p.1).
 
 Lemma prod_comm : iso f g.
 Proof.
+  unfold iso, retraction, section.
   split.
-  - intros [a b].
-    cbv delta [f g] beta.
+  - intros p.
+    cbv delta [f g].
+    cbv beta.
+    destruct p as [a b].
     simpl.
     reflexivity.
-  - intros [b a].
-    cbv delta [f g] beta.
+  - intros p.
+    cbv delta [f g].
+    cbv beta.
+    destruct p as [b a].
     simpl.
     reflexivity.
 Qed.
 
 End ProdComm.
-End ProdComm.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 22 lines">Show code · 22 lines</button></div></div>
+End ProdComm.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 27 lines">Show code · 27 lines</button></div></div>
 
 <h3 class="own-slide">\(\tau_1 \times (\tau_2 + \tau_3) \cong \tau_1 \times \tau_2 + \tau_1 \times \tau_3\)</h3>
 <p>Like \(n(m + k) = nm + nk\). A pair whose second part is "a \(\tau_2\) or a \(\tau_3\)" is the same as "a pair with a \(\tau_2\), or a pair with a \(\tau_3\)".</p>
@@ -570,27 +598,30 @@ Definition g : τ₁ × τ₂ + τ₁ × τ₃ → τ₁ × (τ₂ + τ₃) :=
 
 Lemma dist : iso f g.
 Proof.
+  unfold iso, retraction, section.
   split.
-  - (* a pair (a, s), and s is in₁ b or in₂ c *)
-    intros [a [b | c]].
-    + cbv delta [f g] beta.
-      simpl.
+  - intros p.
+    cbv delta [f g].
+    cbv beta.
+    (* a pair (a, s), and s is in₁ b or in₂ c *)
+    destruct p as [a [b | c]].
+    + simpl.
       reflexivity.
-    + cbv delta [f g] beta.
-      simpl.
+    + simpl.
       reflexivity.
-  - (* in₁ (a, b) or in₂ (a, c) *)
-    intros [[a b] | [a c]].
-    + cbv delta [f g] beta.
-      simpl.
+  - intros s.
+    cbv delta [f g].
+    cbv beta.
+    (* in₁ (a, b) or in₂ (a, c) *)
+    destruct s as [[a b] | [a c]].
+    + simpl.
       reflexivity.
-    + cbv delta [f g] beta.
-      simpl.
+    + simpl.
       reflexivity.
 Qed.
 
 End Dist.
-End Dist.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 32 lines">Show code · 32 lines</button></div></div>
+End Dist.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 35 lines">Show code · 35 lines</button></div></div>
 
 <h3 class="own-slide">\((\tau_1 \times \tau_2 \to \tau_3) \cong (\tau_1 \to \tau_2 \to \tau_3)\)</h3>
 <p>Like \(c^{a \cdot b} = (c^b)^a\). A function of a pair is the same as a function that takes its two arguments one at a time. \(f\) is usually called \(\mathsf{curry}\), and \(g\) \(\mathsf{uncurry}\).</p>
@@ -619,21 +650,25 @@ Axiom funext : forall {X Y : Type} (h k : X → Y),
 
 Lemma curry : iso f g.
 Proof.
+  unfold iso, retraction, section.
   split.
   - (* g (f h) = h: they agree on every pair (a, b) *)
-    intros h. apply funext. intros [a b].
-    cbv delta [f g] beta.
+    intros h.
+    cbv delta [f g].
+    cbv beta.
+    apply funext. intros [a b].
     simpl.
     reflexivity.
   - (* f (g k) = k: computes to λ a, λ b, k a b, which is k *)
     intros k.
-    cbv delta [f g] beta.
+    cbv delta [f g].
+    cbv beta.
     simpl.
     reflexivity.
 Qed.
 
 End Curry.
-End Curry.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 27 lines">Show code · 27 lines</button></div></div>
+End Curry.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 31 lines">Show code · 31 lines</button></div></div>
 
 <h3 class="own-slide">\(\mathsf{bool} \cong \mathbf{1} + \mathbf{1}\)</h3>
 <p>\(\mathsf{true}\) is \(\mathsf{in}_1\ ()\), \(\mathsf{false}\) is \(\mathsf{in}_2\ ()\), and \(\mathsf{if}\) is a case. So the lecture's language doesn't need \(\mathsf{bool}\) built in: sums give it to us.</p>
@@ -656,25 +691,28 @@ Definition g : 1 + 1 → bool := λ s, case₊ s {in₁ u → true | in₂ u →
 
 Lemma bool_sum : iso f g.
 Proof.
+  unfold iso, retraction, section.
   split.
-  - intros [|].
-    + cbv delta [f g] beta.
-      simpl.
+  - intros b.
+    cbv delta [f g].
+    cbv beta.
+    destruct b.
+    + simpl.
       reflexivity.
-    + cbv delta [f g] beta.
-      simpl.
+    + simpl.
       reflexivity.
-  - (* in₁ u or in₂ u, and u can only be () *)
-    intros [[] | []].
-    + cbv delta [f g] beta.
-      simpl.
+  - intros s.
+    cbv delta [f g].
+    cbv beta.
+    (* in₁ u or in₂ u, and u can only be () *)
+    destruct s as [[] | []].
+    + simpl.
       reflexivity.
-    + cbv delta [f g] beta.
-      simpl.
+    + simpl.
       reflexivity.
 Qed.
 
-End BoolSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 26 lines">Show code · 26 lines</button></div></div>
+End BoolSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 29 lines">Show code · 29 lines</button></div></div>
 
 <h3 class="own-slide">\(\mathsf{option}\ \tau \cong \mathbf{1} + \tau\)</h3>
 <p>\(\mathsf{None}\) is \(\mathsf{in}_1\ ()\), and \(\mathsf{Some}\ x\) is \(\mathsf{in}_2\ x\): "nothing, or a \(\tau\)". Like \(\mathsf{bool}\), \(\mathsf{option}\) is Rocq's, not the lecture's, so it is taken apart with a Rocq <code>match</code>.</p>
@@ -691,35 +729,38 @@ Definition g : 1 + τ → option τ := λ s, case₊ s {in₁ u → None | in₂
 
 Lemma option_sum : iso f g.
 Proof.
+  unfold iso, retraction, section.
   split.
-  - intros [a |].
-    + cbv delta [f g] beta.
-      simpl.
+  - intros o.
+    cbv delta [f g].
+    cbv beta.
+    destruct o as [a |].
+    + simpl.
       reflexivity.
-    + cbv delta [f g] beta.
-      simpl.
+    + simpl.
       reflexivity.
-  - intros [[] | a].
-    + cbv delta [f g] beta.
-      simpl.
+  - intros s.
+    cbv delta [f g].
+    cbv beta.
+    destruct s as [[] | a].
+    + simpl.
       reflexivity.
-    + cbv delta [f g] beta.
-      simpl.
+    + simpl.
       reflexivity.
 Qed.
 
 End OptionSum.
-End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 32 lines">Show code · 32 lines</button></div></div>
+End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 35 lines">Show code · 35 lines</button></div></div>
 
 <h2 class="one-slide">3. The Curry–Howard correspondence</h2>
 <p>Read a type as a proposition, and a program of that type as a proof of it: <em>types as propositions</em>. This is the <strong>Curry–Howard correspondence</strong>, between the simply typed λ-calculus and intuitionistic propositional logic:</p>
-<table class="ref">
-  <tr><th>type</th><th>proposition</th><th>Rocq</th></tr>
-  <tr><td>\(\mathbf{1}\)</td><td>\(\top\)</td><td><code>True</code></td></tr>
-  <tr><td>\(\mathbf{0}\)</td><td>\(\bot\)</td><td><code>False</code></td></tr>
-  <tr><td>\(\tau_1 \times \tau_2\)</td><td>\(\varphi \wedge \psi \)</td><td><code>φ /\ ψ</code></td></tr>
-  <tr><td>\(\tau_1 + \tau_2\)</td><td>\(\varphi \vee \psi \)</td><td><code>φ \/ ψ</code></td></tr>
-  <tr><td>\(\tau_1 \to \tau_2\)</td><td>\(\varphi \Rightarrow \psi \)</td><td><code>φ -> ψ</code></td></tr>
+<table class="ref pieces">
+  <tr class="piece"><th>type</th><th>proposition</th><th>Rocq</th></tr>
+  <tr class="piece"><td>\(\mathbf{1}\)</td><td>\(\top\)</td><td><code>True</code></td></tr>
+  <tr class="piece"><td>\(\mathbf{0}\)</td><td>\(\bot\)</td><td><code>False</code></td></tr>
+  <tr class="piece"><td>\(\tau_1 \times \tau_2\)</td><td>\(\varphi \wedge \psi \)</td><td><code>φ /\ ψ</code></td></tr>
+  <tr class="piece"><td>\(\tau_1 + \tau_2\)</td><td>\(\varphi \vee \psi \)</td><td><code>φ \/ ψ</code></td></tr>
+  <tr class="piece"><td>\(\tau_1 \to \tau_2\)</td><td>\(\varphi \Rightarrow \psi \)</td><td><code>φ -> ψ</code></td></tr>
 </table>
 <hr class="slide-break">
 <p>Erase the terms from a typing rule and you get a rule of logic. From easiest to hardest: \(()\) proves \(\top\); a case on \(\mathbf{0}\) is &ldquo;from false, anything&rdquo;; a pair is a proof of \(\varphi \wedge \psi\) from a proof of each; a case is a proof by cases; a \(\lambda\) proves \(\varphi \Rightarrow \psi\) by assuming \(\varphi\) and proving \(\psi\); and application is modus ponens:</p>
@@ -734,153 +775,157 @@ End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="bu
 <div class="rules ch pieces"><div class="piece">\[\frac{\vdash e_1 : \tau_1 \to \tau_2 \quad \vdash e_2 : \tau_1}{\vdash e_1\, e_2 : \tau_2}\;{\scriptstyle {\to}\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \Rightarrow \psi \quad \varphi}{\psi}\]</div><div class="piece ch-name">\({\Rightarrow}\mathrm{E}\)</div></div>
 <h3>Part 2 was logic</h3>
 <p>Now look back at the programs in Part 2, and read each type as a proposition. Every program we wrote was a proof:</p>
-<table class="ref">
-  <tr><th>program's type</th><th>proposition it proves</th></tr>
-  <tr><td>\(\tau \times \mathbf{1} \to \tau\)</td><td>\(\varphi \wedge \top \Rightarrow \varphi \)</td></tr>
-  <tr><td>\(\tau + \mathbf{0} \to \tau\)</td><td>\(\varphi \vee \bot \Rightarrow \varphi \)</td></tr>
-  <tr><td>\(\tau \times \mathbf{0} \to \mathbf{0}\)</td><td>\(\varphi \wedge \bot \Rightarrow \bot\)</td></tr>
-  <tr><td>\(\tau_1 \times \tau_2 \to \tau_2 \times \tau_1\)</td><td>\(\varphi \wedge \psi \Rightarrow \psi \wedge \varphi \)</td></tr>
-  <tr><td>\(\tau_1 \times (\tau_2 + \tau_3) \to \tau_1 \times \tau_2 + \tau_1 \times \tau_3\)</td><td>\(\varphi \wedge (\psi \vee \xi ) \Rightarrow (\varphi \wedge \psi ) \vee (\varphi \wedge \xi )\)</td></tr>
-  <tr><td>\((\tau_1 \times \tau_2 \to \tau_3) \to (\tau_1 \to \tau_2 \to \tau_3)\)</td><td>\((\varphi \wedge \psi \Rightarrow \xi ) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi )\)</td></tr>
-  <tr><td>\((\tau_1 \to \tau_2 \to \tau_3) \to (\tau_1 \times \tau_2 \to \tau_3)\)</td><td>\((\varphi \Rightarrow \psi \Rightarrow \xi ) \Rightarrow (\varphi \wedge \psi \Rightarrow \xi )\)</td></tr>
+<table class="ref pieces">
+  <tr class="piece"><th>program's type</th><th>proposition it proves</th></tr>
+  <tr class="piece"><td>\(\tau \times \mathbf{1} \to \tau\)</td><td>\(\varphi \wedge \top \Rightarrow \varphi \)</td></tr>
+  <tr class="piece"><td>\(\tau + \mathbf{0} \to \tau\)</td><td>\(\varphi \vee \bot \Rightarrow \varphi \)</td></tr>
+  <tr class="piece"><td>\(\tau \times \mathbf{0} \to \mathbf{0}\)</td><td>\(\varphi \wedge \bot \Rightarrow \bot\)</td></tr>
+  <tr class="piece"><td>\(\tau_1 \times \tau_2 \to \tau_2 \times \tau_1\)</td><td>\(\varphi \wedge \psi \Rightarrow \psi \wedge \varphi \)</td></tr>
+  <tr class="piece"><td>\(\tau_1 \times (\tau_2 + \tau_3) \to \tau_1 \times \tau_2 + \tau_1 \times \tau_3\)</td><td>\(\varphi \wedge (\psi \vee \xi ) \Rightarrow (\varphi \wedge \psi ) \vee (\varphi \wedge \xi )\)</td></tr>
+  <tr class="piece"><td>\((\tau_1 \times \tau_2 \to \tau_3) \to (\tau_1 \to \tau_2 \to \tau_3)\)</td><td>\((\varphi \wedge \psi \Rightarrow \xi ) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi )\)</td></tr>
+  <tr class="piece"><td>\((\tau_1 \to \tau_2 \to \tau_3) \to (\tau_1 \times \tau_2 \to \tau_3)\)</td><td>\((\varphi \Rightarrow \psi \Rightarrow \xi ) \Rightarrow (\varphi \wedge \psi \Rightarrow \xi )\)</td></tr>
 </table>
 <p>Each isomorphism has a program in each direction, so it proves both directions of an equivalence, such as \(\varphi \wedge (\psi \vee \xi ) \Leftrightarrow (\varphi \wedge \psi ) \vee (\varphi \wedge \xi )\).</p>
 
 <h3>One proof, two readings</h3>
-<p>Take currying, \((\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)\). A leaf with no line above it, such as \(\Delta \vdash \varphi\), uses an assumption. Write \(\Delta\) for all three assumptions, \(\varphi \wedge \psi \Rightarrow \xi, \varphi, \psi\). Here is a proof tree using the rules above, built from the goal at the bottom up: each rule turns the goal below its line into the goals above it. Then the same tree becomes a typing derivation, again from the root up: each proposition turns into its type, and then the program that the rule builds appears beside it.</p>
+<p>Take currying, \((\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)\). It has three <em>assumptions</em>, one for each \(\Rightarrow\) we prove by assuming its left side: \(\varphi \wedge \psi \Rightarrow \xi\), then \(\varphi\), then \(\psi\). Write \(\Delta\) for all three:</p>
+<div class="display">\[
+\Delta = \varphi \wedge \psi \Rightarrow \xi,\ \varphi,\ \psi
+\]</div>
+<p>A leaf with no line above it, such as \(\Delta \vdash \varphi\), uses one of the assumptions. Here is a proof tree using the rules above, built from the goal at the bottom up: each rule turns the goal below its line into the goals above it. Then the same tree becomes a typing derivation, again from the root up: each proposition turns into its type, and then the program that the rule builds appears beside it.</p>
 <div class="pieces frames">
 <div class="display piece frame">\[
 \begin{gathered}
 \style{visibility:hidden}{\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\style{visibility:visible}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}}{\scriptstyle \Rightarrow\mathrm{I}}} \\[10pt]
 \style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
 \end{gathered}
-\]</div>
+\]<p class="step-note">The goal: prove currying, with no assumptions yet.</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\style{visibility:hidden}{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\style{visibility:visible}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}}{\scriptstyle \Rightarrow\mathrm{I}}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
 \style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
 \end{gathered}
-\]</div>
+\]<p class="step-note">\(\Rightarrow\)I: to prove \((\varphi \wedge \psi \Rightarrow \xi) \Rightarrow \ldots\), assume \(\varphi \wedge \psi \Rightarrow \xi\) and prove the rest.</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\style{visibility:hidden}{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\style{visibility:visible}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}}{\scriptstyle \Rightarrow\mathrm{I}}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
 \style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
 \end{gathered}
-\]</div>
+\]<p class="step-note">\(\Rightarrow\)I again: assume \(\varphi\), and prove \(\psi \Rightarrow \xi\).</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\style{visibility:hidden}{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\style{visibility:visible}{\Delta \vdash \xi}}{\scriptstyle \Rightarrow\mathrm{E}}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
 \style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
 \end{gathered}
-\]</div>
+\]<p class="step-note">\(\Rightarrow\)I again: assume \(\psi\), and prove \(\xi\). All three assumptions, \(\Delta\), are now in place.</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \style{visibility:hidden}{\dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\style{visibility:visible}{\Delta \vdash \varphi \wedge \psi}}{\scriptstyle \wedge\mathrm{I}}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
 \style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
 \end{gathered}
-\]</div>
+\]<p class="step-note">\(\Rightarrow\)E: \(\varphi \wedge \psi \Rightarrow \xi\) is an assumption, so to get \(\xi\) it is enough to prove \(\varphi \wedge \psi\).</p></div>
 <div class="display piece frame keep">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
 \style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
 \end{gathered}
-\]</div>
+\]<p class="step-note">\(\wedge\)I: prove \(\varphi\) and \(\psi\). Both are assumptions, so every leaf is an assumption and the proof is done.</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">Now turn it into a typing derivation. At the root, replace each proposition by its type: \(\varphi\) by \(\tau_1\), \(\psi\) by \(\tau_2\), \(\xi\) by \(\tau_3\), \(\wedge\) by \(\times\), \(\Rightarrow\) by \(\to\). The rule \(\Rightarrow\)I becomes \(\to\)I.</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">Add the root's program. Its rule \(\to\)I is a \(\lambda\), whose variable \(h\) names the first assumption.</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\sigma \vdash \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">One line up: the assumption \(\varphi \wedge \psi \Rightarrow \xi\) becomes its type \(\sigma\), and the goal becomes \(\tau_1 \to \tau_2 \to \tau_3\).</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">Its program: the assumption is now the variable \(h\), and \(\to\)I is the next \(\lambda\), binding \(x\).</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\sigma, \tau_1 \vdash \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">One line up: assumptions \(\sigma, \tau_1\), goal \(\tau_2 \to \tau_3\).</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">Its program: \(x\) names the assumption \(\tau_1\), and \(\to\)I is the last \(\lambda\), binding \(y\).</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\sigma, \tau_1, \tau_2 \vdash \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">One line up: all three assumptions as types, \(\sigma, \tau_1, \tau_2\), and the goal \(\tau_3\). The rule \(\Rightarrow\)E becomes \(\to\)E.</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">Its program: \(\Gamma\) names all three variables, and \(\to\)E is application, \(h\ (x, y)\).</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\sigma, \tau_1, \tau_2 \vdash \sigma \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">The left leaf: the assumption \(\varphi \wedge \psi \Rightarrow \xi\) becomes \(\sigma\).</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">Its program: using an assumption is using its variable, \(h\).</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\sigma, \tau_1, \tau_2 \vdash \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">The right premise: \(\varphi \wedge \psi\) becomes \(\tau_1 \times \tau_2\), and \(\wedge\)I becomes \(\times\)I.</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">Its program: \(\times\)I is a pair, \((x, y)\).</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\sigma, \tau_1, \tau_2 \vdash \tau_1 \quad \Delta \vdash \psi}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">The leaf \(\varphi\) becomes \(\tau_1\).</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Gamma \vdash x : \tau_1 \quad \Delta \vdash \psi}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">Its program: the variable \(x\).</p></div>
 <div class="display piece frame">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Gamma \vdash x : \tau_1 \quad \sigma, \tau_1, \tau_2 \vdash \tau_2}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">The leaf \(\psi\) becomes \(\tau_2\).</p></div>
 <div class="display piece frame keep">\[
 \begin{gathered}
 \dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Gamma \vdash x : \tau_1 \quad \Gamma \vdash y : \tau_2}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
 \text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
 \end{gathered}
-\]</div>
+\]<p class="step-note">Its program: the variable \(y\). The typing derivation is complete, and the program at the root is the proof.</p></div>
 </div>
 <p>The program at the root is the proof:</p>
 <div class="display">\[
@@ -970,8 +1015,6 @@ Definition and_curry {φ ψ ξ : Prop} : (φ /\ ψ → ξ) → (φ → ψ → ξ
 <p>It is the same simplification. Cutting out the detour in the proof is taking the step in the program, so evaluating a program is simplifying a proof.</p>
 
 <h3>What about \(\forall\) and \(\exists\)?</h3>
-<details class="question">
-<summary>Our logic has no quantifiers. What would it take to add them?</summary>
 <p>Our logic is <em>propositional</em>: it has \(\top\), \(\bot\), \(\wedge\), \(\vee\) and \(\Rightarrow\), but no \(\forall x.\, \varphi(x)\) or \(\exists x.\, \varphi(x)\). A quantified proposition is about a value \(x\): the proposition \(\varphi(x)\) depends on \(x\). On the types side, that is a type that depends on a value, a <strong>dependent type</strong>. The simply typed λ-calculus has none: its types never mention programs.</p>
 <p>Rocq is a dependent type theory, and has both:</p>
 <table class="ref">
@@ -995,7 +1038,6 @@ Definition and_curry {φ ψ ξ : Prop} : (φ /\ ψ → ξ) → (φ → ψ → ξ
 Check (forall _ : nat, bool).
 
 Definition even_four : {n : nat | Nat.even n = true} := exist _ 4 eq_refl.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
-</details>
 
 <h3>Excluded middle</h3>
 <details class="question">
