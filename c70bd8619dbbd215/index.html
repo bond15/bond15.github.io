@@ -69,8 +69,8 @@ li { margin: .25rem 0; }
 body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #document { background: var(--bg) !important; color: var(--fg) !important; }
 .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 #theme-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
-#theme-toggle:hover, #fold-toggle:hover { border-color: var(--navy); }
-#fold-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+#theme-toggle:hover, #fold-toggle:hover, #present-toggle:hover { border-color: var(--navy); }
+#fold-toggle, #present-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
 .topbar .switches { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
 /* displayed math scrolls sideways if it must, never up and down */
 .display, .rules > div { overflow-y: hidden; }
@@ -85,7 +85,7 @@ body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #do
 .cell-run:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
 .cell-toggle { display: block; font-family: var(--font-display); font-size: .78rem; color: var(--navy); background: none; border: 0; padding: .15rem 0; cursor: pointer; }
 .cell-toggle:hover { text-decoration: underline; }
-.cell-toggle:focus-visible, #fold-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+.cell-toggle:focus-visible, #fold-toggle:focus-visible, #present-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
 #theme-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
 
 /* ---- jsCoq in the page's colors ------------------------------------
@@ -158,6 +158,27 @@ body.jscoq-main #panel-wrapper [class*="constr."], body.jscoq-main #panel-wrappe
 body.jscoq-main #panel-wrapper [class*="tactic."] { color: var(--fg) !important; }
 body.jscoq-main #panel-wrapper .constr\.keyword, body.jscoq-main #panel-wrapper .module\.keyword,
 body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !important; }
+
+/* slide mode: one slide of the page at a time, at projector size */
+#document hr.slide-break { display: none; }
+#document .slide-only { display: none; }
+#document.presenting .off-slide { display: none !important; }
+#document.presenting { font-size: 1.4rem; line-height: 1.5; padding-block: 1rem 5rem; }
+#document.presenting .CodeMirror { font-size: 1.05rem; }
+#document.presenting .topbar .eyebrow { display: none; }
+#document.presenting h1 { font-size: 1.8em; }
+#document.presenting h2 { font-size: 1.5em; margin-top: .4rem; border-top: 0; }
+#document.presenting h3 { font-size: 1.2em; margin-top: .4rem; }
+#document.presenting .topbar button { font-size: .8rem; }
+#document.presenting table.ref { font-size: .85em; }
+#document.presenting .slide-only { display: block; }
+#document.presenting #slide-context { font-family: var(--font-display); font-weight: 650; font-size: .8rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 .4rem; }
+#document.presenting #slide-context:empty { display: none; }
+#slide-nav { position: fixed; left: 16px; bottom: 14px; z-index: 50; display: none; gap: .4rem; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .3rem .5rem; font-family: var(--font-display); font-size: .9rem; color: var(--fg); }
+#document.presenting ~ #slide-nav, #slide-nav.on { display: flex; }
+#slide-nav button { font: inherit; }
+#slide-nav .count { min-width: 4.5em; text-align: center; color: var(--muted); }
 </style>
 </head>
 <body class="jscoq-main">
@@ -167,10 +188,12 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 <div class="topbar">
 <p class="eyebrow" style="margin-top:0">Runs in your browser: click into a code block and press Alt+↓ (Option+↓ on a Mac) to step, or Alt+Enter to run to the cursor. Goals show in the panel on the right.</p>
 <div class="switches">
+<button id="present-toggle" type="button">▶ Present</button>
 <button id="fold-toggle" type="button" aria-pressed="false">Show all code</button>
 <button id="theme-toggle" type="button"></button>
 </div>
 </div>
+<p id="slide-context" class="slide-only"></p>
 
 <header>
   <p class="eyebrow">CSE 590 · Fall 2026 · Discussion 7</p>
@@ -216,6 +239,7 @@ v &::= \lambda x{:}\tau.\, e \mid () \mid (v_1, v_2) \mid \mathsf{in}_1\ v \mid 
 \]</div>
 </details>
 
+<hr class="slide-break">
 <p>Rocq already has the lecture's type formers. With a few notations, we can also write them, and their programs, in the lecture's syntax:</p>
 <table class="ref">
   <tr><th>lecture</th><th>Rocq</th></tr>
@@ -229,6 +253,7 @@ v &::= \lambda x{:}\tau.\, e \mid () \mid (v_1, v_2) \mid \mathsf{in}_1\ v \mid 
   <tr><td>\(\mathsf{case}_{\mathbf{0}}\ e\ \{\}\)</td><td><code>match e with end</code></td></tr>
   <tr><td>\(\mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\}\)</td><td><code>match e with inl x₁ => e₁ | inr x₂ => e₂ end</code></td></tr>
 </table>
+<hr class="slide-break">
 <p>In types, <code>1</code> and <code>0</code> now mean <code>unit</code> and <code>Empty_set</code>; in programs they are still the numbers 1 and 0.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-1">Notation "A × B" := (prod A B) (at level 40, left associativity) : type_scope.
 Notation "1" := unit : type_scope.
@@ -247,6 +272,7 @@ Notation "A → B" := (A -&gt; B) (at level 99, B at level 200, right associativ
 Notation "'λ' x .. y , e" := (fun x =&gt; .. (fun y =&gt; e) ..)
   (at level 200, x binder, y binder, right associativity).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 16 lines">Show code · 16 lines</button></div></div>
 <p>Sums appear in many languages. \(\tau_1 + \tau_2\) is <code>Either[A, B]</code> in Scala, <code>Result&lt;T, E&gt;</code> in Rust, and <code>Either a b</code> in Haskell. In each, \(\mathsf{in}_1\) and \(\mathsf{in}_2\) are <code>Left</code> and <code>Right</code> (Scala, Haskell) or <code>Ok</code> and <code>Err</code> (Rust).</p>
+<hr class="slide-break">
 <div class="cell is-collapsed"><textarea class="coq" id="coq-2">Check (3, true) : nat × bool.
 Check (3, true).1.
 Check (in₁ 3 : nat + bool).
@@ -262,6 +288,7 @@ Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run
 <div class="cell is-collapsed"><textarea class="coq" id="coq-3">Definition absurd {A : Type} (z : 0) : A :=
   case₀ z {}.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
 
+<hr class="slide-break">
 <details class="question">
 <summary>Counting values</summary>
 <p>For types with finitely many values, write \(|\tau|\) for how many values \(\tau\) has. A pair picks one of each, a sum picks one side, and a function picks an output for each input:</p>
@@ -282,6 +309,7 @@ g\,(f\, x) = x \text{ for every } x : \tau_1, \qquad f\,(g\, y) = y \text{ for e
 <p>Then \(\tau_1\) and \(\tau_2\) have the same values, with different names.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-4">Definition iso {A B : Type} (f : A → B) (g : B → A) : Prop :=
   (forall a, g (f a) = a) /\ (forall b, f (g b) = b).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
+<hr class="slide-break">
 <p>Each isomorphism below is a pair of programs \(f\) and \(g\) in the lecture's language. Try writing each program from its type before reading it. In Rocq, each pair sits in a module of its own, so every one can be called <code>f</code> and <code>g</code>; from outside, they are <code>ProdUnit.f</code>, <code>Dist.g</code>, and so on. In Rocq, the proof that the two programs undo each other always has the same shape: split into the two directions; in each, take the value apart, one case per way it can be built; then each case computes, and <code>reflexivity</code> finishes it.</p>
 
 <h3>\(\tau \times \mathbf{1} \cong \tau\)</h3>
@@ -514,11 +542,13 @@ End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="bu
   <tr><td>\(\tau_1 + \tau_2\)</td><td>\(\varphi \vee \psi \)</td><td><code>φ \/ ψ</code></td></tr>
   <tr><td>\(\tau_1 \to \tau_2\)</td><td>\(\varphi \Rightarrow \psi \)</td><td><code>φ -> ψ</code></td></tr>
 </table>
+<hr class="slide-break">
 <p>Erase the terms from a typing rule and you get a rule of logic. From easiest to hardest: \(()\) proves \(\top\); a case on \(\mathbf{0}\) is &ldquo;from false, anything&rdquo;; a pair is a proof of \(\varphi \wedge \psi\) from a proof of each; a case is a proof by cases; a \(\lambda\) proves \(\varphi \Rightarrow \psi\) by assuming \(\varphi\) and proving \(\psi\); and application is modus ponens:</p>
 <div class="rules ch"><div>\[\frac{}{\vdash () : \mathbf{1}}\]</div><div>\[\leadsto\quad \frac{}{\top}\]</div></div>
 <div class="rules ch"><div>\[\frac{\vdash e : \mathbf{0}}{\vdash \mathsf{case}_{\mathbf{0}}\ e\ \{\} : \tau}\]</div><div>\[\leadsto\quad \frac{\bot}{\xi}\]</div></div>
 <div class="rules ch"><div>\[\frac{\vdash e_1 : \tau_1 \quad \vdash e_2 : \tau_2}{\vdash (e_1, e_2) : \tau_1 \times \tau_2}\]</div><div>\[\leadsto\quad \frac{\varphi \quad \psi}{\varphi \wedge \psi}\]</div></div>
 <div class="rules ch"><div>\[\frac{\vdash e : \tau_1 \times \tau_2}{\vdash e.1 : \tau_1}\]</div><div>\[\leadsto\quad \frac{\varphi \wedge \psi}{\varphi}\]</div></div>
+<hr class="slide-break">
 <div class="rules ch"><div>\[\frac{\vdash e : \tau_1}{\vdash \mathsf{in}_1\ e : \tau_1 + \tau_2}\]</div><div>\[\leadsto\quad \frac{\varphi}{\varphi \vee \psi}\]</div></div>
 <div class="rules ch"><div>\[\frac{\vdash e : \tau_1 + \tau_2 \quad x_1{:}\tau_1 \vdash e_1 : \tau \quad x_2{:}\tau_2 \vdash e_2 : \tau}{\vdash \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} : \tau}\]</div><div>\[\leadsto\quad \frac{\varphi \vee \psi \quad \varphi \vdash \xi \quad \psi \vdash \xi}{\xi}\]</div></div>
 <div class="rules ch"><div>\[\frac{x{:}\tau_1 \vdash e : \tau_2}{\vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\]</div><div>\[\leadsto\quad \frac{\varphi \vdash \psi}{\varphi \Rightarrow \psi}\]</div></div>
@@ -547,6 +577,7 @@ End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="bu
   {\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle\Rightarrow\mathrm{I}}}
 {\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle\Rightarrow\mathrm{I}}
 \]</div>
+<hr class="slide-break">
 <p>Now the same tree as a typing derivation. Each assumption gets a variable, and each line gets the program its rule builds. Write \(\sigma\) for \(\tau_1 \times \tau_2 \to \tau_3\), the type that \(\varphi \wedge \psi \Rightarrow \xi\) becomes, and \(\Gamma\) for \(h{:}\sigma, x{:}\tau_1, y{:}\tau_2\):</p>
 <div class="display">\[
 \dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma
@@ -561,6 +592,7 @@ End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="bu
 \lambda h{:}\tau_1 \times \tau_2 \to \tau_3.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y)
 \]</div>
 <p>This is exactly \(f\), that is \(\mathsf{curry}\), from Part 2.</p>
+<hr class="slide-break">
 <p>Rocq has both columns, <code>A × B</code> at <code>Type</code> and <code>φ /\ ψ</code> at <code>Prop</code>, and the programs are the same. Here is the swap program <code>ProdComm.f</code> again, and then the same function as a proof that \(\wedge\) is commutative: <code>conj</code> is the pair for <code>/\</code>.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-13">Check ProdComm.f : nat × bool → bool × nat.
 
@@ -568,6 +600,7 @@ Definition and_swap {φ ψ : Prop} (h : φ /\ ψ) : ψ /\ φ :=
   match h with
   | conj p q =&gt; conj q p
   end.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 6 lines">Show code · 6 lines</button></div></div>
+<hr class="slide-break">
 <p>The same proof written with tactics. <code>Print</code> shows the program the tactics built: a match that takes the pair apart and puts it back the other way round.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-14">Lemma and_swap' (φ ψ : Prop) : φ /\ ψ -&gt; ψ /\ φ.
 Proof.
@@ -597,18 +630,54 @@ Definition and_or_dist {φ ψ ξ : Prop} (h : φ /\ (ψ \/ ξ))
 
 Definition and_curry {φ ψ ξ : Prop} : (φ /\ ψ → ξ) → (φ → ψ → ξ) :=
   λ f, λ p, λ q, f (conj p q).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 18 lines">Show code · 18 lines</button></div></div>
-<p><strong>Steps simplify proofs.</strong> The lecture's rule \((v_1, v_2).1 \longrightarrow v_1\) builds a pair and immediately takes it apart. As a proof, that is a detour: prove \(\varphi \wedge \psi \), only to use \(\varphi \). The step removes the detour, so evaluating a program is simplifying a proof.</p>
+<h3>Steps simplify proofs</h3>
+<p>A proof can take a detour: prove \(\varphi \wedge \psi\) by \(\wedge\)I, then immediately use \(\wedge\)E to get back \(\varphi\). The detour can be cut out, leaving the proof of \(\varphi\) we started with:</p>
+<div class="display">\[
+\dfrac{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \psi\end{array}}{\varphi \wedge \psi}{\scriptstyle\wedge\mathrm{I}}}{\varphi}{\scriptstyle\wedge\mathrm{E}_1}
+\quad\leadsto\quad
+\begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array}
+\]</div>
+<hr class="slide-break">
+<p>As a typing derivation, \(\mathcal{D}_1\) and \(\mathcal{D}_2\) type values \(v_1\) and \(v_2\), and the detour is a pair that is projected right away:</p>
+<div class="display">\[
+\dfrac{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \vdash v_2 : \tau_2\end{array}}{\vdash (v_1, v_2) : \tau_1 \times \tau_2}{\scriptstyle\wedge\mathrm{I}}}{\vdash (v_1, v_2).1 : \tau_1}{\scriptstyle\wedge\mathrm{E}_1}
+\quad\leadsto\quad
+\begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array}
+\]</div>
+<p>Compare the programs at the roots with the lecture's step rule:</p>
+<div class="display">\[
+(v_1, v_2).1 \longrightarrow v_1
+\]</div>
+<p>It is the same simplification. Cutting out the detour in the proof is taking the step in the program, so evaluating a program is simplifying a proof.</p>
+
+<h3>What about \(\forall\) and \(\exists\)?</h3>
+<details class="question">
+<summary>Our logic has no quantifiers. What would it take to add them?</summary>
+<p>Our logic is <em>propositional</em>: it has \(\top\), \(\bot\), \(\wedge\), \(\vee\) and \(\Rightarrow\), but no \(\forall x.\, \varphi(x)\) or \(\exists x.\, \varphi(x)\). A quantified proposition is about a value \(x\): the proposition \(\varphi(x)\) depends on \(x\). On the types side, that is a type that depends on a value, a <strong>dependent type</strong>. The simply typed λ-calculus has none: its types never mention programs.</p>
+<p>Rocq is a dependent type theory, and has both:</p>
+<table class="ref">
+  <tr><th>logic</th><th>Rocq</th><th>a proof is</th><th>special case</th></tr>
+  <tr><td>\(\forall x{:}A.\, \varphi(x)\)</td><td><code>forall x : A, P x</code></td><td>a function that, given any \(x\), returns a proof of \(\varphi(x)\)</td><td>\(\tau_1 \to \tau_2\)</td></tr>
+  <tr><td>\(\exists x{:}A.\, \varphi(x)\)</td><td><code>{x : A | P x}</code></td><td>a pair of a witness \(x\) and a proof of \(\varphi(x)\)</td><td>\(\tau_1 \times \tau_2\)</td></tr>
+</table>
+<p>The result type of a dependent function can mention its argument; \(\tau_1 \to \tau_2\) is the case where it doesn't. The type of the second part of a dependent pair can mention the first; \(\tau_1 \times \tau_2\) is the case where it doesn't. The type of values from Discussion 6, <code>{ e : exp | value e }</code>, is a dependent pair: an expression together with a proof that it is a value. (At <code>Prop</code>, Rocq also writes \(\exists\) as <code>exists x, P x</code>.)</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-16">Definition refl_all : forall n : nat, n = n := λ n, eq_refl.
+
+Check (forall _ : nat, bool).
+
+Definition even_four : {n : nat | Nat.even n = true} := exist _ 4 eq_refl.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
+</details>
 
 <h3>Excluded middle</h3>
 <details class="question">
 <summary>Can you prove \(\varphi \vee \neg \varphi \)?</summary>
 <p>Here \(\neg \varphi \) is \(\varphi \Rightarrow \bot\), so as a type it is \(\varphi + (\varphi \to \mathbf{0})\). A program of this type would have to choose \(\mathsf{in}_1\) or \(\mathsf{in}_2\) without knowing anything about \(\varphi \): \(\mathsf{in}_1\) needs a proof of \(\varphi \), and \(\mathsf{in}_2\) needs a way to turn any proof of \(\varphi \) into a contradiction. There is no such program, so \(\varphi \vee \neg \varphi \) can't be proved this way. That is exactly what makes the logic <em>intuitionistic</em>.</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-16">Lemma excluded_middle (φ : Prop) : φ \/ ~ φ.
+<div class="cell is-collapsed"><textarea class="coq" id="coq-17">Lemma excluded_middle (φ : Prop) : φ \/ ~ φ.
 Proof.
   (* left: we would need a proof of φ.  right: we would need φ -&gt; False. *)
 Abort.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
 <p>But it can't be refuted either: its double negation, \(\neg\neg(\varphi \vee \neg \varphi )\), has a proof. Given \(h : \neg(\varphi \vee \neg \varphi )\), choose the right side; to show \(\neg \varphi \), assume \(p : \varphi \); then \(\mathsf{in}_1\ p\) contradicts \(h\).</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-17">Lemma not_not_excluded_middle (φ : Prop) : ~ ~ (φ \/ ~ φ).
+<div class="cell is-collapsed"><textarea class="coq" id="coq-18">Lemma not_not_excluded_middle (φ : Prop) : ~ ~ (φ \/ ~ φ).
 Proof.
   intros h.
   apply h.
@@ -622,12 +691,80 @@ Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" titl
 
 
 </div>
+<div id="slide-nav"><button class="prev" type="button" title="Previous slide (←)">◀</button><span class="count"></span><button class="next" type="button" title="Next slide (→)">▶</button></div>
 </div>
 </div>
 <script>
 window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, svg: { fontCache: 'global' } };
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.js"></script>
+<script>
+/* Slide mode.  The page is cut into slides at every h2 and h3 and at every
+   slide break (an <hr class="slide-break">).  Nothing moves: the elements
+   of the other slides are just hidden, so the Rocq blocks stay one
+   document and running a block still checks everything before it.
+   Keys: right arrow or Page Down for the next slide, left arrow or Page Up
+   for the previous one (what a presentation clicker sends), Escape to
+   leave.  The address ends in #slide-N, so a reload stays on the slide. */
+(function () {
+  const doc = document.getElementById('document');
+  const scroller = document.getElementById('code-wrapper');
+  const nav = document.getElementById('slide-nav');
+  const count = nav.querySelector('.count');
+  const context = document.getElementById('slide-context');
+  const button = document.getElementById('present-toggle');
+  const slides = [];
+  let cur = [], section = '';
+  for (const el of doc.children) {
+    if (el.classList.contains('topbar') || el.id === 'slide-context') continue;
+    const breaks = el.tagName === 'H2' || el.tagName === 'H3' || el.classList.contains('slide-break');
+    if (breaks && cur.length) { slides.push(cur); cur = []; }
+    if (el.tagName === 'H2') section = el.textContent;
+    if (!cur.length) cur.section = el.tagName === 'H2' ? '' : section;
+    if (!el.classList.contains('slide-break')) cur.push(el);
+  }
+  if (cur.length) slides.push(cur);
+  let at = 0;
+  function show(i) {
+    at = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((els, k) => els.forEach(el => el.classList.toggle('off-slide', k !== at)));
+    context.textContent = slides[at].section || '';
+    count.textContent = (at + 1) + ' / ' + slides.length;
+    history.replaceState(null, '', '#slide-' + (at + 1));
+    scroller.scrollTop = 0;
+    /* editors that were hidden need to measure themselves again */
+    for (const el of slides[at])
+      for (const cm of el.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  function start(i) {
+    doc.classList.add('presenting'); nav.classList.add('on');
+    button.textContent = '✕ Stop presenting';
+    show(i);
+  }
+  function stop() {
+    doc.classList.remove('presenting'); nav.classList.remove('on');
+    button.textContent = '▶ Present';
+    for (const els of slides) for (const el of els) el.classList.remove('off-slide');
+    history.replaceState(null, '', location.pathname + location.search);
+    const first = slides[at][0];
+    if (first) first.scrollIntoView();
+    for (const cm of doc.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  const presenting = () => doc.classList.contains('presenting');
+  button.addEventListener('click', () => presenting() ? stop() : start(at));
+  nav.querySelector('.prev').addEventListener('click', () => show(at - 1));
+  nav.querySelector('.next').addEventListener('click', () => show(at + 1));
+  document.addEventListener('keydown', e => {
+    if (!presenting() || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest && e.target.closest('.CodeMirror, input, textarea, select')) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); show(at + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(at - 1); }
+    else if (e.key === 'Escape') stop();
+  });
+  const m = location.hash.match(/^#slide-(\d+)$/);
+  if (m) start(Number(m[1]) - 1);
+})();
+</script>
 <script>
 /* jsCoq is loaded from the jsDelivr CDN.  Two problems, two fixes:
    1. Browsers refuse to start a Worker from another domain, so wrap the
