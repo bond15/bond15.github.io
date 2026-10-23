@@ -228,7 +228,8 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 \begin{aligned}
 e ::={}& x \mid \lambda x{:}\tau.\, e \mid e_1\, e_2 \\
   &\mid () \mid (e_1, e_2) \mid e.1 \mid e.2 \\
-  &\mid \mathsf{case}_{\mathbf{0}}\ e\ \{\} \mid \mathsf{in}_1\ e \mid \mathsf{in}_2\ e \mid \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\}
+  &\mid \mathsf{case}_{\mathbf{0}}\ e\ \{\} \mid \mathsf{in}_1\ e \mid \mathsf{in}_2\ e \\
+  &\mid \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\}
 \end{aligned}
 \]</div>
 <div class="display piece">\[
@@ -275,7 +276,7 @@ v ::= \lambda x{:}\tau.\, e \mid () \mid (v_1, v_2) \mid \mathsf{in}_1\ v \mid \
   <tr><td>\(\mathsf{in}_1\ e\), \(\mathsf{in}_2\ e\)</td><td><code>inl e</code>, <code>inr e</code></td></tr>
   <tr><td>\(e.1\), \(e.2\)</td><td><code>fst e</code>, <code>snd e</code></td></tr>
   <tr><td>\(\mathsf{case}_{\mathbf{0}}\ e\ \{\}\)</td><td><code>match e with end</code></td></tr>
-  <tr><td>\(\mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\}\)</td><td><code>match e with inl x₁ => e₁ | inr x₂ => e₂ end</code></td></tr>
+  <tr><td>\(\begin{aligned}&\mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \\ &\quad \mid \mathsf{in}_2\ x_2 \to e_2\}\end{aligned}\)</td><td><code>match e with<br>| inl x₁ => e₁<br>| inr x₂ => e₂ end</code></td></tr>
 </table>
 <hr class="slide-break">
 <p>In types, <code>1</code> and <code>0</code> now mean <code>unit</code> and <code>Empty_set</code>; in programs they are still the numbers 1 and 0.</p>
@@ -385,7 +386,7 @@ Definition section {τ₁ τ₂ : Type} (f : τ₁ → τ₂) (g : τ₂ → τ�
 Definition iso {τ₁ τ₂ : Type} (f : τ₁ → τ₂) (g : τ₂ → τ₁) : Prop :=
   retraction f g /\ section f g.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 6 lines">Show code · 6 lines</button></div></div>
 <hr class="slide-break">
-<p>Each isomorphism below is a pair of programs \(f\) and \(g\) in the lecture's language. Try writing each program from its type before reading it. In Rocq, each pair sits in a module of its own, so every one can be called <code>f</code> and <code>g</code>; from outside, they are <code>ProdUnit.f</code>, <code>Dist.g</code>, and so on. In Rocq, the proof that the two programs undo each other always has the same shape: split into the two directions; in each, take the value apart, one case per way it can be built; then each case computes, and <code>reflexivity</code> finishes it.</p>
+<p>Each isomorphism below is a pair of programs \(f\) and \(g\) in the lecture's language. Try writing each program from its type before reading it. In Rocq, each pair sits in a module of its own, so every one can be called <code>f</code> and <code>g</code>; from outside, they are <code>ProdUnit.f</code>, <code>Dist.g</code>, and so on. In Rocq, the proof that the two programs undo each other always has the same shape: split into the two directions; in each, take the value apart, one case per way it can be built; then in each case <code>cbv delta [f g] beta</code> unfolds \(f\) and \(g\) and substitutes the argument (the β step), <code>simpl</code> runs the rest, and <code>reflexivity</code> sees that both sides are the same. Step through a proof to watch both sides become equal.</p>
 
 <h3 class="own-slide">\(\tau \times \mathbf{1} \cong \tau\)</h3>
 <p>Like \(n \cdot 1 = n\). The second part of the pair can only be \(()\), so it carries no information.</p>
@@ -412,13 +413,19 @@ Lemma prod_unit : iso f g.
 Proof.
   split.
   - (* g (f p) = p: a pair is (a, u), and u can only be () *)
-    intros [a u]. destruct u. reflexivity.
-  - (* f (g a) = a: (a, ()).1 is a *)
-    intros a. reflexivity.
+    intros [a u]. destruct u.
+    cbv delta [f g] beta.  (* unfold f and g, and substitute *)
+    simpl.                 (* run the rest *)
+    reflexivity.
+  - (* f (g a) = a *)
+    intros a.
+    cbv delta [f g] beta.
+    simpl.
+    reflexivity.
 Qed.
 
 End ProdUnit.
-End ProdUnit.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 18 lines">Show code · 18 lines</button></div></div>
+End ProdUnit.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 24 lines">Show code · 24 lines</button></div></div>
 
 <h3 class="own-slide">\(\tau + \mathbf{0} \cong \tau\)</h3>
 <p>Like \(n + 0 = n\). The \(\mathsf{in}_2\) side would hold a value of \(\mathbf{0}\), which can't exist, so only \(\mathsf{in}_1\) ever happens.</p>
@@ -446,14 +453,19 @@ Proof.
   split.
   - (* a sum is in₁ a or in₂ z *)
     intros [a | z].
-    + reflexivity.
+    + cbv delta [f g] beta.
+      simpl.
+      reflexivity.
     + (* z : 0 has no cases *)
       destruct z.
-  - intros a. reflexivity.
+  - intros a.
+    cbv delta [f g] beta.
+    simpl.
+    reflexivity.
 Qed.
 
 End SumEmpty.
-End SumEmpty.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 20 lines">Show code · 20 lines</button></div></div>
+End SumEmpty.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 25 lines">Show code · 25 lines</button></div></div>
 
 <h3 class="own-slide">\(\tau \times \mathbf{0} \cong \mathbf{0}\)</h3>
 <p>Like \(n \cdot 0 = 0\). A pair would need a value of \(\mathbf{0}\), so there are no such pairs, and the proofs have no cases.</p>
@@ -512,12 +524,18 @@ Definition g : τ₂ × τ₁ → τ₁ × τ₂ := λ p, (p.2, p.1).
 Lemma prod_comm : iso f g.
 Proof.
   split.
-  - intros [a b]. reflexivity.
-  - intros [b a]. reflexivity.
+  - intros [a b].
+    cbv delta [f g] beta.
+    simpl.
+    reflexivity.
+  - intros [b a].
+    cbv delta [f g] beta.
+    simpl.
+    reflexivity.
 Qed.
 
 End ProdComm.
-End ProdComm.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 16 lines">Show code · 16 lines</button></div></div>
+End ProdComm.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 22 lines">Show code · 22 lines</button></div></div>
 
 <h3 class="own-slide">\(\tau_1 \times (\tau_2 + \tau_3) \cong \tau_1 \times \tau_2 + \tau_1 \times \tau_3\)</h3>
 <p>Like \(n(m + k) = nm + nk\). A pair whose second part is "a \(\tau_2\) or a \(\tau_3\)" is the same as "a pair with a \(\tau_2\), or a pair with a \(\tau_3\)".</p>
@@ -554,13 +572,25 @@ Lemma dist : iso f g.
 Proof.
   split.
   - (* a pair (a, s), and s is in₁ b or in₂ c *)
-    intros [a [b | c]]; reflexivity.
+    intros [a [b | c]].
+    + cbv delta [f g] beta.
+      simpl.
+      reflexivity.
+    + cbv delta [f g] beta.
+      simpl.
+      reflexivity.
   - (* in₁ (a, b) or in₂ (a, c) *)
-    intros [[a b] | [a c]]; reflexivity.
+    intros [[a b] | [a c]].
+    + cbv delta [f g] beta.
+      simpl.
+      reflexivity.
+    + cbv delta [f g] beta.
+      simpl.
+      reflexivity.
 Qed.
 
 End Dist.
-End Dist.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 20 lines">Show code · 20 lines</button></div></div>
+End Dist.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 32 lines">Show code · 32 lines</button></div></div>
 
 <h3 class="own-slide">\((\tau_1 \times \tau_2 \to \tau_3) \cong (\tau_1 \to \tau_2 \to \tau_3)\)</h3>
 <p>Like \(c^{a \cdot b} = (c^b)^a\). A function of a pair is the same as a function that takes its two arguments one at a time. \(f\) is usually called \(\mathsf{curry}\), and \(g\) \(\mathsf{uncurry}\).</p>
@@ -591,13 +621,19 @@ Lemma curry : iso f g.
 Proof.
   split.
   - (* g (f h) = h: they agree on every pair (a, b) *)
-    intros h. apply funext. intros [a b]. reflexivity.
+    intros h. apply funext. intros [a b].
+    cbv delta [f g] beta.
+    simpl.
+    reflexivity.
   - (* f (g k) = k: computes to λ a, λ b, k a b, which is k *)
-    intros k. reflexivity.
+    intros k.
+    cbv delta [f g] beta.
+    simpl.
+    reflexivity.
 Qed.
 
 End Curry.
-End Curry.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 21 lines">Show code · 21 lines</button></div></div>
+End Curry.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 27 lines">Show code · 27 lines</button></div></div>
 
 <h3 class="own-slide">\(\mathsf{bool} \cong \mathbf{1} + \mathbf{1}\)</h3>
 <p>\(\mathsf{true}\) is \(\mathsf{in}_1\ ()\), \(\mathsf{false}\) is \(\mathsf{in}_2\ ()\), and \(\mathsf{if}\) is a case. So the lecture's language doesn't need \(\mathsf{bool}\) built in: sums give it to us.</p>
@@ -621,12 +657,24 @@ Definition g : 1 + 1 → bool := λ s, case₊ s {in₁ u → true | in₂ u →
 Lemma bool_sum : iso f g.
 Proof.
   split.
-  - intros [|]; reflexivity.
+  - intros [|].
+    + cbv delta [f g] beta.
+      simpl.
+      reflexivity.
+    + cbv delta [f g] beta.
+      simpl.
+      reflexivity.
   - (* in₁ u or in₂ u, and u can only be () *)
-    intros [[] | []]; reflexivity.
+    intros [[] | []].
+    + cbv delta [f g] beta.
+      simpl.
+      reflexivity.
+    + cbv delta [f g] beta.
+      simpl.
+      reflexivity.
 Qed.
 
-End BoolSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 14 lines">Show code · 14 lines</button></div></div>
+End BoolSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 26 lines">Show code · 26 lines</button></div></div>
 
 <h3 class="own-slide">\(\mathsf{option}\ \tau \cong \mathbf{1} + \tau\)</h3>
 <p>\(\mathsf{None}\) is \(\mathsf{in}_1\ ()\), and \(\mathsf{Some}\ x\) is \(\mathsf{in}_2\ x\): "nothing, or a \(\tau\)". Like \(\mathsf{bool}\), \(\mathsf{option}\) is Rocq's, not the lecture's, so it is taken apart with a Rocq <code>match</code>.</p>
@@ -644,12 +692,24 @@ Definition g : 1 + τ → option τ := λ s, case₊ s {in₁ u → None | in₂
 Lemma option_sum : iso f g.
 Proof.
   split.
-  - intros [a |]; reflexivity.
-  - intros [[] | a]; reflexivity.
+  - intros [a |].
+    + cbv delta [f g] beta.
+      simpl.
+      reflexivity.
+    + cbv delta [f g] beta.
+      simpl.
+      reflexivity.
+  - intros [[] | a].
+    + cbv delta [f g] beta.
+      simpl.
+      reflexivity.
+    + cbv delta [f g] beta.
+      simpl.
+      reflexivity.
 Qed.
 
 End OptionSum.
-End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 20 lines">Show code · 20 lines</button></div></div>
+End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 32 lines">Show code · 32 lines</button></div></div>
 
 <h2 class="one-slide">3. The Curry–Howard correspondence</h2>
 <p>Read a type as a proposition, and a program of that type as a proof of it: <em>types as propositions</em>. This is the <strong>Curry–Howard correspondence</strong>, between the simply typed λ-calculus and intuitionistic propositional logic:</p>
