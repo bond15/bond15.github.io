@@ -74,6 +74,7 @@ body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #do
 .topbar .switches { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
 /* displayed math scrolls sideways if it must, never up and down */
 .display, .rules > div { overflow-y: hidden; }
+.rules.ch { margin: .2rem 0; }
 /* folded code cells: the first two lines show, faded out, until opened */
 .cell { margin: .8rem 0 1.2rem; }
 .cell.is-collapsed .CodeMirror { max-height: 3.3em !important; overflow: hidden; cursor: pointer; }
@@ -179,15 +180,22 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 
 <h2>1. Products and sums as data</h2>
 <details class="question">
-<summary>The lecture's products and sums, for reference</summary>
+<summary>The lecture's language, for reference: functions, products and sums</summary>
 <div class="display">\[
 \begin{aligned}
-\tau &::= \cdots \mid \mathbf{1} \mid \tau_1 \times \tau_2 \mid \mathbf{0} \mid \tau_1 + \tau_2 \\
-e &::= \cdots \mid () \mid (e_1, e_2) \mid e.1 \mid e.2 \mid \mathsf{case}_{\mathbf{0}}\ e\ \{\} \\
-  &\quad\mid \mathsf{in}_1\ e \mid \mathsf{in}_2\ e \mid \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} \\
-v &::= \cdots \mid () \mid (v_1, v_2) \mid \mathsf{in}_1\ v \mid \mathsf{in}_2\ v
+\tau &::= \mathbf{0} \mid \mathbf{1} \mid \tau_1 \times \tau_2 \mid \tau_1 + \tau_2 \mid \tau_1 \to \tau_2 \\
+e &::= x \mid \lambda x{:}\tau.\, e \mid e_1\, e_2 \\
+  &\quad\mid () \mid (e_1, e_2) \mid e.1 \mid e.2 \\
+  &\quad\mid \mathsf{case}_{\mathbf{0}}\ e\ \{\} \mid \mathsf{in}_1\ e \mid \mathsf{in}_2\ e \mid \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} \\
+v &::= \lambda x{:}\tau.\, e \mid () \mid (v_1, v_2) \mid \mathsf{in}_1\ v \mid \mathsf{in}_2\ v
 \end{aligned}
 \]</div>
+<div class="rules">
+  <div>\[\frac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}\]</div>
+  <div>\[\frac{\Gamma, x{:}\tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\]</div>
+  <div>\[\frac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}\]</div>
+  <div>\[(\lambda x{:}\tau.\, e)\, v \longrightarrow e[x \mapsto v]\]</div>
+</div>
 <div class="rules">
   <div>\[\frac{}{\Gamma \vdash () : \mathbf{1}}\]</div>
   <div>\[\frac{\Gamma \vdash e_1 : \tau_1 \quad \Gamma \vdash e_2 : \tau_2}{\Gamma \vdash (e_1, e_2) : \tau_1 \times \tau_2}\]</div>
@@ -208,7 +216,7 @@ v &::= \cdots \mid () \mid (v_1, v_2) \mid \mathsf{in}_1\ v \mid \mathsf{in}_2\ 
 \]</div>
 </details>
 
-<p>Rocq already has the lecture's four type formers. With a few notations, we can also write them, and their programs, in the lecture's syntax:</p>
+<p>Rocq already has the lecture's type formers. With a few notations, we can also write them, and their programs, in the lecture's syntax:</p>
 <table class="ref">
   <tr><th>lecture</th><th>Rocq</th></tr>
   <tr><td>\(\tau_1 \times \tau_2\)</td><td><code>A * B</code></td></tr>
@@ -234,8 +242,11 @@ Notation "'case₀' e '{' '}'" := (match e with end) (at level 200, e at level 9
 Notation "'case₊' e '{' 'in₁' x₁ → e₁ | 'in₂' x₂ → e₂ '}'" :=
   (match e with inl x₁ =&gt; e₁ | inr x₂ =&gt; e₂ end)
   (at level 200, e at level 9, x₁ name, x₂ name,
-   format "'case₊'  e  '{' 'in₁'  x₁  →  e₁  |  'in₂'  x₂  →  e₂ '}'").</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 13 lines">Show code · 13 lines</button></div></div>
-<p>In many programming languages, \(\tau_1 + \tau_2\) is the result type \(\mathsf{Result}\ \tau_1\ \tau_2\): either \(\mathsf{in}_1\) of a success value or \(\mathsf{in}_2\) of an error.</p>
+   format "'case₊'  e  '{' 'in₁'  x₁  →  e₁  |  'in₂'  x₂  →  e₂ '}'").
+Notation "A → B" := (A -&gt; B) (at level 99, B at level 200, right associativity) : type_scope.
+Notation "'λ' x .. y , e" := (fun x =&gt; .. (fun y =&gt; e) ..)
+  (at level 200, x binder, y binder, right associativity).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 16 lines">Show code · 16 lines</button></div></div>
+<p>Sums appear in many languages. \(\tau_1 + \tau_2\) is <code>Either[A, B]</code> in Scala, <code>Result&lt;T, E&gt;</code> in Rust, and <code>Either a b</code> in Haskell. In each, \(\mathsf{in}_1\) and \(\mathsf{in}_2\) are <code>Left</code> and <code>Right</code> (Scala, Haskell) or <code>Ok</code> and <code>Err</code> (Rust).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-2">Check (3, true) : nat × bool.
 Check (3, true).1.
 Check (in₁ 3 : nat + bool).
@@ -251,44 +262,71 @@ Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run
 <div class="cell is-collapsed"><textarea class="coq" id="coq-3">Definition absurd {A : Type} (z : 0) : A :=
   case₀ z {}.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
 
-<h3>Counting values</h3>
-<p>For types with finitely many values, write \(|\tau|\) for how many values \(\tau\) has. A pair picks one of each, and a sum picks one side:</p>
+<details class="question">
+<summary>Counting values</summary>
+<p>For types with finitely many values, write \(|\tau|\) for how many values \(\tau\) has. A pair picks one of each, a sum picks one side, and a function picks an output for each input:</p>
 <div class="display">\[
-|\tau_1 \times \tau_2| = |\tau_1| \cdot |\tau_2| \qquad |\tau_1 + \tau_2| = |\tau_1| + |\tau_2| \qquad |\mathbf{1}| = 1 \qquad |\mathbf{0}| = 0
+\begin{gathered}
+|\tau_1 \times \tau_2| = |\tau_1| \cdot |\tau_2| \qquad |\tau_1 + \tau_2| = |\tau_1| + |\tau_2| \qquad |\tau_1 \to \tau_2| = |\tau_2|^{|\tau_1|} \\
+|\mathbf{1}| = 1 \qquad |\mathbf{0}| = 0
+\end{gathered}
 \]</div>
 <p>This is why they are called <em>algebraic</em> data types. For example, \(\mathsf{bool} \times \mathsf{bool}\) has \(2 \cdot 2 = 4\) values, and \(\mathbf{1} + \mathbf{1}\) has \(1 + 1 = 2\), as many as \(\mathsf{bool}\). That is why \(\mathsf{bool}\) is also written \(\mathbf{2}\).</p>
+</details>
 
 <h2>2. Isomorphisms</h2>
-<p>Two types are <strong>isomorphic</strong>, \(A \cong B\), when there are functions \(f : A \to B\) and \(g : B \to A\) that undo each other:</p>
+<p>Two types are <strong>isomorphic</strong>, \(\tau_1 \cong \tau_2\), when there are programs \(f : \tau_1 \to \tau_2\) and \(g : \tau_2 \to \tau_1\) that undo each other:</p>
 <div class="display">\[
-g\,(f\, a) = a \text{ for every } a, \qquad f\,(g\, b) = b \text{ for every } b
+g\,(f\, x) = x \text{ for every } x : \tau_1, \qquad f\,(g\, y) = y \text{ for every } y : \tau_2
 \]</div>
-<p>Then \(A\) and \(B\) have the same values, with different names. Each law of the algebra above is an isomorphism.</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-4">Definition iso {A B : Type} (f : A -&gt; B) (g : B -&gt; A) : Prop :=
+<p>Then \(\tau_1\) and \(\tau_2\) have the same values, with different names.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-4">Definition iso {A B : Type} (f : A → B) (g : B → A) : Prop :=
   (forall a, g (f a) = a) /\ (forall b, f (g b) = b).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
-<p>Every proof below has the same shape: split into the two directions; in each, take the value apart, one case per way it can be built; then each case computes, and <code>reflexivity</code> finishes it.</p>
+<p>Each isomorphism below is a pair of programs \(f\) and \(g\) in the lecture's language. Try writing each program from its type before reading it. In Rocq, each pair sits in a module of its own, so every one can be called <code>f</code> and <code>g</code>; from outside, they are <code>ProdUnit.f</code>, <code>Dist.g</code>, and so on. In Rocq, the proof that the two programs undo each other always has the same shape: split into the two directions; in each, take the value apart, one case per way it can be built; then each case computes, and <code>reflexivity</code> finishes it.</p>
 
-<h3>\(A \times \mathbf{1} \cong A\)</h3>
+<h3>\(\tau \times \mathbf{1} \cong \tau\)</h3>
 <p>Like \(n \cdot 1 = n\). The second part of the pair can only be \(()\), so it carries no information.</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-5">Definition prod_unit_to {A : Type} (p : A × 1) : A := p.1.
-Definition prod_unit_from {A : Type} (a : A) : A × 1 := (a, ()).
+<div class="display">\[
+\begin{aligned}
+f &: \tau \times \mathbf{1} \to \tau & f &= \lambda p{:}\tau \times \mathbf{1}.\, p.1 \\
+g &: \tau \to \tau \times \mathbf{1} & g &= \lambda x{:}\tau.\, (x, ())
+\end{aligned}
+\]</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-5">Module ProdUnit.
+Section ProdUnit.
+Context {A : Type}.
 
-Lemma prod_unit {A : Type} : iso (@prod_unit_to A) prod_unit_from.
+Definition f : A × 1 → A := λ p, p.1.
+Definition g : A → A × 1 := λ a, (a, ()).
+
+Lemma prod_unit : iso f g.
 Proof.
   split.
-  - (* from (to p) = p: a pair is (a, u), and u can only be () *)
+  - (* g (f p) = p: a pair is (a, u), and u can only be () *)
     intros [a u]. destruct u. reflexivity.
-  - (* to (from a) = a: (a, ()).1 is a *)
+  - (* f (g a) = a: (a, ()).1 is a *)
     intros a. reflexivity.
-Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 11 lines">Show code · 11 lines</button></div></div>
+Qed.
 
-<h3>\(A + \mathbf{0} \cong A\)</h3>
+End ProdUnit.
+End ProdUnit.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 18 lines">Show code · 18 lines</button></div></div>
+
+<h3>\(\tau + \mathbf{0} \cong \tau\)</h3>
 <p>Like \(n + 0 = n\). The \(\mathsf{in}_2\) side would hold a value of \(\mathbf{0}\), which can't exist, so only \(\mathsf{in}_1\) ever happens.</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-6">Definition sum_empty_to {A : Type} (s : A + 0) : A :=
-  case₊ s {in₁ a → a | in₂ z → absurd z}.
-Definition sum_empty_from {A : Type} (a : A) : A + 0 := in₁ a.
+<div class="display">\[
+\begin{aligned}
+f &: \tau + \mathbf{0} \to \tau & f &= \lambda s{:}\tau + \mathbf{0}.\, \mathsf{case}_+\ s\ \{\mathsf{in}_1\ x \to x \mid \mathsf{in}_2\ z \to \mathsf{case}_{\mathbf{0}}\ z\ \{\}\} \\
+g &: \tau \to \tau + \mathbf{0} & g &= \lambda x{:}\tau.\, \mathsf{in}_1\ x
+\end{aligned}
+\]</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-6">Module SumEmpty.
+Section SumEmpty.
+Context {A : Type}.
 
-Lemma sum_empty {A : Type} : iso (@sum_empty_to A) sum_empty_from.
+Definition f : A + 0 → A := λ s, case₊ s {in₁ a → a | in₂ z → case₀ z {}}.
+Definition g : A → A + 0 := λ a, in₁ a.
+
+Lemma sum_empty : iso f g.
 Proof.
   split.
   - (* a sum is in₁ a or in₂ z *)
@@ -297,108 +335,241 @@ Proof.
     + (* z : 0 has no cases *)
       destruct z.
   - intros a. reflexivity.
-Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 14 lines">Show code · 14 lines</button></div></div>
+Qed.
 
-<h3>\(A \times B \cong B \times A\)</h3>
-<p>Like \(n \cdot m = m \cdot n\). Swapping the pair, twice, gives it back.</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-7">Definition swap {A B : Type} (p : A × B) : B × A := (p.2, p.1).
+End SumEmpty.
+End SumEmpty.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 20 lines">Show code · 20 lines</button></div></div>
 
-Lemma prod_comm {A B : Type} : iso (@swap A B) (@swap B A).
-Proof.
-  split.
-  - intros [a b]. reflexivity.
-  - intros [b a]. reflexivity.
-Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
+<h3>\(\tau \times \mathbf{0} \cong \mathbf{0}\)</h3>
+<p>Like \(n \cdot 0 = 0\). A pair would need a value of \(\mathbf{0}\), so there are no such pairs, and the proofs have no cases.</p>
+<div class="display">\[
+\begin{aligned}
+f &: \tau \times \mathbf{0} \to \mathbf{0} & f &= \lambda p{:}\tau \times \mathbf{0}.\, p.2 \\
+g &: \mathbf{0} \to \tau \times \mathbf{0} & g &= \lambda z{:}\mathbf{0}.\, \mathsf{case}_{\mathbf{0}}\ z\ \{\}
+\end{aligned}
+\]</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-7">Module ProdEmpty.
+Section ProdEmpty.
+Context {A : Type}.
 
-<h3>\(A \times (B + C) \cong A \times B + A \times C\)</h3>
-<p>Like \(n(m + k) = nm + nk\). A pair whose second part is "a \(B\) or a \(C\)" is the same as "a pair with a \(B\), or a pair with a \(C\)".</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-8">Definition dist_to {A B C : Type} (p : A × (B + C)) : A × B + A × C :=
-  case₊ p.2 {in₁ b → in₁ (p.1, b) | in₂ c → in₂ (p.1, c)}.
-Definition dist_from {A B C : Type} (s : A × B + A × C) : A × (B + C) :=
-  case₊ s {in₁ p → (p.1, in₁ p.2) | in₂ p → (p.1, in₂ p.2)}.
+Definition f : A × 0 → 0 := λ p, p.2.
+Definition g : 0 → A × 0 := λ z, case₀ z {}.
 
-Lemma dist {A B C : Type} : iso (@dist_to A B C) dist_from.
-Proof.
-  split.
-  - (* a pair (a, s), and s is in₁ b or in₂ c *)
-    intros [a [b | c]]; reflexivity.
-  - (* in₁ (a, b) or in₂ (a, c) *)
-    intros [[a b] | [a c]]; reflexivity.
-Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 13 lines">Show code · 13 lines</button></div></div>
-
-<h3>\(\mathsf{bool} \cong \mathbf{1} + \mathbf{1}\)</h3>
-<p>\(\mathsf{true}\) is \(\mathsf{in}_1\ ()\), \(\mathsf{false}\) is \(\mathsf{in}_2\ ()\), and \(\mathsf{if}\) is a case. So the lecture's language didn't need \(\mathsf{bool}\) built in: sums give it to us.</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-9">Definition bool_to (b : bool) : 1 + 1 :=
-  if b then in₁ () else in₂ ().
-Definition bool_from (s : 1 + 1) : bool :=
-  case₊ s {in₁ u → true | in₂ u → false}.
-
-Lemma bool_sum : iso bool_to bool_from.
-Proof.
-  split.
-  - intros [|]; reflexivity.
-  - (* in₁ u or in₂ u, and u can only be () *)
-    intros [[] | []]; reflexivity.
-Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 12 lines">Show code · 12 lines</button></div></div>
-
-<h3>\(\mathsf{option}\ A \cong \mathbf{1} + A\)</h3>
-<p>\(\mathsf{None}\) is \(\mathsf{in}_1\ ()\), and \(\mathsf{Some}\ a\) is \(\mathsf{in}_2\ a\): "nothing, or an \(A\)".</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-10">Definition option_to {A : Type} (o : option A) : 1 + A :=
-  match o with
-  | None =&gt; in₁ ()
-  | Some a =&gt; in₂ a
-  end.
-Definition option_from {A : Type} (s : 1 + A) : option A :=
-  case₊ s {in₁ u → None | in₂ a → Some a}.
-
-Lemma option_sum {A : Type} : iso (@option_to A) option_from.
-Proof.
-  split.
-  - intros [a |]; reflexivity.
-  - intros [[] | a]; reflexivity.
-Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 14 lines">Show code · 14 lines</button></div></div>
-
-<h3>Exercise: \(A \times \mathbf{0} \cong \mathbf{0}\)</h3>
-<p>Like \(n \cdot 0 = 0\). A pair would need a value of \(\mathbf{0}\), so there are no such pairs. Try it before opening the code: what are the two functions, and why do the proofs have no cases?</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-11">Definition prod_empty_to {A : Type} (p : A × 0) : 0 := p.2.
-Definition prod_empty_from {A : Type} (z : 0) : A × 0 := absurd z.
-
-Lemma prod_empty {A : Type} : iso (@prod_empty_to A) prod_empty_from.
+Lemma prod_empty : iso f g.
 Proof.
   split.
   - (* a pair (a, z) with z : 0: no cases *)
     intros [a z]. destruct z.
   - (* z : 0: no cases *)
     intros z. destruct z.
-Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 11 lines">Show code · 11 lines</button></div></div>
+Qed.
+
+End ProdEmpty.
+End ProdEmpty.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 18 lines">Show code · 18 lines</button></div></div>
+
+<h3>\(\tau_1 \times \tau_2 \cong \tau_2 \times \tau_1\)</h3>
+<p>Like \(n \cdot m = m \cdot n\). Both programs swap the pair, and swapping twice gives it back.</p>
+<div class="display">\[
+\begin{aligned}
+f &: \tau_1 \times \tau_2 \to \tau_2 \times \tau_1 & f &= \lambda p{:}\tau_1 \times \tau_2.\, (p.2, p.1) \\
+g &: \tau_2 \times \tau_1 \to \tau_1 \times \tau_2 & g &= \lambda p{:}\tau_2 \times \tau_1.\, (p.2, p.1)
+\end{aligned}
+\]</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-8">Module ProdComm.
+Section ProdComm.
+Context {A B : Type}.
+
+Definition f : A × B → B × A := λ p, (p.2, p.1).
+Definition g : B × A → A × B := λ p, (p.2, p.1).
+
+Lemma prod_comm : iso f g.
+Proof.
+  split.
+  - intros [a b]. reflexivity.
+  - intros [b a]. reflexivity.
+Qed.
+
+End ProdComm.
+End ProdComm.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 16 lines">Show code · 16 lines</button></div></div>
+
+<h3>\(\tau_1 \times (\tau_2 + \tau_3) \cong \tau_1 \times \tau_2 + \tau_1 \times \tau_3\)</h3>
+<p>Like \(n(m + k) = nm + nk\). A pair whose second part is "a \(\tau_2\) or a \(\tau_3\)" is the same as "a pair with a \(\tau_2\), or a pair with a \(\tau_3\)".</p>
+<div class="display">\[
+\begin{aligned}
+f &: \tau_1 \times (\tau_2 + \tau_3) \to \tau_1 \times \tau_2 + \tau_1 \times \tau_3 \\
+f &= \lambda p{:}\tau_1 \times (\tau_2 + \tau_3).\, \mathsf{case}_+\ p.2\ \{\mathsf{in}_1\ y \to \mathsf{in}_1\ (p.1, y) \\
+  &\qquad\qquad \mid \mathsf{in}_2\ z \to \mathsf{in}_2\ (p.1, z)\} \\[6pt]
+g &: \tau_1 \times \tau_2 + \tau_1 \times \tau_3 \to \tau_1 \times (\tau_2 + \tau_3) \\
+g &= \lambda s{:}\tau_1 \times \tau_2 + \tau_1 \times \tau_3.\, \mathsf{case}_+\ s\ \{\mathsf{in}_1\ q \to (q.1, \mathsf{in}_1\ q.2) \\
+  &\qquad\qquad \mid \mathsf{in}_2\ q \to (q.1, \mathsf{in}_2\ q.2)\}
+\end{aligned}
+\]</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-9">Module Dist.
+Section Dist.
+Context {A B C : Type}.
+
+Definition f : A × (B + C) → A × B + A × C :=
+  λ p, case₊ p.2 {in₁ b → in₁ (p.1, b) | in₂ c → in₂ (p.1, c)}.
+Definition g : A × B + A × C → A × (B + C) :=
+  λ s, case₊ s {in₁ p → (p.1, in₁ p.2) | in₂ p → (p.1, in₂ p.2)}.
+
+Lemma dist : iso f g.
+Proof.
+  split.
+  - (* a pair (a, s), and s is in₁ b or in₂ c *)
+    intros [a [b | c]]; reflexivity.
+  - (* in₁ (a, b) or in₂ (a, c) *)
+    intros [[a b] | [a c]]; reflexivity.
+Qed.
+
+End Dist.
+End Dist.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 20 lines">Show code · 20 lines</button></div></div>
+
+<h3>\((\tau_1 \times \tau_2 \to \tau_3) \cong (\tau_1 \to \tau_2 \to \tau_3)\)</h3>
+<p>Like \(c^{a \cdot b} = (c^b)^a\). A function of a pair is the same as a function that takes its two arguments one at a time. \(f\) is usually called \(\mathsf{curry}\), and \(g\) \(\mathsf{uncurry}\).</p>
+<div class="display">\[
+\begin{aligned}
+f &: (\tau_1 \times \tau_2 \to \tau_3) \to (\tau_1 \to \tau_2 \to \tau_3) \\
+f &= \lambda h{:}\tau_1 \times \tau_2 \to \tau_3.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) \\[6pt]
+g &: (\tau_1 \to \tau_2 \to \tau_3) \to (\tau_1 \times \tau_2 \to \tau_3) \\
+g &= \lambda k{:}\tau_1 \to \tau_2 \to \tau_3.\, \lambda p{:}\tau_1 \times \tau_2.\, k\ p.1\ p.2
+\end{aligned}
+\]</div>
+<p>Here the values are functions, and two functions are equal when they agree on every input. Rocq can't prove that, so the code assumes it, as <code>funext</code>.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-10">Module Curry.
+Section Curry.
+Context {A B C : Type}.
+
+Definition f : (A × B → C) → (A → B → C) := λ h, λ a, λ b, h (a, b).
+Definition g : (A → B → C) → (A × B → C) := λ k, λ p, k p.1 p.2.
+
+Axiom funext : forall {X Y : Type} (h k : X → Y),
+  (forall x, h x = k x) → h = k.
+
+Lemma curry : iso f g.
+Proof.
+  split.
+  - (* g (f h) = h: they agree on every pair (a, b) *)
+    intros h. apply funext. intros [a b]. reflexivity.
+  - (* f (g k) = k: computes to λ a, λ b, k a b, which is k *)
+    intros k. reflexivity.
+Qed.
+
+End Curry.
+End Curry.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 21 lines">Show code · 21 lines</button></div></div>
+
+<h3>\(\mathsf{bool} \cong \mathbf{1} + \mathbf{1}\)</h3>
+<p>\(\mathsf{true}\) is \(\mathsf{in}_1\ ()\), \(\mathsf{false}\) is \(\mathsf{in}_2\ ()\), and \(\mathsf{if}\) is a case. So the lecture's language doesn't need \(\mathsf{bool}\) built in: sums give it to us.</p>
+<div class="display">\[
+\begin{aligned}
+f &: \mathsf{bool} \to \mathbf{1} + \mathbf{1} & f &= \lambda b{:}\mathsf{bool}.\, \mathsf{if}\ b\ \mathsf{then}\ \mathsf{in}_1\ ()\ \mathsf{else}\ \mathsf{in}_2\ () \\
+g &: \mathbf{1} + \mathbf{1} \to \mathsf{bool} & g &= \lambda s{:}\mathbf{1} + \mathbf{1}.\, \mathsf{case}_+\ s\ \{\mathsf{in}_1\ x \to \mathsf{true} \mid \mathsf{in}_2\ y \to \mathsf{false}\}
+\end{aligned}
+\]</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-11">Module BoolSum.
+
+Definition f : bool → 1 + 1 := λ b, if b then in₁ () else in₂ ().
+Definition g : 1 + 1 → bool := λ s, case₊ s {in₁ u → true | in₂ u → false}.
+
+Lemma bool_sum : iso f g.
+Proof.
+  split.
+  - intros [|]; reflexivity.
+  - (* in₁ u or in₂ u, and u can only be () *)
+    intros [[] | []]; reflexivity.
+Qed.
+
+End BoolSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 14 lines">Show code · 14 lines</button></div></div>
+
+<h3>\(\mathsf{option}\ \tau \cong \mathbf{1} + \tau\)</h3>
+<p>\(\mathsf{None}\) is \(\mathsf{in}_1\ ()\), and \(\mathsf{Some}\ x\) is \(\mathsf{in}_2\ x\): "nothing, or a \(\tau\)". Like \(\mathsf{bool}\), \(\mathsf{option}\) is Rocq's, not the lecture's, so it is taken apart with a Rocq <code>match</code>.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-12">Module OptionSum.
+Section OptionSum.
+Context {A : Type}.
+
+Definition f : option A → 1 + A :=
+  λ o, match o with
+       | None =&gt; in₁ ()
+       | Some a =&gt; in₂ a
+       end.
+Definition g : 1 + A → option A := λ s, case₊ s {in₁ u → None | in₂ a → Some a}.
+
+Lemma option_sum : iso f g.
+Proof.
+  split.
+  - intros [a |]; reflexivity.
+  - intros [[] | a]; reflexivity.
+Qed.
+
+End OptionSum.
+End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 20 lines">Show code · 20 lines</button></div></div>
 
 <h2>3. Types as propositions</h2>
 <p>Read a type as a proposition, and a program of that type as a proof of it. This is the <strong>Curry–Howard correspondence</strong>, between the simply typed λ-calculus and intuitionistic propositional logic:</p>
 <table class="ref">
   <tr><th>type</th><th>proposition</th><th>Rocq</th></tr>
-  <tr><td>\(\tau_1 \times \tau_2\)</td><td>\(P \wedge Q\)</td><td><code>P /\ Q</code></td></tr>
-  <tr><td>\(\tau_1 + \tau_2\)</td><td>\(P \vee Q\)</td><td><code>P \/ Q</code></td></tr>
-  <tr><td>\(\tau_1 \to \tau_2\)</td><td>\(P \Rightarrow Q\)</td><td><code>P -> Q</code></td></tr>
   <tr><td>\(\mathbf{1}\)</td><td>\(\top\)</td><td><code>True</code></td></tr>
   <tr><td>\(\mathbf{0}\)</td><td>\(\bot\)</td><td><code>False</code></td></tr>
+  <tr><td>\(\tau_1 \times \tau_2\)</td><td>\(\varphi \wedge \psi \)</td><td><code>φ /\ ψ</code></td></tr>
+  <tr><td>\(\tau_1 + \tau_2\)</td><td>\(\varphi \vee \psi \)</td><td><code>φ \/ ψ</code></td></tr>
+  <tr><td>\(\tau_1 \to \tau_2\)</td><td>\(\varphi \Rightarrow \psi \)</td><td><code>φ -> ψ</code></td></tr>
 </table>
-<p>Erase the terms from a typing rule and you get a rule of logic. A pair is a proof of \(P \wedge Q\) from a proof of each; a case is a proof by cases; a case on \(\mathbf{0}\) is "from false, anything":</p>
-<div class="rules">
-  <div>\[\frac{\Gamma \vdash e_1 : \tau_1 \quad \Gamma \vdash e_2 : \tau_2}{\Gamma \vdash (e_1, e_2) : \tau_1 \times \tau_2} \quad\leadsto\quad \frac{P \quad Q}{P \wedge Q}\]</div>
-  <div>\[\frac{\Gamma \vdash e : \tau_1 \times \tau_2}{\Gamma \vdash e.1 : \tau_1} \quad\leadsto\quad \frac{P \wedge Q}{P}\]</div>
-  <div>\[\frac{\Gamma \vdash e : \tau_1}{\Gamma \vdash \mathsf{in}_1\ e : \tau_1 + \tau_2} \quad\leadsto\quad \frac{P}{P \vee Q}\]</div>
-  <div>\[\frac{\Gamma \vdash e : \mathbf{0}}{\Gamma \vdash \mathsf{case}_{\mathbf{0}}\ e\ \{\} : \tau} \quad\leadsto\quad \frac{\bot}{R}\]</div>
-</div>
-<div class="rules"><div>\[\frac{\Gamma \vdash e : \tau_1 + \tau_2 \quad \Gamma, x_1{:}\tau_1 \vdash e_1 : \tau \quad \Gamma, x_2{:}\tau_2 \vdash e_2 : \tau}{\Gamma \vdash \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} : \tau}\]</div><div>\[\leadsto\quad \frac{P \vee Q \quad P \vdash R \quad Q \vdash R}{R}\]</div></div>
-<p>Rocq has both columns, <code>A * B</code> at <code>Type</code> and <code>P /\ Q</code> at <code>Prop</code>, and the programs are the same. Here is <code>swap</code> again as a program, and then the same function as a proof that \(\wedge\) is commutative: <code>conj</code> is the pair for <code>/\</code>.</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-12">Check swap : nat × bool -&gt; bool × nat.
+<p>Erase the terms from a typing rule and you get a rule of logic. From easiest to hardest: \(()\) proves \(\top\); a case on \(\mathbf{0}\) is &ldquo;from false, anything&rdquo;; a pair is a proof of \(\varphi \wedge \psi\) from a proof of each; a case is a proof by cases; a \(\lambda\) proves \(\varphi \Rightarrow \psi\) by assuming \(\varphi\) and proving \(\psi\); and application is modus ponens:</p>
+<div class="rules ch"><div>\[\frac{}{\vdash () : \mathbf{1}}\]</div><div>\[\leadsto\quad \frac{}{\top}\]</div></div>
+<div class="rules ch"><div>\[\frac{\vdash e : \mathbf{0}}{\vdash \mathsf{case}_{\mathbf{0}}\ e\ \{\} : \tau}\]</div><div>\[\leadsto\quad \frac{\bot}{\xi}\]</div></div>
+<div class="rules ch"><div>\[\frac{\vdash e_1 : \tau_1 \quad \vdash e_2 : \tau_2}{\vdash (e_1, e_2) : \tau_1 \times \tau_2}\]</div><div>\[\leadsto\quad \frac{\varphi \quad \psi}{\varphi \wedge \psi}\]</div></div>
+<div class="rules ch"><div>\[\frac{\vdash e : \tau_1 \times \tau_2}{\vdash e.1 : \tau_1}\]</div><div>\[\leadsto\quad \frac{\varphi \wedge \psi}{\varphi}\]</div></div>
+<div class="rules ch"><div>\[\frac{\vdash e : \tau_1}{\vdash \mathsf{in}_1\ e : \tau_1 + \tau_2}\]</div><div>\[\leadsto\quad \frac{\varphi}{\varphi \vee \psi}\]</div></div>
+<div class="rules ch"><div>\[\frac{\vdash e : \tau_1 + \tau_2 \quad x_1{:}\tau_1 \vdash e_1 : \tau \quad x_2{:}\tau_2 \vdash e_2 : \tau}{\vdash \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} : \tau}\]</div><div>\[\leadsto\quad \frac{\varphi \vee \psi \quad \varphi \vdash \xi \quad \psi \vdash \xi}{\xi}\]</div></div>
+<div class="rules ch"><div>\[\frac{x{:}\tau_1 \vdash e : \tau_2}{\vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\]</div><div>\[\leadsto\quad \frac{\varphi \vdash \psi}{\varphi \Rightarrow \psi}\]</div></div>
+<div class="rules ch"><div>\[\frac{\vdash e_1 : \tau_1 \to \tau_2 \quad \vdash e_2 : \tau_1}{\vdash e_1\, e_2 : \tau_2}\]</div><div>\[\leadsto\quad \frac{\varphi \Rightarrow \psi \quad \varphi}{\psi}\]</div></div>
+<h3>Part 2 was logic</h3>
+<p>Now look back at the programs in Part 2, and read each type as a proposition. Every program we wrote was a proof:</p>
+<table class="ref">
+  <tr><th>program's type</th><th>proposition it proves</th></tr>
+  <tr><td>\(\tau \times \mathbf{1} \to \tau\)</td><td>\(\varphi \wedge \top \Rightarrow \varphi \)</td></tr>
+  <tr><td>\(\tau + \mathbf{0} \to \tau\)</td><td>\(\varphi \vee \bot \Rightarrow \varphi \)</td></tr>
+  <tr><td>\(\tau \times \mathbf{0} \to \mathbf{0}\)</td><td>\(\varphi \wedge \bot \Rightarrow \bot\)</td></tr>
+  <tr><td>\(\tau_1 \times \tau_2 \to \tau_2 \times \tau_1\)</td><td>\(\varphi \wedge \psi \Rightarrow \psi \wedge \varphi \)</td></tr>
+  <tr><td>\(\tau_1 \times (\tau_2 + \tau_3) \to \tau_1 \times \tau_2 + \tau_1 \times \tau_3\)</td><td>\(\varphi \wedge (\psi \vee \xi ) \Rightarrow (\varphi \wedge \psi ) \vee (\varphi \wedge \xi )\)</td></tr>
+  <tr><td>\((\tau_1 \times \tau_2 \to \tau_3) \to (\tau_1 \to \tau_2 \to \tau_3)\)</td><td>\((\varphi \wedge \psi \Rightarrow \xi ) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi )\)</td></tr>
+  <tr><td>\((\tau_1 \to \tau_2 \to \tau_3) \to (\tau_1 \times \tau_2 \to \tau_3)\)</td><td>\((\varphi \Rightarrow \psi \Rightarrow \xi ) \Rightarrow (\varphi \wedge \psi \Rightarrow \xi )\)</td></tr>
+</table>
+<p>Each isomorphism has a program in each direction, so it proves both directions of an equivalence, such as \(\varphi \wedge (\psi \vee \xi ) \Leftrightarrow (\varphi \wedge \psi ) \vee (\varphi \wedge \xi )\).</p>
 
-Definition and_swap {P Q : Prop} (h : P /\ Q) : Q /\ P :=
+<h3>One proof, two readings</h3>
+<p>Take currying, \((\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)\). A leaf with no line above it, such as \(\Delta \vdash \varphi\), uses an assumption. Write \(\Delta\) for all three assumptions, \(\varphi \wedge \psi \Rightarrow \xi, \varphi, \psi\). Here is a proof tree using the rules above:</p>
+<div class="display">\[
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi
+  \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle\wedge\mathrm{I}}}
+  {\Delta \vdash \xi}{\scriptstyle\Rightarrow\mathrm{E}}}
+  {\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle\Rightarrow\mathrm{I}}}
+  {\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle\Rightarrow\mathrm{I}}}
+{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle\Rightarrow\mathrm{I}}
+\]</div>
+<p>Now the same tree as a typing derivation. Each assumption gets a variable, and each line gets the program its rule builds. Write \(\sigma\) for \(\tau_1 \times \tau_2 \to \tau_3\), the type that \(\varphi \wedge \psi \Rightarrow \xi\) becomes, and \(\Gamma\) for \(h{:}\sigma, x{:}\tau_1, y{:}\tau_2\):</p>
+<div class="display">\[
+\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma
+  \quad \dfrac{\Gamma \vdash x : \tau_1 \quad \Gamma \vdash y : \tau_2}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle\wedge\mathrm{I}}}
+  {\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle\Rightarrow\mathrm{E}}}
+  {h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle\Rightarrow\mathrm{I}}}
+  {h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle\Rightarrow\mathrm{I}}}
+{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle\Rightarrow\mathrm{I}}
+\]</div>
+<p>The program at the root is the proof:</p>
+<div class="display">\[
+\lambda h{:}\tau_1 \times \tau_2 \to \tau_3.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y)
+\]</div>
+<p>This is exactly \(f\), that is \(\mathsf{curry}\), from Part 2.</p>
+<p>Rocq has both columns, <code>A × B</code> at <code>Type</code> and <code>φ /\ ψ</code> at <code>Prop</code>, and the programs are the same. Here is the swap program <code>ProdComm.f</code> again, and then the same function as a proof that \(\wedge\) is commutative: <code>conj</code> is the pair for <code>/\</code>.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-13">Check ProdComm.f : nat × bool → bool × nat.
+
+Definition and_swap {φ ψ : Prop} (h : φ /\ ψ) : ψ /\ φ :=
   match h with
   | conj p q =&gt; conj q p
   end.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 6 lines">Show code · 6 lines</button></div></div>
 <p>The same proof written with tactics. <code>Print</code> shows the program the tactics built: a match that takes the pair apart and puts it back the other way round.</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-13">Lemma and_swap' (P Q : Prop) : P /\ Q -&gt; Q /\ P.
+<div class="cell is-collapsed"><textarea class="coq" id="coq-14">Lemma and_swap' (φ ψ : Prop) : φ /\ ψ -&gt; ψ /\ φ.
 Proof.
   intros [p q].
   split.
@@ -407,34 +578,37 @@ Proof.
 Qed.
 
 Print and_swap'.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 9 lines">Show code · 9 lines</button></div></div>
-<p>A case is a proof by cases, a case on \(\mathbf{0}\) is ex falso, and distributivity at <code>Prop</code> is the same function as <code>dist_to</code>:</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-14">Definition or_swap {P Q : Prop} (h : P \/ Q) : Q \/ P :=
+<p>A case is a proof by cases, a case on \(\mathbf{0}\) is ex falso, and distributivity and currying at <code>Prop</code> are the same programs as <code>Dist.f</code> and <code>Curry.f</code>:</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-15">Definition or_swap {φ ψ : Prop} (h : φ \/ ψ) : ψ \/ φ :=
   match h with
   | or_introl p =&gt; or_intror p
   | or_intror q =&gt; or_introl q
   end.
 
-Definition ex_falso {P : Prop} (h : False) : P :=
+Definition ex_falso {φ : Prop} (h : False) : φ :=
   match h with end.
 
-Definition and_or_dist {P Q R : Prop} (h : P /\ (Q \/ R))
-  : (P /\ Q) \/ (P /\ R) :=
+Definition and_or_dist {φ ψ ξ : Prop} (h : φ /\ (ψ \/ ξ))
+  : (φ /\ ψ) \/ (φ /\ ξ) :=
   match h with
   | conj p (or_introl q) =&gt; or_introl (conj p q)
   | conj p (or_intror r) =&gt; or_intror (conj p r)
-  end.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 15 lines">Show code · 15 lines</button></div></div>
-<p><strong>Steps simplify proofs.</strong> The lecture's rule \((v_1, v_2).1 \longrightarrow v_1\) builds a pair and immediately takes it apart. As a proof, that is a detour: prove \(P \wedge Q\), only to use \(P\). The step removes the detour, so evaluating a program is simplifying a proof.</p>
+  end.
+
+Definition and_curry {φ ψ ξ : Prop} : (φ /\ ψ → ξ) → (φ → ψ → ξ) :=
+  λ f, λ p, λ q, f (conj p q).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 18 lines">Show code · 18 lines</button></div></div>
+<p><strong>Steps simplify proofs.</strong> The lecture's rule \((v_1, v_2).1 \longrightarrow v_1\) builds a pair and immediately takes it apart. As a proof, that is a detour: prove \(\varphi \wedge \psi \), only to use \(\varphi \). The step removes the detour, so evaluating a program is simplifying a proof.</p>
 
 <h3>Excluded middle</h3>
 <details class="question">
-<summary>Can you prove \(P \vee \neg P\)?</summary>
-<p>Here \(\neg P\) is \(P \Rightarrow \bot\), so as a type it is \(P + (P \to \mathbf{0})\). A program of this type would have to choose \(\mathsf{in}_1\) or \(\mathsf{in}_2\) without knowing anything about \(P\): \(\mathsf{in}_1\) needs a proof of \(P\), and \(\mathsf{in}_2\) needs a way to turn any proof of \(P\) into a contradiction. There is no such program, so \(P \vee \neg P\) can't be proved this way. That is exactly what makes the logic <em>intuitionistic</em>.</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-15">Lemma excluded_middle (P : Prop) : P \/ ~ P.
+<summary>Can you prove \(\varphi \vee \neg \varphi \)?</summary>
+<p>Here \(\neg \varphi \) is \(\varphi \Rightarrow \bot\), so as a type it is \(\varphi + (\varphi \to \mathbf{0})\). A program of this type would have to choose \(\mathsf{in}_1\) or \(\mathsf{in}_2\) without knowing anything about \(\varphi \): \(\mathsf{in}_1\) needs a proof of \(\varphi \), and \(\mathsf{in}_2\) needs a way to turn any proof of \(\varphi \) into a contradiction. There is no such program, so \(\varphi \vee \neg \varphi \) can't be proved this way. That is exactly what makes the logic <em>intuitionistic</em>.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-16">Lemma excluded_middle (φ : Prop) : φ \/ ~ φ.
 Proof.
-  (* left: we would need a proof of P.  right: we would need P -&gt; False. *)
+  (* left: we would need a proof of φ.  right: we would need φ -&gt; False. *)
 Abort.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
-<p>But it can't be refuted either: its double negation, \(\neg\neg(P \vee \neg P)\), has a proof. Given \(h : \neg(P \vee \neg P)\), choose the right side; to show \(\neg P\), assume \(p : P\); then \(\mathsf{in}_1\ p\) contradicts \(h\).</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-16">Lemma not_not_excluded_middle (P : Prop) : ~ ~ (P \/ ~ P).
+<p>But it can't be refuted either: its double negation, \(\neg\neg(\varphi \vee \neg \varphi )\), has a proof. Given \(h : \neg(\varphi \vee \neg \varphi )\), choose the right side; to show \(\neg \varphi \), assume \(p : \varphi \); then \(\mathsf{in}_1\ p\) contradicts \(h\).</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-17">Lemma not_not_excluded_middle (φ : Prop) : ~ ~ (φ \/ ~ φ).
 Proof.
   intros h.
   apply h.
