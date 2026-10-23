@@ -814,17 +814,72 @@ End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="bu
 </div>
 <h3>Curry–Howard–Lambek</h3>
 <p>The correspondence has a third corner. Our language, with \(\times\), \(+\), \(\mathbf{1}\), \(\mathbf{0}\) and \(\to\), is also the language of <strong>bicartesian closed categories</strong> (BCCCs): a type is an object, a program is a morphism (programs that are equal up to β and η are the same morphism), \(\times\) and \(+\) are the product and coproduct, \(\mathbf{1}\) and \(\mathbf{0}\) are the terminal and initial objects, and \(\to\) is the exponential. Lambek showed this for \(\times\), \(\mathbf{1}\) and \(\to\), the <em>cartesian closed</em> part. Together this is the <strong>Curry–Howard–Lambek correspondence</strong>:</p>
-<div class="iso-diagram chl-diagram" role="img" aria-label="A triangle: STLC, the simply typed lambda calculus, at the top; IPL, intuitionistic propositional logic, at the bottom left; BCCC, bicartesian closed categories, at the bottom right. Curry–Howard joins STLC and IPL; Lambek joins STLC and BCCC; categorical logic joins IPL and BCCC.">
+<div class="pieces frames iso-diagram chl-diagram" role="img" aria-label="A triangle: STLC, the simply typed lambda calculus, at the top; IPL, intuitionistic propositional logic, at the bottom left; BCCC, bicartesian closed categories, at the bottom right. Curry–Howard joins STLC and IPL; Lambek joins STLC and BCCC; categorical logic joins IPL and BCCC.">
+<div class="piece frame">
+<svg viewBox="0 0 600 270" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" stroke="currentColor" stroke-width="1.6">
+    <path d="M250,86 L135,186"/>
+    <path d="M350,86 L465,186" visibility="hidden"/>
+    <path d="M152,209 L442,209" visibility="hidden"/>
+  </g>
+  <g fill="currentColor" font-family="Commissioner, sans-serif" text-anchor="middle" font-size="20" font-weight="650">
+    <text x="300" y="30">STLC</text>
+    <text x="120" y="215">IPL</text>
+    <text x="480" y="215" visibility="hidden">BCCC</text>
+  </g>
+  <g fill="currentColor" font-family="Spectral, Georgia, serif" font-size="14" text-anchor="middle">
+    <text x="300" y="50">simply typed λ-calculus</text>
+    <text x="300" y="68" font-style="italic">types, programs</text>
+    <text x="120" y="235">intuitionistic propositional logic</text>
+    <text x="120" y="253" font-style="italic">propositions, proofs</text>
+    <text x="480" y="235" visibility="hidden">bicartesian closed categories</text>
+    <text x="480" y="253" font-style="italic" visibility="hidden">objects, morphisms</text>
+  </g>
+  <g fill="currentColor" font-family="Commissioner, sans-serif" font-size="14">
+    <text x="190" y="128" text-anchor="end">Curry–Howard</text>
+    <text x="410" y="128" text-anchor="start" visibility="hidden">Lambek</text>
+    <text x="300" y="200" text-anchor="middle" visibility="hidden">categorical logic</text>
+  </g>
+</svg>
+</div>
+<div class="piece frame">
+<svg viewBox="0 0 600 270" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" stroke="currentColor" stroke-width="1.6">
+    <path d="M250,86 L135,186"/>
+    <path d="M350,86 L465,186"/>
+    <path d="M152,209 L442,209" visibility="hidden"/>
+  </g>
+  <g fill="currentColor" font-family="Commissioner, sans-serif" text-anchor="middle" font-size="20" font-weight="650">
+    <text x="300" y="30">STLC</text>
+    <text x="120" y="215">IPL</text>
+    <text x="480" y="215">BCCC</text>
+  </g>
+  <g fill="currentColor" font-family="Spectral, Georgia, serif" font-size="14" text-anchor="middle">
+    <text x="300" y="50">simply typed λ-calculus</text>
+    <text x="300" y="68" font-style="italic">types, programs</text>
+    <text x="120" y="235">intuitionistic propositional logic</text>
+    <text x="120" y="253" font-style="italic">propositions, proofs</text>
+    <text x="480" y="235">bicartesian closed categories</text>
+    <text x="480" y="253" font-style="italic">objects, morphisms</text>
+  </g>
+  <g fill="currentColor" font-family="Commissioner, sans-serif" font-size="14">
+    <text x="190" y="128" text-anchor="end">Curry–Howard</text>
+    <text x="410" y="128" text-anchor="start">Lambek</text>
+    <text x="300" y="200" text-anchor="middle" visibility="hidden">categorical logic</text>
+  </g>
+</svg>
+</div>
+<div class="piece frame keep">
 <svg viewBox="0 0 600 270" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.6">
     <path d="M250,86 L135,186"/>
     <path d="M350,86 L465,186"/>
     <path d="M152,209 L442,209"/>
   </g>
-  <g fill="currentColor" font-family="Commissioner, sans-serif" text-anchor="middle">
-    <text x="300" y="30" font-size="20" font-weight="650">STLC</text>
-    <text x="120" y="215" font-size="20" font-weight="650">IPL</text>
-    <text x="480" y="215" font-size="20" font-weight="650">BCCC</text>
+  <g fill="currentColor" font-family="Commissioner, sans-serif" text-anchor="middle" font-size="20" font-weight="650">
+    <text x="300" y="30">STLC</text>
+    <text x="120" y="215">IPL</text>
+    <text x="480" y="215">BCCC</text>
   </g>
   <g fill="currentColor" font-family="Spectral, Georgia, serif" font-size="14" text-anchor="middle">
     <text x="300" y="50">simply typed λ-calculus</text>
@@ -840,6 +895,7 @@ End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="bu
     <text x="300" y="200" text-anchor="middle">categorical logic</text>
   </g>
 </svg>
+</div>
 </div>
 <p class="aside">These categories are always <em>distributive</em>: since \(\tau_1 \times -\) has a right adjoint, \(\tau_1 \to -\), it preserves coproducts and the initial object. So \(\tau_1 \times (\tau_2 + \tau_3) \cong \tau_1 \times \tau_2 + \tau_1 \times \tau_3\) and \(\tau \times \mathbf{0} \cong \mathbf{0}\) from Part 2 hold in every bicartesian closed category.</p>
 <h3>Part 2 was logic</h3>
