@@ -266,7 +266,7 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 <h2>Housekeeping</h2>
 <ul>
   <li>Homework 5 is due <b>tomorrow, Thursday November 12</b>, 11:59 p.m.</li>
-  <li>Homework 6 goes out tomorrow, due <b>Thursday December 3</b>.</li>
+  <li>Homework 6 goes out tomorrow.</li>
   <li>Midterm <b>Wednesday November 18</b>.</li>
   <li>Reading: Pierce chapter 15 for Monday's material, chapter 16 for today. Kozen, lecture 24.</li>
 </ul>
@@ -1038,7 +1038,7 @@ subtype _ _                                 = false</code></pre>
 \dfrac{\dfrac{\dfrac{\dfrac{\vdash e : \tau}{\vdash_{\mathsf a} e : \sigma \quad \sigma <: \tau}{\scriptstyle \text{minimal types}} \qquad e \longrightarrow e'}{\vdash_{\mathsf a} e' : \sigma' \quad \sigma' <: \sigma}{\scriptstyle \text{preservation}}}{\vdash e' : \sigma' \quad \sigma' <: \sigma <: \tau}{\scriptstyle \text{soundness, S-Trans}}}{\vdash e' : \tau}{\scriptstyle \text{T-Sub}}
 \]</div>
 </div>
-<p>Progress for \(\vdash\): minimal types, then progress for \(\vdash_{\mathsf a}\). The declarative system gets the clean statements; the algorithmic one gets the clean proofs; the two theorems of the last section carry results across.</p>
+<p>Progress for \(\vdash\): minimal types, then progress for \(\vdash_{\mathsf a}\). So the declarative system is type safe, with every proof done on the algorithmic side.</p>
 
 <h2>In Rocq</h2>
 <p>The whole of this page as a Rocq file: the language, the subtyping rules, the typing rules with T-Sub, and the derivation above as a proof. Folded; open any block to read it, or press Run to check it in the browser.</p>
