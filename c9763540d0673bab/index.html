@@ -672,7 +672,51 @@ typeof Γ (e₁ e₂)                  = let τ₁ → τ₂ = typeof Γ e₁ in
                                     if <b class="work-key">subtype (typeof Γ e₂) τ₁</b> then τ₂ else fail
 typeof Γ {ℓ₁ = e₁, …, ℓₙ = eₙ}    = {ℓ₁ : typeof Γ e₁, …, ℓₙ : typeof Γ eₙ}
 typeof Γ (e.ℓ)                    = let {…, ℓ:τ, …} = typeof Γ e in τ</code></pre>
-<p>Run it on <code>getx {x = 1, y = 2}</code> again: the test is now <code>subtype {x:int, y:int} {x:int}</code>, which is true. Result: <code>int</code>.</p>
+<p>Run it on <code>getx {x = 1, y = 2}</code> again. The test is now <code>subtype {x:int, y:int} {x:int}</code>:</p>
+<div class="pieces frames top">
+<div class="piece frame"><pre class="lang"><code>subtype : type → type → bool
+
+subtype int  int                            = true
+subtype bool bool                           = true
+subtype (σ₁ → σ₂) (τ₁ → τ₂)                 = subtype τ₁ σ₁  &amp;&amp;  subtype σ₂ τ₂
+<b class="work-key">subtype {k₁:σ₁, …, kₘ:σₘ} {ℓ₁:τ₁, …, ℓₙ:τₙ}  = for each ℓᵢ : τᵢ,
+                                                some kⱼ = ℓᵢ  and  subtype σⱼ τᵢ</b>
+subtype _ _                                 = false</code></pre>
+<p><code>subtype {x:int, y:int} {x:int}</code>: two records, so the record clause.</p></div>
+<div class="piece frame"><pre class="lang"><code>subtype : type → type → bool
+
+subtype int  int                            = true
+subtype bool bool                           = true
+subtype (σ₁ → σ₂) (τ₁ → τ₂)                 = subtype τ₁ σ₁  &amp;&amp;  subtype σ₂ τ₂
+<b class="work-key">subtype {k₁:σ₁, …, kₘ:σₘ} {ℓ₁:τ₁, …, ℓₙ:τₙ}  = for each ℓᵢ : τᵢ,
+                                                some kⱼ = ℓᵢ  and  subtype σⱼ τᵢ</b>
+subtype _ _                                 = false</code></pre>
+<p><code>subtype {x:int, y:int} {x:int}</code>: two records, so the record clause.</p>
+<p>One field on the right, <code>x : int</code>. Is there a <code>kⱼ = x</code> on the left? Yes, <code>x : int</code>.</p></div>
+<div class="piece frame"><pre class="lang"><code>subtype : type → type → bool
+
+<b class="work-key">subtype int  int                            = true</b>
+subtype bool bool                           = true
+subtype (σ₁ → σ₂) (τ₁ → τ₂)                 = subtype τ₁ σ₁  &amp;&amp;  subtype σ₂ τ₂
+subtype {k₁:σ₁, …, kₘ:σₘ} {ℓ₁:τ₁, …, ℓₙ:τₙ}  = for each ℓᵢ : τᵢ,
+                                                some kⱼ = ℓᵢ  and  subtype σⱼ τᵢ
+subtype _ _                                 = false</code></pre>
+<p><code>subtype {x:int, y:int} {x:int}</code>: two records, so the record clause.</p>
+<p>One field on the right, <code>x : int</code>. Is there a <code>kⱼ = x</code> on the left? Yes, <code>x : int</code>.</p>
+<p><code>subtype int int</code>: the base clause. True.</p></div>
+<div class="piece frame keep"><pre class="lang"><code>subtype : type → type → bool
+
+subtype int  int                            = true
+subtype bool bool                           = true
+subtype (σ₁ → σ₂) (τ₁ → τ₂)                 = subtype τ₁ σ₁  &amp;&amp;  subtype σ₂ τ₂
+<b class="work-key">subtype {k₁:σ₁, …, kₘ:σₘ} {ℓ₁:τ₁, …, ℓₙ:τₙ}  = for each ℓᵢ : τᵢ,
+                                                some kⱼ = ℓᵢ  and  subtype σⱼ τᵢ</b>
+subtype _ _                                 = false</code></pre>
+<p><code>subtype {x:int, y:int} {x:int}</code>: two records, so the record clause.</p>
+<p>One field on the right, <code>x : int</code>. Is there a <code>kⱼ = x</code> on the left? Yes, <code>x : int</code>.</p>
+<p><code>subtype int int</code>: the base clause. True.</p>
+<p>No more fields on the right, so true. <code>y</code> was never asked about. Back in <code>typeof</code>: the check passes, result <code>int</code>.</p></div>
+</div>
 
 <h3>Read it back as rules</h3>
 <div class="pieces ch-table two">
