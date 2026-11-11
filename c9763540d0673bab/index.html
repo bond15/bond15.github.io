@@ -277,7 +277,7 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 <p>And the program we want to run: <code>getx</code> applied to a record that has an <code>x</code>, and a <code>y</code> besides.</p>
 <pre class="lang"><code>getx {x = 1, y = 2}</code></pre>
 <p>Nothing can go wrong: <code>getx</code> only reads <code>x</code>, and the record has one. So the judgement we want is the root of a derivation tree, and we start building it from the root up.</p>
-<p>The rules we have for it are Monday's: an application, and a record literal.</p>
+<p>The rules we have for it: an application, and a record literal.</p>
 <div class="rules">
   <div class="piece">\[\frac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \qquad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}\ \text{(T-App)}\]</div>
   <div class="piece">\[\frac{\Gamma \vdash e_i : \tau_i \ \text{ for each } i}{\Gamma \vdash \{\ell_i = e_i\}_{i \in 1..n} : \{\ell_i{:}\tau_i\}_{i \in 1..n}}\ \text{(T-Rcd)}\]</div>
@@ -353,6 +353,11 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 <div class="pieces ch-table two">
 <div class="rules ch ch-labels"><div class="cell ch-label">rule</div><div class="cell ch-label clause">clause of <code>typeof</code></div></div>
 <div class="rules ch"><div class="cell piece">\[\frac{\Gamma \vdash e : \sigma \qquad \sigma <: \tau}{\Gamma \vdash e : \tau}\;{\scriptstyle \text{T-Sub}}\]</div><div class="piece"><pre class="lang"><code>typeof Γ e          = ?</code></pre></div></div>
+</div>
+<div class="pieces">
+<p class="piece">T-Sub has no syntax to grab onto: <code>e</code> is any term.</p>
+<p class="piece">And it needs a σ that appears nowhere in the goal: a guess.</p>
+<p class="piece">The rules are not an algorithm. Pierce: not <em>syntax-directed</em>.</p>
 </div>
 
 <h3>The whole function, as it stands</h3>
@@ -431,12 +436,12 @@ typeof Γ (e.ℓ)                    = let {…, ℓ:τ, …} = typeof Γ e in �
 
 <h3>Write <code>subtype</code></h3>
 <pre class="lang"><code>subtype : type → type → bool</code></pre>
-<pre class="lang pieces"><code><span class="piece">subtype int  int                            = true</span>
-<span class="piece">subtype bool bool                           = true</span>
-<span class="piece">subtype (σ₁ → σ₂) (τ₁ → τ₂)                 = subtype τ₁ σ₁  &amp;&amp;  subtype σ₂ τ₂</span>
-<span class="piece">subtype {k₁:σ₁, …, kₘ:σₘ} {ℓ₁:τ₁, …, ℓₙ:τₙ}  = for each ℓᵢ : τᵢ,
+<pre class="lang pieces"><code><span class="piece">subtype int  int                            </span><span class="piece">= true</span>
+<span class="piece">subtype bool bool                           </span><span class="piece">= true</span>
+<span class="piece">subtype (σ₁ → σ₂) (τ₁ → τ₂)                 </span><span class="piece">= subtype τ₁ σ₁  &amp;&amp;  subtype σ₂ τ₂</span>
+<span class="piece">subtype {k₁:σ₁, …, kₘ:σₘ} {ℓ₁:τ₁, …, ℓₙ:τₙ}  </span><span class="piece">= for each ℓᵢ : τᵢ,
                                                 some kⱼ = ℓᵢ  and  subtype σⱼ τᵢ</span>
-<span class="piece">subtype _ _                                 = false</span></code></pre>
+<span class="piece">subtype _ _                                 </span><span class="piece">= false</span></code></pre>
 
 <h3>Read it back as rules</h3>
 <div class="pieces ch-table two">
@@ -735,7 +740,7 @@ typeof Γ (e.ℓ)                    = let {…, ℓ:τ, …} = typeof Γ e in �
 <div class="display piece frame">\[
 \dfrac{\dfrac{\dfrac{\vdash 1 : \mathsf{int} \quad \vdash 2 : \mathsf{int}}{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}, y{:}\mathsf{int}\}}{\scriptstyle \text{T-Rcd}} \quad \{x{:}\mathsf{int}, y{:}\mathsf{int}\} <: \{x{:}\mathsf{int}\}}{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}\}}{\scriptstyle \text{T-Sub}} \quad \{x{:}\mathsf{int}\} <: \{\}}{\vdash \{x = 1, y = 2\} : \{\}}{\scriptstyle \text{T-Sub}}
 \]<p class="step-note">And a third. All of them correct, only one computed.</p></div>
-<div class="piece frame keep"><p>T-Sub gives the term every type above \(\{x{:}\mathsf{int}, y{:}\mathsf{int}\}\). <code>typeof</code> returns exactly one, the bottom of that pile. So the two judgements cannot agree on \(\tau\): not an iff. What they can agree on: the algorithm\'s type sits below every declarative one. Two statements.</p></div>
+<div class="piece frame keep"><p>T-Sub gives the term every type above \(\{x{:}\mathsf{int}, y{:}\mathsf{int}\}\). <code>typeof</code> returns exactly one, the bottom of that pile. So the two judgements cannot agree on \(\tau\): not an iff. What they can agree on: the algorithm's type sits below every declarative one. Two statements.</p></div>
 </div>
 <p><b>⇒ Soundness.</b> If \(\Gamma \vdash_{\mathsf a} e : \tau\) then \(\Gamma \vdash e : \tau\). Induction on the algorithmic derivation; each rule, as a declarative derivation.</p>
 <div class="pieces frames top">
@@ -778,7 +783,7 @@ typeof Γ (e.ℓ)                    = let {…, ℓ:τ, …} = typeof Γ e in �
 \dfrac{\Gamma \vdash_{\mathsf a} e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash_{\mathsf a} e_2 : \tau \quad \class{hl-blue}{\bbox[#eef1f6,2pt]{\tau <:_{\mathsf a} \tau_1}}}{\Gamma \vdash_{\mathsf a} e_1\, e_2 : \tau_2}{\scriptstyle \text{TA-App}}\ \mapsto\ \dfrac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \class{hl-blue}{\bbox[#eef1f6,2pt]{\dfrac{\Gamma \vdash e_2 : \tau \quad \tau <: \tau_1}{\Gamma \vdash e_2 : \tau_1}{\scriptstyle \text{T-Sub}}}}}{\Gamma \vdash e_1\, e_2 : \tau_2}{\scriptstyle \text{T-App}}
 \]<p class="step-note">The check becomes one T-Sub on the argument; the premises are the inductive hypothesis, and \(<:\) is the subtyping theorem.</p></div>
 </div>
-<p><b>⇐ Completeness, minimal typing.</b> If \(\Gamma \vdash e : \tau\) then \(\Gamma \vdash_{\mathsf a} e : \sigma\) for some \(\sigma <: \tau\): the algorithm\'s type is below every declarative one. Induction on the declarative derivation; one case per rule.</p>
+<p><b>⇐ Completeness, minimal typing.</b> If \(\Gamma \vdash e : \tau\) then \(\Gamma \vdash_{\mathsf a} e : \sigma\) for some \(\sigma <: \tau\): the algorithm's type is below every declarative one. Induction on the declarative derivation; one case per rule.</p>
 <div class="pieces frames top">
 <div class="display piece frame">\[
 \dfrac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}{\scriptstyle \text{T-Var}}
@@ -841,70 +846,41 @@ typeof Γ (e.ℓ)                    = let {…, ℓ:τ, …} = typeof Γ e in �
 </div>
 
 <h2>4. Type safety</h2>
-<p>Same language, same dynamics as HW4: call-by-value, evaluation contexts, two redexes.</p>
+<p>Same dynamics as HW4: call-by-value, two redexes.</p>
 <div class="display">\[
 (\lambda x{:}\tau.\, e)\ v \longrightarrow e[x \mapsto v] \qquad\qquad \{\ell_i = v_i\}.\ell_j \longrightarrow v_j
 \]</div>
+<p>Progress and preservation, as in Lecture 13. For \(\vdash_{\mathsf a}\): one rule per term form, so inverting a derivation is reading its last rule.</p>
+<p><b>Canonical forms.</b> A closed value's algorithmic type says what it is; only TA-Abs gives an arrow type, only TA-Rcd a record type.</p>
 <div class="display">\[
-v ::= \lambda x{:}\tau.\, e \mid \{\ell_i = v_i\} \qquad\qquad E ::= \bullet \mid E\, e \mid v\, E \mid \{\ell_1 = v_1, \ldots, \ell_k = E, \ldots\} \mid E.\ell
+\vdash_{\mathsf a} v : \tau_1 \to \tau_2 \ \Longrightarrow\ v = \lambda x{:}\tau_1.\, e \qquad\qquad \vdash_{\mathsf a} v : \{\ell_i{:}\tau_i\} \ \Longrightarrow\ v = \{\ell_i = v_i\}
 \]</div>
-<p>Lecture 13's two theorems, for which judgement? For \(\vdash_{\mathsf a}\): one rule per term form, so reading a derivation is reading its last rule.</p>
-<h3>Canonical forms</h3>
-<p>A closed value's algorithmic type says what it is.</p>
-<div class="pieces">
-<div class="display piece">\[
-\vdash_{\mathsf a} v : \tau_1 \to \tau_2 \ \text{ and } v \text{ a value} \quad\Longrightarrow\quad v = \lambda x{:}\tau_1.\, e
-\]<p class="step-note">Only TA-Abs gives a value an arrow type, and it gives exactly the annotation.</p></div>
-<div class="display piece">\[
-\vdash_{\mathsf a} v : \{\ell_i{:}\tau_i\} \ \text{ and } v \text{ a value} \quad\Longrightarrow\quad v = \{\ell_i = v_i\}, \ \text{exactly those labels}
-\]<p class="step-note">Only TA-Rcd gives a value a record type. No subsumption to see through.</p></div>
-</div>
 <h3>Progress</h3>
-<p><b>Theorem (progress).</b> If \(\vdash_{\mathsf a} e : \tau\) then \(e\) is a value or \(e \longrightarrow e\prime\) for some \(e\prime\). Induction on the derivation.</p>
-<div class="pieces frames top">
-<div class="display piece frame">\[
-\dfrac{x{:}\tau \in \emptyset}{\emptyset \vdash_{\mathsf a} x : \tau}{\scriptstyle \text{TA-Var}} \qquad \text{impossible}
-\]<p class="step-note">The context is empty: no variable case.</p></div>
-<div class="display piece frame">\[
-\dfrac{x{:}\tau_1 \vdash_{\mathsf a} e : \tau_2}{\vdash_{\mathsf a} \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}{\scriptstyle \text{TA-Abs}} \qquad \text{a value}
-\]<p class="step-note">A λ is a value.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\dfrac{\vdash_{\mathsf a} e_1 : \tau_1 \to \tau_2 \quad \vdash_{\mathsf a} e_2 : \tau \quad \tau <:_{\mathsf a} \tau_1}{\vdash_{\mathsf a} e_1\, e_2 : \tau_2}{\scriptstyle \text{TA-App}} \\[10pt] 
-\text{IH: } e_1 \text{ steps, or is a value; } e_2 \text{ likewise}
-\end{gathered}
-\]<p class="step-note">Application. Three subcases.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\dfrac{\vdash_{\mathsf a} e_1 : \tau_1 \to \tau_2 \quad \vdash_{\mathsf a} e_2 : \tau \quad \tau <:_{\mathsf a} \tau_1}{\vdash_{\mathsf a} e_1\, e_2 : \tau_2}{\scriptstyle \text{TA-App}} \\[10pt] 
-e_1 \longrightarrow e_1\prime: \quad e_1\, e_2 = E[\,r\,] \text{ with } E = E\prime\, e_2, \ \text{ so } e_1\, e_2 \longrightarrow e_1\prime\, e_2
-\end{gathered}
-\]<p class="step-note">The function steps: step in context.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\dfrac{\vdash_{\mathsf a} e_1 : \tau_1 \to \tau_2 \quad \vdash_{\mathsf a} e_2 : \tau \quad \tau <:_{\mathsf a} \tau_1}{\vdash_{\mathsf a} e_1\, e_2 : \tau_2}{\scriptstyle \text{TA-App}} \\[10pt] 
-e_1 = v_1,\ e_2 \longrightarrow e_2\prime: \quad v_1\, e_2 \longrightarrow v_1\, e_2\prime
-\end{gathered}
-\]<p class="step-note">The argument steps: step in context.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\dfrac{\vdash_{\mathsf a} e_1 : \tau_1 \to \tau_2 \quad \vdash_{\mathsf a} e_2 : \tau \quad \tau <:_{\mathsf a} \tau_1}{\vdash_{\mathsf a} e_1\, e_2 : \tau_2}{\scriptstyle \text{TA-App}} \\[10pt] 
-e_1 = v_1,\ e_2 = v_2: \quad \class{hl-blue}{\bbox[#eef1f6,2pt]{v_1 = \lambda x{:}\tau_1.\, e}} \ \text{(canonical forms)}, \ \text{ so } \ v_1\, v_2 \longrightarrow e[x \mapsto v_2]
-\end{gathered}
-\]<p class="step-note">Both values: canonical forms says the function is a λ, so β fires.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\dfrac{\vdash_{\mathsf a} e_i : \tau_i \ \text{(each } i)}{\vdash_{\mathsf a} \{\ell_i = e_i\} : \{\ell_i{:}\tau_i\}}{\scriptstyle \text{TA-Rcd}} \\[10pt] 
-\text{all } e_i \text{ values: a value.} \qquad \text{else the leftmost } e_k \text{ that steps: } \{\ldots, \ell_k = e_k, \ldots\} \longrightarrow \{\ldots, \ell_k = e_k\prime, \ldots\}
-\end{gathered}
-\]<p class="step-note">Record: either every field is a value, or the first non-value steps in context.</p></div>
-<div class="display piece frame keep">\[
-\begin{gathered}
-\dfrac{\vdash_{\mathsf a} e : \{\ell_i{:}\tau_i\}}{\vdash_{\mathsf a} e.\ell_j : \tau_j}{\scriptstyle \text{TA-Proj}} \\[10pt] 
-e \longrightarrow e\prime: \quad e.\ell_j \longrightarrow e\prime.\ell_j \qquad\qquad e = v: \quad \class{hl-blue}{\bbox[#eef1f6,2pt]{v = \{\ell_i = v_i\}}} \ \text{(canonical forms)}, \ \text{ so } \ v.\ell_j \longrightarrow v_j
-\end{gathered}
-\]<p class="step-note">Projection: canonical forms says the value is a record with the field, so the redex fires. \(\square\)</p></div>
-</div>
+<p><b>Theorem (progress).</b> If \(\vdash_{\mathsf a} e : \tau\) then \(e\) is a value or \(e \longrightarrow e'\). Induction on the derivation; the same proof as for STLC, with canonical forms doing the same job.</p>
+<ul class="pieces">
+  <li class="piece"><b>Case \(e = x\).</b> Impossible: the context is empty.</li>
+  <li class="piece"><b>Case \(e = \lambda x{:}\tau_1.\, e'\).</b> A value.</li>
+  <li class="piece"><b>Case \(e = e_1\, e_2\).</b>
+    <ul>
+      <li class="piece">\(e_1\) steps: so does \(e_1\, e_2\).</li>
+      <li class="piece">\(e_1\) a value, \(e_2\) steps: so does \(e_1\, e_2\).</li>
+      <li class="piece">both values: canonical forms, \(e_1 = \lambda x{:}\tau_1.\, e'\), so β fires.</li>
+    </ul>
+  </li>
+  <li class="piece"><b>Case \(e = \{\ell_i = e_i\}\).</b>
+    <ul>
+      <li class="piece">some \(e_k\) steps (the first one): so does \(\{\ell_i = e_i\}\).</li>
+      <li class="piece">all values: a value.</li>
+    </ul>
+  </li>
+  <li class="piece"><b>Case \(e = e'.\ell_j\).</b>
+    <ul>
+      <li class="piece">\(e'\) steps: so does \(e'.\ell_j\).</li>
+      <li class="piece">\(e'\) a value: canonical forms, \(e' = \{\ell_i = v_i\}\) with the field \(\ell_j\), so projection fires. \(\square\)</li>
+    </ul>
+  </li>
+</ul>
+
 <h3>Preservation: the old statement is false</h3>
 <p>Lecture 13: if \(\vdash_{\mathsf a} e : \tau\) and \(e \longrightarrow e\prime\) then \(\vdash_{\mathsf a} e\prime : \tau\)?</p>
 <div class="pieces frames top">
@@ -922,91 +898,103 @@ e \longrightarrow e\prime: \quad e.\ell_j \longrightarrow e\prime.\ell_j \qquad\
 \vdash_{\mathsf a} (\lambda r{:}\{x{:}\mathsf{int}\}.\, r)\ \{x = 1, y = 2\} : \{x{:}\mathsf{int}\} \\[10pt] 
 \longrightarrow\ \{x = 1, y = 2\} \qquad \vdash_{\mathsf a} \{x = 1, y = 2\} : \class{hl-blue}{\bbox[#eef1f6,2pt]{\{x{:}\mathsf{int}, y{:}\mathsf{int}\}}}
 \end{gathered}
-\]<p class="step-note">The result\'s algorithmic type is \(\{x{:}\mathsf{int}, y{:}\mathsf{int}\}\). Not \(\{x{:}\mathsf{int}\}\). The type went down.</p></div>
+\]<p class="step-note">The result's algorithmic type is \(\{x{:}\mathsf{int}, y{:}\mathsf{int}\}\). Not \(\{x{:}\mathsf{int}\}\).</p></div>
 </div>
-<p>The algorithm returns the least type. A step can throw information away, so the least type can only go down. The statement has to say so:</p>
+<p>So the statement has to allow a subtype:</p>
 <div class="display">\[
 \text{If } \vdash_{\mathsf a} e : \tau \text{ and } e \longrightarrow e\prime \text{ then } \vdash_{\mathsf a} e\prime : \tau\prime \text{ for some } \class{hl-blue}{\bbox[#eef1f6,2pt]{\tau\prime <: \tau}}
 \]</div>
 <h3>Substitution</h3>
-<p><b>Lemma (substitution, up to subtyping).</b> If \(\Gamma, x{:}\sigma \vdash_{\mathsf a} e : \tau\) and \(\vdash_{\mathsf a} v : \sigma\prime\) with \(\sigma\prime <: \sigma\), then \(\Gamma \vdash_{\mathsf a} e[x \mapsto v] : \tau\prime\) for some \(\tau\prime <: \tau\). Induction on \(e\).</p><p>Why "up to": the β rule hands the function an argument whose type is only <em>below</em> the parameter\'s. Lecture 13\'s lemma asked for equality.</p>
-<div class="pieces frames top">
-<div class="display piece frame">\[
-e = x: \quad x[x \mapsto v] = v, \quad \vdash_{\mathsf a} v : \sigma\prime, \quad \class{hl-blue}{\bbox[#eef1f6,2pt]{\sigma\prime <: \sigma}} = \tau
-\]<p class="step-note">The variable itself: the result is \(v\), and "up to" is exactly the hypothesis.</p></div>
-<div class="display piece frame">\[
-e = y \neq x: \quad y[x \mapsto v] = y, \quad \Gamma \vdash_{\mathsf a} y : \tau, \quad \tau <: \tau
-\]<p class="step-note">Another variable: unchanged.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\dfrac{\Gamma, x{:}\sigma, y{:}\tau_1 \vdash_{\mathsf a} e : \tau_2}{\Gamma, x{:}\sigma \vdash_{\mathsf a} \lambda y{:}\tau_1.\, e : \tau_1 \to \tau_2}{\scriptstyle \text{TA-Abs}} \\[10pt] 
-\text{IH: } \Gamma, y{:}\tau_1 \vdash_{\mathsf a} e[x \mapsto v] : \tau_2\prime, \ \tau_2\prime <: \tau_2 \qquad \text{so } \ \Gamma \vdash_{\mathsf a} \lambda y{:}\tau_1.\, e[x \mapsto v] : \tau_1 \to \tau_2\prime, \ \tau_1 \to \tau_2\prime <: \tau_1 \to \tau_2
-\end{gathered}
-\]<p class="step-note">λ: the body's type goes down, so the arrow's result does; S-Arrow.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\dfrac{\Gamma, x{:}\sigma \vdash_{\mathsf a} e_i : \tau_i}{\Gamma, x{:}\sigma \vdash_{\mathsf a} \{\ell_i = e_i\} : \{\ell_i{:}\tau_i\}}{\scriptstyle \text{TA-Rcd}} \\[10pt] 
-\text{IH: each } \tau_i\prime <: \tau_i \qquad \text{so } \ \{\ell_i{:}\tau_i\prime\} <: \{\ell_i{:}\tau_i\}
-\end{gathered}
-\]<p class="step-note">Record: fieldwise, then depth.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\dfrac{\Gamma, x{:}\sigma \vdash_{\mathsf a} e : \{\ell_i{:}\tau_i\}}{\Gamma, x{:}\sigma \vdash_{\mathsf a} e.\ell_j : \tau_j}{\scriptstyle \text{TA-Proj}} \\[10pt] 
-\text{IH: } \Gamma \vdash_{\mathsf a} e[x \mapsto v] : \{k_l{:}\sigma_l\} <: \{\ell_i{:}\tau_i\} \qquad \text{so the field } \ell_j \text{ is there, at } \sigma_l <: \tau_j
-\end{gathered}
-\]<p class="step-note">Projection: a record type below the old one still has the field.</p></div>
-<div class="display piece frame keep">\[
-\begin{gathered}
-\dfrac{\Gamma, x{:}\sigma \vdash_{\mathsf a} e_1 : \tau_1 \to \tau_2 \quad \Gamma, x{:}\sigma \vdash_{\mathsf a} e_2 : \tau \quad \tau <:_{\mathsf a} \tau_1}{\Gamma, x{:}\sigma \vdash_{\mathsf a} e_1\, e_2 : \tau_2}{\scriptstyle \text{TA-App}} \\[10pt] 
-\text{IH on } e_1: \ \rho <: \tau_1 \to \tau_2, \ \text{ so } \ \rho = \sigma_1 \to \sigma_2, \ \class{hl-blue}{\bbox[#eef1f6,2pt]{\tau_1 <: \sigma_1}}, \ \sigma_2 <: \tau_2 \\[10pt] 
-\text{IH on } e_2: \ \class{hl-blue}{\bbox[#eef1f6,2pt]{\tau\prime <: \tau}} \qquad \tau\prime <: \tau <: \tau_1 <: \sigma_1 \ \text{ so } \ \class{hl-blue}{\bbox[#eef1f6,2pt]{\tau\prime <:_{\mathsf a} \sigma_1}} \\[10pt] 
-\text{TA-App fires: } \ \Gamma \vdash_{\mathsf a} e_1[x \mapsto v]\ e_2[x \mapsto v] : \sigma_2, \quad \sigma_2 <: \tau_2
-\end{gathered}
-\]<p class="step-note">Application: the completeness case again. Parameter type above, argument type below, transitivity twice. \(\square\)</p></div>
-</div>
+<p><b>Lemma (substitution, up to subtyping).</b> If \(\Gamma, x{:}\sigma \vdash_{\mathsf a} e : \tau\) and \(\vdash_{\mathsf a} v : \sigma\prime\) with \(\sigma\prime <: \sigma\), then \(\Gamma \vdash_{\mathsf a} e[x \mapsto v] : \tau\prime\) for some \(\tau\prime <: \tau\). Needed in the β case of preservation, where the argument's type is only a subtype of the parameter's. Induction on \(e\); the application case is the completeness case again.</p>
+
 <h3>Preservation</h3>
-<p><b>Theorem (preservation, up to subtyping).</b> If \(\vdash_{\mathsf a} e : \tau\) and \(e \longrightarrow e\prime\) then \(\vdash_{\mathsf a} e\prime : \tau\prime\) for some \(\tau\prime <: \tau\). Induction on the step.</p>
+<p>The algorithm returns one type, and the example showed that type can change along a step. So the theorem asks for a subtype of the original type, not the type itself.</p>
+<p><b>Theorem (preservation, up to subtyping).</b> If \(\vdash_{\mathsf a} e : \tau\) and \(e \longrightarrow e'\) then \(\vdash_{\mathsf a} e' : \tau'\) for some \(\tau' <: \tau\). Induction on the step.</p>
+<ul class="pieces">
+  <li class="piece"><b>Case \((\lambda x{:}\sigma.\, e)\ v \longrightarrow e[x \mapsto v]\).</b>
+    <ul>
+      <li class="piece">Hypotheses:
+        <ul>
+          <li class="piece">\(\vdash_{\mathsf a} (\lambda x{:}\sigma.\, e)\ v : \tau\) — given.</li>
+          <li class="piece">TA-App, the only rule for an application:
+            <ul>
+              <li class="piece">\(\vdash_{\mathsf a} \lambda x{:}\sigma.\, e : \sigma \to \tau\)</li>
+              <li class="piece">\(\vdash_{\mathsf a} v : \sigma'\)</li>
+              <li class="piece">\(\sigma' <:_{\mathsf a} \sigma\)</li>
+            </ul>
+          </li>
+          <li class="piece">\(x{:}\sigma \vdash_{\mathsf a} e : \tau\) — TA-Abs, the only rule for a λ.</li>
+        </ul>
+      </li>
+      <li class="piece">Goal: \(\vdash_{\mathsf a} e[x \mapsto v] : \tau'\) for some \(\tau' <: \tau\).</li>
+      <li class="piece">Proof: using \(x{:}\sigma \vdash_{\mathsf a} e : \tau\), \(\vdash_{\mathsf a} v : \sigma'\) and \(\sigma' <: \sigma\), by the substitution lemma we have \(\vdash_{\mathsf a} e[x \mapsto v] : \tau'\) for some \(\tau' <: \tau\).</li>
+    </ul>
+  </li>
+  <li class="piece"><b>Case \(\{\ell_i = v_i\}.\ell_j \longrightarrow v_j\).</b>
+    <ul>
+      <li class="piece">Hypotheses:
+        <ul>
+          <li class="piece">\(\vdash_{\mathsf a} \{\ell_i = v_i\}.\ell_j : \tau\) — given.</li>
+          <li class="piece">TA-Proj:
+            <ul>
+              <li class="piece">\(\vdash_{\mathsf a} \{\ell_i = v_i\} : \{\ell_i{:}\tau_i\}\)</li>
+              <li class="piece">\(\tau = \tau_j\)</li>
+            </ul>
+          </li>
+          <li class="piece">\(\vdash_{\mathsf a} v_i : \tau_i\) for each \(i\) — TA-Rcd.</li>
+        </ul>
+      </li>
+      <li class="piece">Goal: \(\vdash_{\mathsf a} v_j : \tau'\) for some \(\tau' <: \tau_j\).</li>
+      <li class="piece">Proof: using \(\vdash_{\mathsf a} v_j : \tau_j\), take \(\tau' = \tau_j\); by reflexivity, \(\tau_j <: \tau_j\).</li>
+    </ul>
+  </li>
+  <li class="piece"><b>Case \(E[r] \longrightarrow E[r']\) with \(r \longrightarrow r'\).</b>
+    <ul>
+      <li class="piece">Hypotheses:
+        <ul>
+          <li class="piece">\(\vdash_{\mathsf a} E[r] : \tau\) — given.</li>
+          <li class="piece">\(\vdash_{\mathsf a} r : \rho\) — the redex has a type of its own inside the derivation.</li>
+          <li class="piece">Inductive hypothesis on \(r \longrightarrow r'\):
+            <ul>
+              <li class="piece">\(\vdash_{\mathsf a} r' : \rho'\)</li>
+              <li class="piece">\(\rho' <: \rho\)</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+      <li class="piece">Goal: \(\vdash_{\mathsf a} E[r'] : \tau'\) for some \(\tau' <: \tau\).</li>
+      <li class="piece">Proof: by cases on \(E\), using \(\vdash_{\mathsf a} r' : \rho'\) and \(\rho' <: \rho\) in place of \(r\)'s typing. Function position: by S-Arrow, \(\rho'\) is an arrow with parameter type above \(\tau_1\), so by transitivity the check still passes. Argument position: by transitivity, \(\rho' <: \rho <:_{\mathsf a} \tau_1\). Record field: by depth, the record type is below the old one. Projection: by SA-Rcd, the field is still there. In each case \(\vdash_{\mathsf a} E[r'] : \tau'\) with \(\tau' <: \tau\). \(\square\)</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>Back to the declarative system</h3>
+<p>In review, three theorems:</p>
+<ul class="pieces">
+  <li class="piece"><b>Minimal types.</b> If \(\Gamma \vdash e : \tau\) then \(\Gamma \vdash_{\mathsf a} e : \sigma\) for some \(\sigma <: \tau\).</li>
+  <li class="piece"><b>Preservation, up to subtyping.</b> If \(\vdash_{\mathsf a} e : \tau\) and \(e \longrightarrow e\prime\) then \(\vdash_{\mathsf a} e\prime : \tau\prime\) for some \(\tau\prime <: \tau\).</li>
+  <li class="piece"><b>Soundness.</b> If \(\Gamma \vdash_{\mathsf a} e : \tau\) then \(\Gamma \vdash e : \tau\).</li>
+</ul>
+<p><b>Corollary (preservation for the declarative system).</b></p>
+<p style="margin-left:2em">If \(\vdash e : \tau\) and \(e \longrightarrow e\prime\) then \(\vdash e\prime : \tau\).</p>
 <div class="pieces frames top">
 <div class="display piece frame">\[
-\begin{gathered}
-\dfrac{x{:}\sigma \vdash_{\mathsf a} e : \tau_2 \quad \vdash_{\mathsf a} v : \sigma\prime \quad \sigma\prime <:_{\mathsf a} \sigma}{\vdash_{\mathsf a} (\lambda x{:}\sigma.\, e)\ v : \tau_2}{\scriptstyle \text{TA-App, TA-Abs}} \\[10pt] 
-(\lambda x{:}\sigma.\, e)\ v \longrightarrow e[x \mapsto v] \qquad \text{substitution lemma: } \vdash_{\mathsf a} e[x \mapsto v] : \tau_2\prime, \ \tau_2\prime <: \tau_2
-\end{gathered}
-\]<p class="step-note">β: read the two rules off the derivation; the substitution lemma does the rest.</p></div>
+\vdash e : \tau \qquad\qquad e \longrightarrow e'
+\]</div>
 <div class="display piece frame">\[
-\begin{gathered}
-\dfrac{\vdash_{\mathsf a} v_i : \tau_i \ \text{(each } i)}{\vdash_{\mathsf a} \{\ell_i = v_i\}.\ell_j : \tau_j}{\scriptstyle \text{TA-Proj, TA-Rcd}} \\[10pt] 
-\{\ell_i = v_i\}.\ell_j \longrightarrow v_j \qquad \vdash_{\mathsf a} v_j : \tau_j, \ \tau_j <: \tau_j
-\end{gathered}
-\]<p class="step-note">Projection: the same type. A record value's algorithmic type lists its fields exactly.</p></div>
+\dfrac{\vdash e : \tau}{\vdash_{\mathsf a} e : \sigma \quad \sigma <: \tau}{\scriptstyle \text{minimal types}} \qquad e \longrightarrow e'
+\]</div>
 <div class="display piece frame">\[
-\begin{gathered}
-E[\,r\,] \longrightarrow E[\,r\prime\,], \ \text{ with } r \longrightarrow r\prime \ \text{ a redex step} \\[10pt] 
-\text{IH: } r\prime \text{ gets a type below } r\text{\'s. Does the context still type?}
-\end{gathered}
-\]<p class="step-note">Context cases: the redex's type went down; the surrounding term must absorb that.</p></div>
+\dfrac{\dfrac{\vdash e : \tau}{\vdash_{\mathsf a} e : \sigma \quad \sigma <: \tau}{\scriptstyle \text{minimal types}} \qquad e \longrightarrow e'}{\vdash_{\mathsf a} e' : \sigma' \quad \sigma' <: \sigma}{\scriptstyle \text{preservation}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\dfrac{\vdash e : \tau}{\vdash_{\mathsf a} e : \sigma \quad \sigma <: \tau}{\scriptstyle \text{minimal types}} \qquad e \longrightarrow e'}{\vdash_{\mathsf a} e' : \sigma' \quad \sigma' <: \sigma}{\scriptstyle \text{preservation}}}{\vdash e' : \sigma' \quad \sigma' <: \sigma <: \tau}{\scriptstyle \text{soundness, S-Trans}}
+\]</div>
 <div class="display piece frame keep">\[
-\begin{gathered}
-E = E\prime\, e_2: \quad \text{function position. Below an arrow is an arrow with parameter type above: the check } \tau <:_{\mathsf a} \tau_1 \text{ still passes (transitivity).} \\[10pt] 
-E = v\, E\prime: \quad \text{argument position. } \tau\prime <: \tau <:_{\mathsf a} \tau_1 \text{: transitivity.} \\[10pt] 
-E = \{\ldots, \ell_k = E\prime, \ldots\}: \quad \text{depth.} \qquad E = E\prime.\ell: \quad \text{the field is still there.}
-\end{gathered}
-\]<p class="step-note">The same four moves as in the substitution lemma. \(\square\)</p></div>
+\dfrac{\dfrac{\dfrac{\dfrac{\vdash e : \tau}{\vdash_{\mathsf a} e : \sigma \quad \sigma <: \tau}{\scriptstyle \text{minimal types}} \qquad e \longrightarrow e'}{\vdash_{\mathsf a} e' : \sigma' \quad \sigma' <: \sigma}{\scriptstyle \text{preservation}}}{\vdash e' : \sigma' \quad \sigma' <: \sigma <: \tau}{\scriptstyle \text{soundness, S-Trans}}}{\vdash e' : \tau}{\scriptstyle \text{T-Sub}}
+\]</div>
 </div>
-<h3>Back to the declarative system</h3>
-<p><b>Corollary.</b> If \(\vdash e : \tau\) and \(e \longrightarrow e\prime\) then \(\vdash e\prime : \tau\). The same type.</p>
-<div class="pieces">
-<div class="display piece">\[
-\vdash e : \tau \quad\xrightarrow{\text{completeness}}\quad \vdash_{\mathsf a} e : \sigma, \ \sigma <: \tau
-\]</div>
-<div class="display piece">\[
-\xrightarrow{\text{preservation}}\quad \vdash_{\mathsf a} e\prime : \sigma\prime, \ \sigma\prime <: \sigma
-\]</div>
-<div class="display piece">\[
-\xrightarrow{\text{soundness}}\quad \vdash e\prime : \sigma\prime \qquad\qquad \xrightarrow{\text{T-Sub}, \ \sigma\prime <: \sigma <: \tau}\quad \vdash e\prime : \tau
-\]</div>
-<p class="piece">Progress for \(\vdash\): completeness, then progress for \(\vdash_{\mathsf a}\). The declarative system gets the clean statements; the algorithmic one gets the clean proofs; the two theorems of the last section carry results across.</p>
-</div>
+<p>Progress for \(\vdash\): minimal types, then progress for \(\vdash_{\mathsf a}\). The declarative system gets the clean statements; the algorithmic one gets the clean proofs; the two theorems of the last section carry results across.</p>
 
 <h2>In Rocq</h2>
 <p>The whole of this page as a Rocq file: the language, the subtyping rules, the typing rules with T-Sub, and the derivation above as a proof. Folded; open any block to read it, or press Run to check it in the browser.</p>
