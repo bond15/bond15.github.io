@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<script>
+/* Pick the theme before anything paints: the saved choice, else the OS setting. */
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('jscoq-page-theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark')
+    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<title>Lecture 20: Subtyping</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jscoq@0.17.1/dist/frontend/index.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;650&amp;family=Spectral:ital,wght@0,400;0,600;1,400&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+/* Layout: one reading column, course-handout style; each inference rule is its own block that wraps on phones. */
+:root {
+  --bg: #fbfbf8;
+  --fg: #1d2330;
+  --muted: #5a6273;
+  --navy: #00274c;
+  --maize: #e0a800;
+  --panel: #eef1f6;
+  --line: #d6dbe4;
+  --head: var(--navy);
+  --code-bg: #f3f5f9;
+  --kw: #7a2e8c;
+  --str: #2f6b2f;
+  --num: #a14a00;
+  --font-display: "Commissioner", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Spectral", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+:root[data-theme="dark"] {
+  --bg: #0f1724; --fg: #e4e8ef; --muted: #9aa4b5; --navy: #8fb4e3; --maize: #ffcb05;
+  --panel: #172234; --line: #2a3850; --head: #ffcb05; --code-bg: #121c2c; --kw: #d7a6f0; --str: #9fd39f; --num: #f2b073; color-scheme: dark;
+}
+#document { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 1.05rem; line-height: 1.6; padding-inline: 16px; padding-block: 1.5rem 4rem; }
+#document .CodeMirror { font-size: .8rem; height: auto; }
+#document textarea.coq { width: 100%; }
+header { border-bottom: 3px solid var(--maize); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.eyebrow { font-family: var(--font-display); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1, h2, h3 { font-family: var(--font-display); color: var(--head); text-wrap: balance; line-height: 1.25; }
+h1 { font-size: 1.7rem; margin: .3rem 0 .4rem; font-weight: 650; }
+h2 { font-size: 1.3rem; margin: 2.6rem 0 .6rem; font-weight: 650; padding-top: .4rem; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 1.6rem 0 .4rem; font-weight: 650; }
+p, li { max-width: 65ch; }
+.lede { color: var(--muted); margin: 0; }
+code { font-family: var(--font-mono); font-size: .82em; background: var(--panel); padding: .05em .3em; border-radius: 3px; overflow-wrap: anywhere; }
+.rules { display: flex; flex-wrap: wrap; gap: .4rem 2rem; justify-content: center; align-items: flex-end; margin: .8rem 0 1rem; }
+.rules > div { min-width: 0; max-width: 100%; overflow-x: auto; }
+.display { overflow-x: auto; max-width: 100%; margin: .8rem 0; }
+mjx-container[display="true"] { margin: .4em 0 !important; }
+.thm { background: var(--panel); border-left: 3px solid var(--navy); padding: .7rem 1rem; margin: 1rem 0; }
+.thm p { margin: .3rem 0; }
+.thm .name { font-family: var(--font-display); font-weight: 650; color: var(--navy); }
+.proof { margin: .4rem 0 1rem; }
+.proof em:first-child { font-style: italic; }
+ul { padding-left: 1.2rem; }
+li { margin: .25rem 0; }
+
+#document code { color: var(--fg); }
+/* jsCoq's own stylesheet paints the document white; use the page tokens instead */
+body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #document { background: var(--bg) !important; color: var(--fg) !important; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+#theme-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+#theme-toggle:hover, #fold-toggle:hover, #present-toggle:hover, #panel-toggle:hover { border-color: var(--navy); }
+#fold-toggle, #present-toggle, #panel-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+.topbar .switches { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+/* displayed math scrolls sideways if it must, never up and down */
+.display, .rules > div { overflow-y: hidden; }
+#document .iso-diagram { color: var(--fg); margin: .6rem auto; max-width: 30rem; }
+#document p.aside { font-size: .85em; color: var(--muted); }
+/* math marked with \\class{hl-blue}{\\bbox[...]{...}}: the step note's soft blue behind it */
+mjx-container .hl-blue { color: var(--fg); }
+mjx-container .hl-blue rect { fill: var(--panel) !important; stroke: var(--line) !important; stroke-width: 20 !important; }
+#document:not(.presenting) mjx-container .hl-blue rect { fill: none !important; stroke: none !important; }
+#document pre.lang { background: var(--code-bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: .6rem .9rem; margin: .6rem 0 .9rem; overflow-x: auto; font-family: var(--font-mono); font-size: .78rem; line-height: 1.45; }
+#document pre.lang code { background: none; padding: 0; font-size: inherit; white-space: pre; }
+#document .iso-diagram svg { display: block; width: 100%; height: auto; }
+/* a program, one line per piece, left aligned */
+#document .display.prog { margin: .15rem 0; padding-left: 1.5rem; }
+#document .display.prog + :not(.display.prog) { margin-top: .9rem; }
+#document .display.prog mjx-container[display="true"] { text-align: left !important; margin: .3em 0 !important; }
+.rules.ch { margin: .2rem 0; align-items: center; }
+/* a tree built in stages: the page shows the last stage; slides show one at a time, in one place */
+#document .frames > .frame:not(.keep) { display: none; }
+/* staged trees get wide: a touch smaller */
+#document .frames .display { font-size: .9em; }
+#document.presenting .frames { display: grid; }
+#document.presenting .frames > .frame { display: block; grid-area: 1 / 1; align-self: end; }
+/* frames that grow downward (code with narration under it) stay pinned to the top */
+#document.presenting .frames.top > .frame { align-self: start; }
+/* what each stage did, in one sentence: only in slide mode */
+#document .step-note { display: none; }
+/* a note inside an ordinary piece shows only while that piece is the latest revealed */
+#document.presenting .pieces:not(.frames) > .piece:not(.current) .step-note { display: none !important; }
+#document.presenting .frames > .frame:not(.current) .step-note { display: none !important; }
+#document.presenting .step-note { display: block; text-align: left; font-size: .8em; line-height: 1.4; min-height: 4.2em;
+  margin: .6rem auto 0; max-width: 34em; padding: .5rem .8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+/* opacity, not visibility: a stage's own visible parts must not show through */
+#document.presenting .frames > .frame.off-frame, #document.presenting .frames > .frame.off-step { opacity: 0; }
+.rules.ch > .ch-name { margin-left: -1.2rem; font-size: .9em; overflow: visible; }
+/* the rule correspondence as a table: typing rule | logic rule | name, labeled on top */
+#document .ch-table { display: grid; grid-template-columns: max-content max-content max-content; justify-content: safe center; align-items: center; column-gap: 1.2rem; row-gap: .3rem; margin: .8rem 0 1rem; overflow-x: auto; }
+#document .ch-table .piece { min-width: auto; max-width: none; overflow: visible; }
+#document .ch-table > .rules.ch { display: contents; }
+#document .ch-table .ch-name { margin-left: 0; justify-self: start; }
+#document .ch-table .ch-label { order: -1; text-align: center; font-family: var(--font-display); font-weight: 650; color: var(--head); padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
+#document .ch-table .ch-label span { display: block; font-family: var(--font-body); font-weight: 400; font-size: .8em; color: var(--muted); }
+#document .ch-table .ch-label.ipl { grid-column: 2 / span 2; }
+/* a two-column table: rule | clause.  Rule cells (.cell) are always shown; the clauses (.piece) appear one per press */
+#document .ch-table.two { grid-template-columns: max-content minmax(0, 1fr); justify-content: start; column-gap: 1.6rem; overflow-x: visible; }
+#document .ch-table.two .piece { min-width: 0; }
+/* narrow windows (or the goals panel open on a small projector): rule above its clause */
+@media (max-width: 1100px) {
+  #document .ch-table.two { grid-template-columns: minmax(0, 1fr); }
+  #document .ch-table.two .ch-label.clause { grid-column: 1; }
+  #document .ch-table.two .ch-label { display: none; }
+}
+#document.presenting pre.lang { font-size: 1rem; }
+#document .ch-table.two .ch-label.clause { grid-column: 2; }
+#document .ch-table .cell { min-width: auto; }
+#document .ch-table pre.lang { margin: .2rem 0; }
+#document .ch-table .cell .display, #document .ch-table .cell mjx-container[display="true"] { margin: .2em 0 !important; }
+/* folded code cells: the first two lines show, faded out, until opened */
+.cell { margin: .8rem 0 1.2rem; }
+.cell.is-collapsed .CodeMirror { max-height: 3.3em !important; overflow: hidden; cursor: pointer; }
+.cell.is-collapsed .CodeMirror::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2.2em; background: linear-gradient(to bottom, transparent, var(--code-bg)); pointer-events: none; z-index: 10; }
+.cell-bar { display: flex; align-items: center; gap: 1rem; margin-top: .25rem; }
+.cell-run { font-family: var(--font-display); font-size: .78rem; font-weight: 650; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .15rem .7rem; cursor: pointer; }
+.cell-run:hover { border-color: var(--navy); }
+.cell-run:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+.cell-toggle { display: block; font-family: var(--font-display); font-size: .78rem; color: var(--navy); background: none; border: 0; padding: .15rem 0; cursor: pointer; }
+.cell-toggle:hover { text-decoration: underline; }
+.cell-toggle:focus-visible, #fold-toggle:focus-visible, #present-toggle:focus-visible, #panel-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+#theme-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+
+/* ---- jsCoq in the page's colors ------------------------------------
+   Three hues only, taken from the page: blue for the language (commands
+   bold, keywords plain, tactics a second, greener blue), amber for
+   literals and bullets, gray for comments.  Everything else is plain
+   text.  All at least about 5:1 on the code background, for projectors. */
+:root {
+  --syn-cmd: #0b4f9c; --syn-tactic: #0b6378; --syn-amber: #8a5a00; --syn-comment: #5c6370;
+  --ok-bg: #e7ecf4; --pending-bg: #fbefc4; --failed-bg: #f5d3d3;
+}
+:root[data-theme="dark"] {
+  --syn-cmd: #8cb4ff; --syn-tactic: #6cc4d6; --syn-amber: #f2c14e; --syn-comment: #9aa3b3;
+  --ok-bg: #19273b; --pending-bg: #3b3313; --failed-bg: #4a1f26;
+}
+/* editors */
+/* a question with its answer folded underneath */
+#document details.question { border: 1px solid var(--line); border-radius: 8px; padding: .6rem 1rem; margin: 1rem 0; background: var(--bg); }
+#document details.question > summary { cursor: pointer; font-family: var(--font-display); font-weight: 650; color: var(--head); }
+#document details.question[open] > summary { margin-bottom: .4rem; }
+/* nested-sets diagram */
+.venn { margin: 1rem 0; }
+.venn svg { display: block; width: 100%; max-width: 600px; height: auto; margin: 0 auto; }
+.venn .v-all { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+.venn .v-safe { fill: var(--ok-bg); stroke: var(--navy); stroke-width: 1.5; }
+.venn .v-typed { fill: var(--pending-bg); stroke: var(--maize); stroke-width: 2; }
+.venn .v-label { fill: var(--fg); font-family: var(--font-display); font-weight: 650; font-size: 20px; }
+.venn .v-ex { fill: var(--fg); font-family: var(--font-body); font-style: italic; font-size: 18px; }
+#document .cite { font-size: .85rem; color: var(--muted); }
+#document ul.refs { font-size: .88rem; color: var(--muted); padding-left: 1.1rem; }
+#document ul.refs li { margin: .3rem 0; }
+#document table.ref { border-collapse: collapse; margin: .8rem 0 1rem; font-size: .95rem; }
+#document table.ref th, #document table.ref td { border-bottom: 1px solid var(--line); padding: .3rem .9rem .3rem 0; text-align: left; }
+#document table.ref th { font-family: var(--font-display); font-weight: 650; color: var(--head); }
+/* step rules that do the real work */
+.rules > div.work { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 6px; padding: 0 .7rem; }
+.work-key { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 4px; padding: 0 .3rem; }
+/* math marked new with \\class{hl-new}{...}: maize marker behind the text */
+mjx-container .hl-new { color: var(--fg); }
+mjx-container .hl-new rect { fill: var(--pending-bg) !important; stroke: var(--maize) !important; stroke-width: 20 !important; }
+.cm-s-d6.CodeMirror { background: var(--code-bg) !important; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; }
+.cm-s-d6 .CodeMirror-gutters { background: var(--code-bg) !important; border-right: 1px solid var(--line) !important; }
+.cm-s-d6 .CodeMirror-linenumber { color: var(--muted) !important; }
+.cm-s-d6 .CodeMirror-cursor { border-left-color: var(--fg) !important; }
+.cm-s-d6 .CodeMirror-selected, .cm-s-d6.CodeMirror-focused .CodeMirror-selected { background: var(--line) !important; }
+.cm-s-d6 span[class*="cm-"] { color: var(--fg) !important; font-weight: 400; font-style: normal; }
+.cm-s-d6 span.cm-builtin { color: var(--syn-cmd) !important; font-weight: 700; }
+.cm-s-d6 span.cm-keyword { color: var(--syn-cmd) !important; }
+.cm-s-d6 span.cm-tactic { color: var(--syn-tactic) !important; font-weight: 600; }
+.cm-s-d6 span.cm-terminator { color: var(--syn-tactic) !important; font-weight: 700; }
+.cm-s-d6 span.cm-comment { color: var(--syn-comment) !important; font-style: italic; }
+.cm-s-d6 span.cm-string, .cm-s-d6 span.cm-number { color: var(--syn-amber) !important; }
+.cm-s-d6 span.cm-coq-bullet { color: var(--syn-amber) !important; font-weight: 700; }
+.cm-s-d6 span.cm-coq-focus { color: var(--muted) !important; }
+.cm-s-d6 span.CodeMirror-matchingbracket { color: var(--fg) !important; outline: 1px solid var(--maize); text-shadow: none; }
+/* how far Coq has checked */
+.cm-s-d6 .coq-eval-ok { background-color: var(--ok-bg) !important; }
+.cm-s-d6 .coq-eval-ok.coq-highlight { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-pending { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-failed { background-color: var(--failed-bg) !important; }
+/* the goals / messages panel */
+body.jscoq-main #panel-wrapper { background: var(--bg) !important; color: var(--fg) !important; border-left: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel { border-top: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel > .caption { background: var(--panel) !important; color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper #toolbar { border-bottom: 1px solid var(--line) !important; }
+body.jscoq-main #vsep, body.jscoq-main #hsep { background: var(--line) !important; }
+body.jscoq-main #panel-wrapper a, body.jscoq-main #panel-wrapper a:visited { color: var(--navy) !important; }
+body.jscoq-main #panel-wrapper #goal-panel p.system { color: var(--muted) !important; }
+body.jscoq-main #panel-wrapper [class*="constr."], body.jscoq-main #panel-wrapper [class*="module."],
+body.jscoq-main #panel-wrapper [class*="tactic."] { color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper .constr\.keyword, body.jscoq-main #panel-wrapper .module\.keyword,
+body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !important; }
+
+/* slide mode: one slide of the page at a time, at projector size */
+#document hr.slide-break { display: none; }
+#document.presenting .off-step { visibility: hidden; }
+/* collapsed table borders ignore visibility */
+#document.presenting tr.off-step > td, #document.presenting tr.off-step > th { border-color: transparent; }
+#document .slide-only { display: none; }
+/* notebook-only text (e.g. the narration a slide carries in its step notes) */
+#document.presenting .page-only { display: none; }
+#document.presenting .off-slide { display: none !important; }
+#document.presenting { font-size: 1.4rem; line-height: 1.5; padding-block: 1rem 5rem; }
+#document.presenting .CodeMirror { font-size: 1.05rem; }
+#document.presenting .topbar .eyebrow { display: none; }
+#document.presenting h1 { font-size: 1.8em; }
+#document.presenting h2 { font-size: 1.5em; margin-top: .4rem; border-top: 0; }
+#document.presenting h3 { font-size: 1.2em; margin-top: .4rem; }
+#document.presenting .topbar button { font-size: .8rem; }
+#document.presenting table.ref { font-size: .85em; }
+#document.presenting details:not(.unfold) .display, #document.presenting details:not(.unfold) .rules { font-size: .72em; }
+#document.presenting details.unfold { border: 0; padding: 0; margin: 0; background: none; }
+#document.presenting details.unfold > summary { display: none; }
+#document.presenting .slide-only { display: block; }
+#document.presenting #slide-context { font-family: var(--font-display); font-weight: 650; font-size: .8rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 .4rem; }
+#document.presenting #slide-context:empty { display: none; }
+#slide-nav { position: fixed; left: 16px; bottom: 14px; z-index: 50; display: none; gap: .4rem; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .3rem .5rem; font-family: var(--font-display); font-size: .9rem; color: var(--fg); }
+#document.presenting ~ #slide-nav, #slide-nav.on { display: flex; }
+#slide-nav button { font: inherit; }
+#slide-nav .count { min-width: 4.5em; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body class="jscoq-main">
+<div id="ide-wrapper" class="toggled">
+<div id="code-wrapper">
+<div id="document">
+<div class="topbar">
+<p class="eyebrow" style="margin-top:0">Runs in your browser: click into a code block and press Alt+↓ (Option+↓ on a Mac) to step, or Alt+Enter to run to the cursor. Goals show in the panel on the right.</p>
+<div class="switches">
+<button id="present-toggle" type="button">▶ Present</button>
+<button id="fold-toggle" type="button" aria-pressed="false">Show all code</button>
+<button id="panel-toggle" type="button" title="Collapse or open the goals and messages panel"></button>
+<button id="theme-toggle" type="button"></button>
+</div>
+</div>
+<p id="slide-context" class="slide-only"></p>
+
+<header>
+  <p class="eyebrow">CSE 590 · Fall 2026 · Lecture 20 · Wednesday, November 11</p>
+  <h1>Subtyping</h1>
+  <p class="lede">From a program the rules reject to a checker that accepts it. Pierce, <em>Types and Programming Languages</em>, chapters 15 and 16.</p>
+  <p class="lede"><b>AI disclosure.</b> Claude was used to build the slides. The lesson plan is mine, following Pierce chapters 15 and 16.</p>
+</header>
+
+<h2>Housekeeping</h2>
+<ul>
+  <li>Homework 5 is due <b>tomorrow, Thursday November 12</b>, 11:59 p.m.</li>
+  <li>Homework 6 goes out tomorrow.</li>
+  <li>Midterm <b>Wednesday November 18</b>.</li>
+  <li>Reading: Pierce chapter 15 for Monday's material, chapter 16 for today. Kozen, lecture 24.</li>
+</ul>
+
+<h2>1. Where Monday left us</h2>
+<p>A function that reads one field of a record:</p>
+<pre class="lang"><code>getx := λr:{x:int}. r.x</code></pre>
+<p>And the program we want to run: <code>getx</code> applied to a record that has an <code>x</code>, and a <code>y</code> besides.</p>
+<pre class="lang"><code>getx {x = 1, y = 2}</code></pre>
+<p>Nothing can go wrong: <code>getx</code> only reads <code>x</code>, and the record has one. So the judgement we want is the root of a derivation tree, and we start building it from the root up.</p>
+<p>The rules we have for it: an application, and a record literal.</p>
+<div class="rules">
+  <div class="piece">\[\frac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \qquad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}\ \text{(T-App)}\]</div>
+  <div class="piece">\[\frac{\Gamma \vdash e_i : \tau_i \ \text{ for each } i}{\Gamma \vdash \{\ell_i = e_i\}_{i \in 1..n} : \{\ell_i{:}\tau_i\}_{i \in 1..n}}\ \text{(T-Rcd)}\]</div>
+</div>
+<div class="pieces frames">
+<div class="display piece frame">\[
+\dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{?}}}{\vdash \mathtt{getx}\ \{x = 1, y = 2\} : \mathsf{int}}
+\]<p class="step-note">The judgement we want, at the root. Build the tree upward: each rule turns the goal below its line into the goals above it.</p></div>
+<div class="display piece frame">\[
+\dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{\vdash \mathtt{getx} : \tau_1 \to \mathsf{int}}} \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{\vdash \{x = 1, y = 2\} : \tau_1}}}{\vdash \mathtt{getx}\ \{x = 1, y = 2\} : \mathsf{int}}{\scriptstyle \text{T-App}}
+\]<p class="step-note">T-App: the term is an application. Two premises, and an argument type \(\tau_1\) we still have to find.</p></div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{r{:}\{x{:}\mathsf{int}\} \vdash r : \{x{:}\mathsf{int}\}}}}{\class{hl-blue}{\bbox[#eef1f6,2pt]{r{:}\{x{:}\mathsf{int}\} \vdash r.x : \mathsf{int}}}}{\scriptstyle \text{T-Proj}}}{\class{hl-blue}{\bbox[#eef1f6,2pt]{\vdash \mathtt{getx} : \{x{:}\mathsf{int}\} \to \mathsf{int}}}}{\scriptstyle \text{T-Abs}} \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}\}}}}{\vdash \mathtt{getx}\ \{x = 1, y = 2\} : \mathsf{int}}{\scriptstyle \text{T-App}}
+\]<p class="step-note">Check \(\mathtt{getx}\): T-Abs, then T-Proj, then T-Var. Its type is \(\{x{:}\mathsf{int}\} \to \mathsf{int}\), so \(\tau_1 = \{x{:}\mathsf{int}\}\): the argument must have that type.</p></div>
+<div class="display piece frame keep">\[
+\dfrac{\dfrac{\dfrac{r{:}\{x{:}\mathsf{int}\} \vdash r : \{x{:}\mathsf{int}\}}{r{:}\{x{:}\mathsf{int}\} \vdash r.x : \mathsf{int}}{\scriptstyle \text{T-Proj}}}{\vdash \mathtt{getx} : \{x{:}\mathsf{int}\} \to \mathsf{int}}{\scriptstyle \text{T-Abs}} \qquad \dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{\{x{:}\mathsf{int}, y{:}\mathsf{int}\} \neq \{x{:}\mathsf{int}\}}}}{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}\}}{\scriptstyle \class{hl-blue}{\bbox[#eef1f6,2pt]{\text{T-Rcd ✗}}}}}{\vdash \mathtt{getx}\ \{x = 1, y = 2\} : \mathsf{int}}{\scriptstyle \text{T-App}}
+\]<p class="step-note">The argument is a record literal, and T-Rcd is the only rule for one. It gives \(\{x{:}\mathsf{int}, y{:}\mathsf{int}\}\), which is not \(\{x{:}\mathsf{int}\}\). The tree cannot be finished.</p></div>
+</div>
+<p>So the rules reject <code>getx {x = 1, y = 2}</code>: the application rule demands the argument's type be <em>exactly</em> the parameter's, and a record with two fields is not a record with one. The program is safe and the type system turns it away.</p>
+
+<h2>2. How we fixed it: subtype polymorphism</h2>
+<p><code>getx</code> is fine on <em>every</em> record with an <code>x:int</code> field: \(\{x{:}\mathsf{int}\}\), \(\{x{:}\mathsf{int}, y{:}\mathsf{int}\}\), \(\{x{:}\mathsf{int}, y{:}\mathsf{bool}, z{:}\mathsf{int}\}\), … One function, many types. That is polymorphism, and this flavor of it is <b>subtype polymorphism</b>: a relation \(\sigma <: \tau\) on types, read "a \(\sigma\) is safe wherever a \(\tau\) is expected", and one typing rule that uses it.</p>
+<div class="rules">
+  <div class="piece">\[\frac{\Gamma \vdash e : \sigma \qquad \sigma <: \tau}{\Gamma \vdash e : \tau}\ \text{(T-Sub)}\]</div>
+</div>
+<p>Subsumption: a term of type \(\sigma\) also has every type \(\tau\) above it. Then the rules for \(<:\) itself. A record with <em>more</em> fields can be used where one with fewer is expected, so it is a subtype of it:</p>
+<div class="rules">
+  <div class="piece">\[\frac{J \subseteq I}{\{\ell_i{:}\tau_i\}_{i \in I} <: \{\ell_j{:}\tau_j\}_{j \in J}}\ \text{(S-RcdWidth)}\]</div>
+</div>
+<p>And every type is a subtype of itself:</p>
+<div class="rules">
+  <div class="piece">\[\frac{}{\tau <: \tau}\ \text{(S-Refl)}\]</div>
+</div>
+
+<h3>The derivation, again</h3>
+<p>Same root, same first two steps. The step that failed now has a different rule to reach for.</p>
+<div class="pieces frames">
+<div class="display piece frame">\[
+\dfrac{\vdash \mathtt{getx} : \tau_1 \to \mathsf{int} \quad \vdash \{x = 1, y = 2\} : \tau_1}{\vdash \mathtt{getx}\ \{x = 1, y = 2\} : \mathsf{int}}{\scriptstyle \text{T-App}}
+\]<p class="step-note">T-App, as before.</p></div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{}{\vdash \mathtt{getx} : \{x{:}\mathsf{int}\} \to \mathsf{int}}{\scriptstyle \text{(above)}} \quad \vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}\}}{\vdash \mathtt{getx}\ \{x = 1, y = 2\} : \mathsf{int}}{\scriptstyle \text{T-App}}
+\]<p class="step-note">\(\mathtt{getx}\) has the type we found above, so \(\tau_1 = \{x{:}\mathsf{int}\}\) as before. The argument premise is where we got stuck.</p></div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{}{\vdash \mathtt{getx} : \{x{:}\mathsf{int}\} \to \mathsf{int}}{\scriptstyle \text{(above)}} \quad \dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{\vdash \{x = 1, y = 2\} : \sigma}} \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{\sigma <: \{x{:}\mathsf{int}\}}}}{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}\}}{\scriptstyle \class{hl-blue}{\bbox[#eef1f6,2pt]{\text{T-Sub}}}}}{\vdash \mathtt{getx}\ \{x = 1, y = 2\} : \mathsf{int}}{\scriptstyle \text{T-App}}
+\]<p class="step-note">T-Sub instead of T-Rcd: give the argument <em>some</em> type \(\sigma\), and show \(\sigma <: \{x{:}\mathsf{int}\}\). We get to choose \(\sigma\).</p></div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{}{\vdash \mathtt{getx} : \{x{:}\mathsf{int}\} \to \mathsf{int}}{\scriptstyle \text{(above)}} \quad \dfrac{\dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{\vdash 1 : \mathsf{int} \quad \vdash 2 : \mathsf{int}}}}{\class{hl-blue}{\bbox[#eef1f6,2pt]{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}, y{:}\mathsf{int}\}}}}{\scriptstyle \class{hl-blue}{\bbox[#eef1f6,2pt]{\text{T-Rcd}}}} \quad \class{hl-blue}{\bbox[#eef1f6,2pt]{\{x{:}\mathsf{int}, y{:}\mathsf{int}\} <: \{x{:}\mathsf{int}\}}}}{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}\}}{\scriptstyle \text{T-Sub}}}{\vdash \mathtt{getx}\ \{x = 1, y = 2\} : \mathsf{int}}{\scriptstyle \text{T-App}}
+\]<p class="step-note">Choose \(\sigma = \{x{:}\mathsf{int}, y{:}\mathsf{int}\}\): the type T-Rcd was always able to give. The left premise closes.</p></div>
+<div class="display piece frame keep">\[
+\dfrac{\dfrac{}{\vdash \mathtt{getx} : \{x{:}\mathsf{int}\} \to \mathsf{int}}{\scriptstyle \text{(above)}} \quad \dfrac{\dfrac{\vdash 1 : \mathsf{int} \quad \vdash 2 : \mathsf{int}}{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}, y{:}\mathsf{int}\}}{\scriptstyle \text{T-Rcd}} \quad \dfrac{}{\class{hl-blue}{\bbox[#eef1f6,2pt]{\{x{:}\mathsf{int}, y{:}\mathsf{int}\} <: \{x{:}\mathsf{int}\}}}}{\scriptstyle \class{hl-blue}{\bbox[#eef1f6,2pt]{\text{S-RcdWidth}}}}}{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}\}}{\scriptstyle \text{T-Sub}}}{\vdash \mathtt{getx}\ \{x = 1, y = 2\} : \mathsf{int}}{\scriptstyle \text{T-App}}
+\]<p class="step-note">The right premise closes by S-RcdWidth, with \(I = \{x, y\}\) and \(J = \{x\}\). Every leaf is an axiom: the program types.</p></div>
+</div>
+<p>Where S-Refl comes in: not in this tree. But now that T-Sub is a rule, it can be applied at <em>any</em> node, with \(\sigma = \tau\) and S-Refl for the side condition, and nothing changes. The tree above is no longer the only derivation of its root. Keep that in mind; it comes back when we try to turn these rules into a checker.</p>
+
+
+<h2>3. Can a program find this tree?</h2>
+<p>A derivation exists. Could a program have found it? Two weeks ago you wrote one that finds derivations in this language without subtyping: HW4's <code>typeof</code>. Build it again, from the rules, one clause at a time.</p>
+<h3>The clauses</h3>
+<pre class="lang"><code>typeof : context → term → type</code></pre>
+<div class="pieces ch-table two">
+<div class="rules ch ch-labels"><div class="cell ch-label">rule</div><div class="cell ch-label clause">clause of <code>typeof</code></div></div>
+<div class="rules ch"><div class="cell piece">\[\frac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}\;{\scriptstyle \text{T-Var}}\]</div><div class="piece"><pre class="lang"><code>typeof Γ x          = Γ(x)</code></pre></div></div>
+<div class="rules ch"><div class="cell piece">\[\frac{\Gamma, x{:}\tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\;{\scriptstyle \text{T-Abs}}\]</div><div class="piece"><pre class="lang"><code>typeof Γ (λx:τ₁. e)  = τ₁ → typeof (Γ, x:τ₁) e</code></pre></div></div>
+<div class="rules ch"><div class="cell piece">\[\frac{\Gamma \vdash e_1 : \tau_1 \quad \cdots \quad \Gamma \vdash e_n : \tau_n}{\Gamma \vdash \{\ell_1 = e_1, \ldots, \ell_n = e_n\} : \{\ell_1{:}\tau_1, \ldots, \ell_n{:}\tau_n\}}\;{\scriptstyle \text{T-Rcd}}\]</div><div class="piece"><pre class="lang"><code>typeof Γ {ℓ₁ = e₁, …, ℓₙ = eₙ} = {ℓ₁ : typeof Γ e₁, …, ℓₙ : typeof Γ eₙ}</code></pre></div></div>
+<div class="rules ch"><div class="cell piece">\[\frac{\Gamma \vdash e : \{\ell_i{:}\tau_i\}}{\Gamma \vdash e.\ell_j : \tau_j}\;{\scriptstyle \text{T-Proj}}\]</div><div class="piece"><pre class="lang"><code>typeof Γ (e.ℓ)       = let {…, ℓ:τ, …} = typeof Γ e in τ</code></pre></div></div>
+<div class="rules ch"><div class="cell piece">\[\frac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \qquad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}\;{\scriptstyle \text{T-App}}\]</div><div class="piece"><pre class="lang"><code>typeof Γ (e₁ e₂)     = let τ₁ → τ₂ = typeof Γ e₁ in
+                       if typeof Γ e₂ = τ₁ then τ₂ else fail</code></pre></div></div>
+</div>
+<p>The same pattern every time. The term form in the conclusion is the clause's pattern. Each premise is a recursive call on a subterm. Whatever two premises share, here \(\tau_1\) in T-App, becomes a test. Rules like this are called <b>syntax-directed</b>: one rule per form, and the premises fixed by the conclusion. That is why HW4 was possible: the clause is the rule read bottom-up, and the derivation is a function of the term.</p>
+<h3>A case for T-Sub?</h3>
+<p>We have not written one.</p>
+<div class="pieces ch-table two">
+<div class="rules ch ch-labels"><div class="cell ch-label">rule</div><div class="cell ch-label clause">clause of <code>typeof</code></div></div>
+<div class="rules ch"><div class="cell piece">\[\frac{\Gamma \vdash e : \sigma \qquad \sigma <: \tau}{\Gamma \vdash e : \tau}\;{\scriptstyle \text{T-Sub}}\]</div><div class="piece"><pre class="lang"><code>typeof Γ e          = ?</code></pre></div></div>
+</div>
+<div class="pieces">
+<p class="piece">T-Sub has no syntax to grab onto: <code>e</code> is any term.</p>
+<p class="piece">And it needs a σ that appears nowhere in the goal: a guess.</p>
+<p class="piece">The rules are not an algorithm. Pierce: not <em>syntax-directed</em>.</p>
+</div>
+
+<h3>The whole function, as it stands</h3>
+<p>Run it on <code>getx {x = 1, y = 2}</code>:</p>
+<div class="pieces frames top">
+<div class="piece frame"><pre class="lang"><code>typeof : context → term → type
+
+typeof Γ x                        = Γ(x)
+typeof Γ (λx:τ₁. e)               = τ₁ → typeof (Γ, x:τ₁) e
+<b class="work-key">typeof Γ (e₁ e₂)                  = let τ₁ → τ₂ = typeof Γ e₁ in
+                                    if typeof Γ e₂ = τ₁ then τ₂ else fail</b>
+typeof Γ {ℓ₁ = e₁, …, ℓₙ = eₙ}    = {ℓ₁ : typeof Γ e₁, …, ℓₙ : typeof Γ eₙ}
+typeof Γ (e.ℓ)                    = let {…, ℓ:τ, …} = typeof Γ e in τ</code></pre>
+<p><code>typeof ∅ (getx {x = 1, y = 2})</code>: an application, so the T-App clause.</p></div>
+<div class="piece frame"><pre class="lang"><code>typeof : context → term → type
+
+typeof Γ x                        = Γ(x)
+<b class="work-key">typeof Γ (λx:τ₁. e)               = τ₁ → typeof (Γ, x:τ₁) e</b>
+typeof Γ (e₁ e₂)                  = let τ₁ → τ₂ = typeof Γ e₁ in
+                                    if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ {ℓ₁ = e₁, …, ℓₙ = eₙ}    = {ℓ₁ : typeof Γ e₁, …, ℓₙ : typeof Γ eₙ}
+typeof Γ (e.ℓ)                    = let {…, ℓ:τ, …} = typeof Γ e in τ</code></pre>
+<p><code>typeof ∅ (getx {x = 1, y = 2})</code>: an application, so the T-App clause.</p>
+<p>First call: <code>typeof ∅ getx</code> gives <code>{x:int} → int</code>. So τ₁ is <code>{x:int}</code>.</p></div>
+<div class="piece frame"><pre class="lang"><code>typeof : context → term → type
+
+typeof Γ x                        = Γ(x)
+typeof Γ (λx:τ₁. e)               = τ₁ → typeof (Γ, x:τ₁) e
+typeof Γ (e₁ e₂)                  = let τ₁ → τ₂ = typeof Γ e₁ in
+                                    if typeof Γ e₂ = τ₁ then τ₂ else fail
+<b class="work-key">typeof Γ {ℓ₁ = e₁, …, ℓₙ = eₙ}    = {ℓ₁ : typeof Γ e₁, …, ℓₙ : typeof Γ eₙ}</b>
+typeof Γ (e.ℓ)                    = let {…, ℓ:τ, …} = typeof Γ e in τ</code></pre>
+<p><code>typeof ∅ (getx {x = 1, y = 2})</code>: an application, so the T-App clause.</p>
+<p>First call: <code>typeof ∅ getx</code> gives <code>{x:int} → int</code>. So τ₁ is <code>{x:int}</code>.</p>
+<p>Second call: <code>typeof ∅ {x = 1, y = 2}</code> gives <code>{x:int, y:int}</code>.</p></div>
+<div class="piece frame"><pre class="lang"><code>typeof : context → term → type
+
+typeof Γ x                        = Γ(x)
+typeof Γ (λx:τ₁. e)               = τ₁ → typeof (Γ, x:τ₁) e
+typeof Γ (e₁ e₂)                  = let τ₁ → τ₂ = typeof Γ e₁ in
+                                    if <b class="work-key">typeof Γ e₂ = τ₁</b> then τ₂ else fail
+typeof Γ {ℓ₁ = e₁, …, ℓₙ = eₙ}    = {ℓ₁ : typeof Γ e₁, …, ℓₙ : typeof Γ eₙ}
+typeof Γ (e.ℓ)                    = let {…, ℓ:τ, …} = typeof Γ e in τ</code></pre>
+<p><code>typeof ∅ (getx {x = 1, y = 2})</code>: an application, so the T-App clause.</p>
+<p>First call: <code>typeof ∅ getx</code> gives <code>{x:int} → int</code>. So τ₁ is <code>{x:int}</code>.</p>
+<p>Second call: <code>typeof ∅ {x = 1, y = 2}</code> gives <code>{x:int, y:int}</code>.</p>
+<p>The test: is <code>{x:int, y:int}</code> equal to <code>{x:int}</code>? No. The clause fails.</p></div>
+<div class="piece frame keep"><pre class="lang"><code>typeof : context → term → type
+
+typeof Γ x                        = Γ(x)
+typeof Γ (λx:τ₁. e)               = τ₁ → typeof (Γ, x:τ₁) e
+typeof Γ (e₁ e₂)                  = let τ₁ → τ₂ = typeof Γ e₁ in
+                                    if typeof Γ e₂ = τ₁ then τ₂ else <b class="work-key">fail</b>
+typeof Γ {ℓ₁ = e₁, …, ℓₙ = eₙ}    = {ℓ₁ : typeof Γ e₁, …, ℓₙ : typeof Γ eₙ}
+typeof Γ (e.ℓ)                    = let {…, ℓ:τ, …} = typeof Γ e in τ</code></pre>
+<p><code>typeof ∅ (getx {x = 1, y = 2})</code>: an application, so the T-App clause.</p>
+<p>First call: <code>typeof ∅ getx</code> gives <code>{x:int} → int</code>. So τ₁ is <code>{x:int}</code>.</p>
+<p>Second call: <code>typeof ∅ {x = 1, y = 2}</code> gives <code>{x:int, y:int}</code>.</p>
+<p>The test: is <code>{x:int, y:int}</code> equal to <code>{x:int}</code>? No. The clause fails.</p>
+<p>The derivation exists; the program did not find it. The only tool it has at that point is <code>=</code>, and the tree needed <code>&lt;:</code>.</p></div>
+</div>
+
+<h3>T-Sub, once</h3>
+<div class="display">\[
+\dfrac{\dfrac{}{\vdash \mathtt{getx} : \{x{:}\mathsf{int}\} \to \mathsf{int}}{\scriptstyle \text{(above)}} \quad \dfrac{\dfrac{\vdash 1 : \mathsf{int} \quad \vdash 2 : \mathsf{int}}{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}, y{:}\mathsf{int}\}}{\scriptstyle \text{T-Rcd}} \quad \dfrac{}{\{x{:}\mathsf{int}, y{:}\mathsf{int}\} <: \{x{:}\mathsf{int}\}}{\scriptstyle \text{S-RcdWidth}}}{\class{hl-blue}{\bbox[#eef1f6,2pt]{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}\}}}}{\scriptstyle \class{hl-blue}{\bbox[#eef1f6,2pt]{\text{T-Sub}}}}}{\vdash \mathtt{getx}\ \{x = 1, y = 2\} : \mathsf{int}}{\scriptstyle \text{T-App}}
+\]</div>
+<p>The argument of an application: where a computed type meets an expected one.</p>
+<div class="pieces frames">
+<div class="piece frame"><pre class="lang"><code>typeof Γ (e₁ e₂)   = let τ₁ → τ₂ = typeof Γ e₁ in
+                     if typeof Γ e₂ = τ₁ then τ₂ else fail</code></pre><p class="step-note">The clause as it stands: the test is equality.</p></div>
+<div class="piece frame"><pre class="lang"><code>typeof Γ (e₁ e₂)   = let τ₁ → τ₂ = typeof Γ e₁ in
+                     if typeof Γ e₂ <b class="work-key">&lt;:</b> τ₁ then τ₂ else fail</code></pre><p class="step-note">The expected type τ₁ is already in hand. Ask for a subtype instead of an equal.</p></div>
+<div class="piece frame keep"><pre class="lang"><code>typeof Γ (e₁ e₂)   = let τ₁ → τ₂ = typeof Γ e₁ in
+                     if <b class="work-key">subtype (typeof Γ e₂) τ₁</b> then τ₂ else fail</code></pre><p class="step-note">That test is a function call. We need <code>subtype</code>.</p></div>
+</div>
+
+<h3>Write <code>subtype</code></h3>
+<pre class="lang"><code>subtype : type → type → bool</code></pre>
+<pre class="lang pieces"><code><span class="piece">subtype int  int                            </span><span class="piece">= true</span>
+<span class="piece">subtype bool bool                           </span><span class="piece">= true</span>
+<span class="piece">subtype (σ₁ → σ₂) (τ₁ → τ₂)                 </span><span class="piece">= subtype τ₁ σ₁  &amp;&amp;  subtype σ₂ τ₂</span>
+<span class="piece">subtype {k₁:σ₁, …, kₘ:σₘ} {ℓ₁:τ₁, …, ℓₙ:τₙ}  </span><span class="piece">= for each ℓᵢ : τᵢ,
+                                                some kⱼ = ℓᵢ  and  subtype σⱼ τᵢ</span>
+<span class="piece">subtype _ _                                 </span><span class="piece">= false</span></code></pre>
+
+<h3>Read it back as rules</h3>
+<div class="pieces ch-table two">
+<div class="rules ch ch-labels"><div class="cell ch-label">clause</div><div class="cell ch-label clause">rule</div></div>
+<div class="rules ch"><div class="piece"><pre class="lang"><code>subtype int  int   = true
+subtype bool bool  = true</code></pre></div><div class="cell piece">\[\dfrac{}{\mathsf{int} <:_{\mathsf a} \mathsf{int}} \qquad \dfrac{}{\mathsf{bool} <:_{\mathsf a} \mathsf{bool}}\]</div></div>
+<div class="rules ch"><div class="piece"><pre class="lang"><code>subtype (σ₁ → σ₂) (τ₁ → τ₂)
+  = subtype τ₁ σ₁ &amp;&amp; subtype σ₂ τ₂</code></pre></div><div class="cell piece">\[\dfrac{\tau_1 <:_{\mathsf a} \sigma_1 \qquad \sigma_2 <:_{\mathsf a} \tau_2}{\sigma_1 \to \sigma_2 <:_{\mathsf a} \tau_1 \to \tau_2}\;{\scriptstyle \text{SA-Arrow}}\]</div></div>
+<div class="rules ch"><div class="piece"><pre class="lang"><code>subtype {k₁:σ₁, …, kₘ:σₘ} {ℓ₁:τ₁, …, ℓₙ:τₙ}
+  = for each ℓᵢ : τᵢ,
+      some kⱼ = ℓᵢ  and  subtype σⱼ τᵢ</code></pre></div><div class="cell piece">\[\dfrac{\{\ell_i\} \subseteq \{k_j\} \qquad k_j = \ell_i \Rightarrow \sigma_j <:_{\mathsf a} \tau_i}{\{k_j{:}\sigma_j\} <:_{\mathsf a} \{\ell_i{:}\tau_i\}}\;{\scriptstyle \text{SA-Rcd}}\]</div></div>
+</div>
+
+<h3>Compare with the declarative rules</h3>
+<div class="pieces frames">
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{}{\tau <: \tau}{\scriptstyle \text{S-Refl}} \qquad \dfrac{\sigma <: \tau \quad \tau <: \rho}{\sigma <: \rho}{\scriptstyle \text{S-Trans}} \qquad \dfrac{\tau_1 <: \sigma_1 \quad \sigma_2 <: \tau_2}{\sigma_1 \to \sigma_2 <: \tau_1 \to \tau_2}{\scriptstyle \text{S-Arrow}} \\[14pt]
+\dfrac{J \subseteq I}{\{\ell_i{:}\tau_i\}_{i \in I} <: \{\ell_j{:}\tau_j\}_{j \in J}}{\scriptstyle \text{S-RcdWidth}} \qquad \dfrac{\sigma_i <: \tau_i \ \text{each } i}{\{\ell_i{:}\sigma_i\} <: \{\ell_i{:}\tau_i\}}{\scriptstyle \text{S-RcdDepth}}
+\end{gathered}
+\]<p class="step-note">The declarative rules for \(<:\), for this language.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\class{hl-blue}{\bbox[#eef1f6,2pt]{\cancel{\dfrac{}{\tau <: \tau}{\scriptstyle \text{S-Refl}}}}} \qquad \dfrac{\sigma <: \tau \quad \tau <: \rho}{\sigma <: \rho}{\scriptstyle \text{S-Trans}} \qquad \dfrac{\tau_1 <: \sigma_1 \quad \sigma_2 <: \tau_2}{\sigma_1 \to \sigma_2 <: \tau_1 \to \tau_2}{\scriptstyle \text{S-Arrow}} \\[14pt]
+\dfrac{J \subseteq I}{\{\ell_i{:}\tau_i\}_{i \in I} <: \{\ell_j{:}\tau_j\}_{j \in J}}{\scriptstyle \text{S-RcdWidth}} \qquad \dfrac{\sigma_i <: \tau_i \ \text{each } i}{\{\ell_i{:}\sigma_i\} <: \{\ell_i{:}\tau_i\}}{\scriptstyle \text{S-RcdDepth}}
+\end{gathered}
+\]<p class="step-note">No clause for S-Refl.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\class{hl-blue}{\bbox[#eef1f6,2pt]{\dfrac{}{\mathsf{int} <:_{\mathsf a} \mathsf{int}} \quad \dfrac{}{\mathsf{bool} <:_{\mathsf a} \mathsf{bool}}}} \qquad \dfrac{\sigma <: \tau \quad \tau <: \rho}{\sigma <: \rho}{\scriptstyle \text{S-Trans}} \qquad \dfrac{\tau_1 <: \sigma_1 \quad \sigma_2 <: \tau_2}{\sigma_1 \to \sigma_2 <: \tau_1 \to \tau_2}{\scriptstyle \text{S-Arrow}} \\[14pt]
+\dfrac{J \subseteq I}{\{\ell_i{:}\tau_i\}_{i \in I} <: \{\ell_j{:}\tau_j\}_{j \in J}}{\scriptstyle \text{S-RcdWidth}} \qquad \dfrac{\sigma_i <: \tau_i \ \text{each } i}{\{\ell_i{:}\sigma_i\} <: \{\ell_i{:}\tau_i\}}{\scriptstyle \text{S-RcdDepth}}
+\end{gathered}
+\]<p class="step-note">In its place, the base cases: the only trace of reflexivity. For arrows and records it will follow by recursion.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{}{\mathsf{int} <:_{\mathsf a} \mathsf{int}} \quad \dfrac{}{\mathsf{bool} <:_{\mathsf a} \mathsf{bool}} \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{\cancel{\dfrac{\sigma <: \tau \quad \tau <: \rho}{\sigma <: \rho}{\scriptstyle \text{S-Trans}}}}} \qquad \dfrac{\tau_1 <: \sigma_1 \quad \sigma_2 <: \tau_2}{\sigma_1 \to \sigma_2 <: \tau_1 \to \tau_2}{\scriptstyle \text{S-Arrow}} \\[14pt]
+\dfrac{J \subseteq I}{\{\ell_i{:}\tau_i\}_{i \in I} <: \{\ell_j{:}\tau_j\}_{j \in J}}{\scriptstyle \text{S-RcdWidth}} \qquad \dfrac{\sigma_i <: \tau_i \ \text{each } i}{\{\ell_i{:}\sigma_i\} <: \{\ell_i{:}\tau_i\}}{\scriptstyle \text{S-RcdDepth}}
+\end{gathered}
+\]<p class="step-note">No clause for S-Trans: nothing to match on, a middle type to invent. Nothing replaces it.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{}{\mathsf{int} <:_{\mathsf a} \mathsf{int}} \quad \dfrac{}{\mathsf{bool} <:_{\mathsf a} \mathsf{bool}} \qquad \dfrac{\tau_1 <: \sigma_1 \quad \sigma_2 <: \tau_2}{\sigma_1 \to \sigma_2 <: \tau_1 \to \tau_2}{\scriptstyle \text{S-Arrow}} \\[14pt]
+\dfrac{J \subseteq I}{\{\ell_i{:}\tau_i\}_{i \in I} <: \{\ell_j{:}\tau_j\}_{j \in J}}{\scriptstyle \text{S-RcdWidth}} \qquad \dfrac{\sigma_i <: \tau_i \ \text{each } i}{\{\ell_i{:}\sigma_i\} <: \{\ell_i{:}\tau_i\}}{\scriptstyle \text{S-RcdDepth}}
+\end{gathered}
+\]<p class="step-note">Gone. Transitivity will have to be a theorem about what is left.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{}{\mathsf{int} <:_{\mathsf a} \mathsf{int}} \quad \dfrac{}{\mathsf{bool} <:_{\mathsf a} \mathsf{bool}} \qquad \dfrac{\tau_1 <: \sigma_1 \quad \sigma_2 <: \tau_2}{\sigma_1 \to \sigma_2 <: \tau_1 \to \tau_2}{\scriptstyle \text{S-Arrow}} \\[14pt]
+\class{hl-blue}{\bbox[#eef1f6,2pt]{\cancel{\dfrac{J \subseteq I}{\{\ell_i{:}\tau_i\}_{i \in I} <: \{\ell_j{:}\tau_j\}_{j \in J}}{\scriptstyle \text{S-RcdWidth}}}}} \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{\cancel{\dfrac{\sigma_i <: \tau_i \ \text{each } i}{\{\ell_i{:}\sigma_i\} <: \{\ell_i{:}\tau_i\}}{\scriptstyle \text{S-RcdDepth}}}}}
+\end{gathered}
+\]<p class="step-note">Width and depth: neither is the record clause.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{}{\mathsf{int} <:_{\mathsf a} \mathsf{int}} \quad \dfrac{}{\mathsf{bool} <:_{\mathsf a} \mathsf{bool}} \qquad \dfrac{\tau_1 <: \sigma_1 \quad \sigma_2 <: \tau_2}{\sigma_1 \to \sigma_2 <: \tau_1 \to \tau_2}{\scriptstyle \text{S-Arrow}} \\[14pt]
+\class{hl-blue}{\bbox[#eef1f6,2pt]{\dfrac{\{\ell_i\} \subseteq \{k_j\} \qquad k_j = \ell_i \Rightarrow \sigma_j <:_{\mathsf a} \tau_i}{\{k_j{:}\sigma_j\} <:_{\mathsf a} \{\ell_i{:}\tau_i\}}{\scriptstyle \text{SA-Rcd}}}}
+\end{gathered}
+\]<p class="step-note">In their place, the record clause as a rule: for each field \(\ell_i{:}\tau_i\) on the right, the left has a field \(\ell_i{:}\sigma_j\), with \(\sigma_j <:_{\mathsf a} \tau_i\).</p></div>
+<div class="display piece frame keep">\[
+\begin{gathered}
+\textbf{Declarative: } \sigma <: \tau \\[8pt]
+\dfrac{}{\tau <: \tau}{\scriptstyle \text{S-Refl}} \qquad \dfrac{\sigma <: \tau \quad \tau <: \rho}{\sigma <: \rho}{\scriptstyle \text{S-Trans}} \qquad \dfrac{\tau_1 <: \sigma_1 \quad \sigma_2 <: \tau_2}{\sigma_1 \to \sigma_2 <: \tau_1 \to \tau_2}{\scriptstyle \text{S-Arrow}} \\[8pt]
+\dfrac{J \subseteq I}{\{\ell_i{:}\tau_i\}_{i \in I} <: \{\ell_j{:}\tau_j\}_{j \in J}}{\scriptstyle \text{S-RcdWidth}} \qquad \dfrac{\sigma_i <: \tau_i \ \text{each } i}{\{\ell_i{:}\sigma_i\} <: \{\ell_i{:}\tau_i\}}{\scriptstyle \text{S-RcdDepth}} \\[18pt]
+\textbf{Algorithmic: } \sigma <:_{\mathsf a} \tau \\[8pt]
+\dfrac{}{\mathsf{int} <:_{\mathsf a} \mathsf{int}} \quad \dfrac{}{\mathsf{bool} <:_{\mathsf a} \mathsf{bool}} \qquad \dfrac{\tau_1 <:_{\mathsf a} \sigma_1 \quad \sigma_2 <:_{\mathsf a} \tau_2}{\sigma_1 \to \sigma_2 <:_{\mathsf a} \tau_1 \to \tau_2}{\scriptstyle \text{SA-Arrow}} \\[8pt]
+\dfrac{\{\ell_i\} \subseteq \{k_j\} \qquad k_j = \ell_i \Rightarrow \sigma_j <:_{\mathsf a} \tau_i}{\{k_j{:}\sigma_j\} <:_{\mathsf a} \{\ell_i{:}\tau_i\}}{\scriptstyle \text{SA-Rcd}}
+\end{gathered}
+\]<p class="step-note">Both rule sets. Are they the same relation?</p></div>
+</div>
+
+<h3>Same relation</h3>
+<div class="display">\[
+\sigma <:_{\mathsf a} \tau \quad \overset{?}{\text{iff}} \quad \sigma <: \tau
+\]</div>
+<div class="pieces frames">
+<div class="display piece frame">\[
+\dfrac{\vdots}{\sigma <: \tau}
+\]<p class="step-note">Some derivation of \(\sigma <: \tau\).</p></div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{}{\sigma <: \sigma}{\scriptstyle \text{S-Refl}} \quad \dfrac{\vdots}{\sigma <: \tau}}{\sigma <: \tau}{\scriptstyle \text{S-Trans}}
+\]<p class="step-note">The same fact, by S-Trans through S-Refl. Also a derivation.</p></div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{}{\sigma <: \sigma}{\scriptstyle \text{S-Refl}} \quad \dfrac{\dfrac{}{\sigma <: \sigma}{\scriptstyle \text{S-Refl}} \quad \dfrac{\vdots}{\sigma <: \tau}}{\sigma <: \tau}{\scriptstyle \text{S-Trans}}}{\sigma <: \tau}{\scriptstyle \text{S-Trans}}
+\]<p class="step-note">And again, forever. The declarative rules derive a fact in infinitely many ways; the algorithm, in exactly one. So "same relation" can only mean the same facts.</p></div>
+<div class="piece frame keep"><p>Same facts: whatever one set of rules derives, the other derives too. Both directions go by induction on the derivation.</p></div>
+</div>
+<p><b>⇒</b> Each algorithmic rule, as a declarative derivation.</p>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\dfrac{}{\mathsf{int} <:_{\mathsf a} \mathsf{int}}{\scriptstyle \text{}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{}{\mathsf{int} <:_{\mathsf a} \mathsf{int}}{\scriptstyle \text{}}\ \mapsto\ \dfrac{}{\mathsf{int} <: \mathsf{int}}{\scriptstyle \text{S-Refl}}
+\]<p class="step-note">Reflexivity, by the rule.</p></div>
+</div>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\dfrac{\tau_1 <:_{\mathsf a} \sigma_1 \quad \sigma_2 <:_{\mathsf a} \tau_2}{\sigma_1 \to \sigma_2 <:_{\mathsf a} \tau_1 \to \tau_2}{\scriptstyle \text{SA-Arrow}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\tau_1 <:_{\mathsf a} \sigma_1 \quad \sigma_2 <:_{\mathsf a} \tau_2}{\sigma_1 \to \sigma_2 <:_{\mathsf a} \tau_1 \to \tau_2}{\scriptstyle \text{SA-Arrow}}\ \mapsto\ \dfrac{\tau_1 <: \sigma_1 \quad \sigma_2 <: \tau_2}{\sigma_1 \to \sigma_2 <: \tau_1 \to \tau_2}{\scriptstyle \text{S-Arrow}}
+\]<p class="step-note">The same rule.</p></div>
+</div>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\dfrac{\{\ell_i\} \subseteq \{k_j\} \quad \sigma_j <:_{\mathsf a} \tau_i}{\{k_j{:}\sigma_j\} <:_{\mathsf a} \{\ell_i{:}\tau_i\}}{\scriptstyle \text{SA-Rcd}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\{\ell_i\} \subseteq \{k_j\} \quad \sigma_j <:_{\mathsf a} \tau_i}{\{k_j{:}\sigma_j\} <:_{\mathsf a} \{\ell_i{:}\tau_i\}}{\scriptstyle \text{SA-Rcd}}\ \mapsto\ \dfrac{\dfrac{\{\ell_i\} \subseteq \{k_j\}}{\{k_j{:}\sigma_j\} <: \{\ell_i{:}\sigma_j\}}{\scriptstyle \text{S-RcdWidth}} \quad \dfrac{\sigma_j <: \tau_i}{\{\ell_i{:}\sigma_j\} <: \{\ell_i{:}\tau_i\}}{\scriptstyle \text{S-RcdDepth}}}{\{k_j{:}\sigma_j\} <: \{\ell_i{:}\tau_i\}}{\scriptstyle \text{S-Trans}}
+\]<p class="step-note">Any use of SA-Rcd decomposes the same way: width drops the fields not on the right, depth refines the ones that remain, S-Trans glues the two. Every algorithmic rule is covered.</p></div>
+</div>
+<p>The declarative rules have S-Refl. The algorithmic rules do not. If the two relations are the same, \(\tau <:_{\mathsf a} \tau\) must still hold, without a rule for it. So, first:</p>
+<div class="pieces frames top">
+<div class="piece frame"><p><b>Lemma (reflexivity).</b> \(\tau <:_{\mathsf a} \tau\) for every \(\tau\). By induction on \(\tau\).</p><p class="step-note">One case per type former.</p></div>
+<div class="piece frame"><p><b>Lemma (reflexivity).</b> \(\tau <:_{\mathsf a} \tau\) for every \(\tau\). By induction on \(\tau\).</p>
+<div class="display">\[
+\dfrac{}{\mathsf{int} <:_{\mathsf a} \mathsf{int}}{\scriptstyle \text{}} \qquad \dfrac{}{\mathsf{bool} <:_{\mathsf a} \mathsf{bool}}{\scriptstyle \text{}}
+\]</div><p class="step-note">Base types: the rules themselves.</p></div>
+<div class="piece frame"><p><b>Lemma (reflexivity).</b> \(\tau <:_{\mathsf a} \tau\) for every \(\tau\). By induction on \(\tau\).</p>
+<div class="display">\[
+\dfrac{}{\mathsf{int} <:_{\mathsf a} \mathsf{int}}{\scriptstyle \text{}} \qquad \dfrac{}{\mathsf{bool} <:_{\mathsf a} \mathsf{bool}}{\scriptstyle \text{}}
+\]</div>
+<div class="display">\[
+\dfrac{\tau_1 <:_{\mathsf a} \tau_1 \ \text{(IH)} \quad \tau_2 <:_{\mathsf a} \tau_2 \ \text{(IH)}}{\tau_1 \to \tau_2 <:_{\mathsf a} \tau_1 \to \tau_2}{\scriptstyle \text{SA-Arrow}}
+\]</div><p class="step-note">Arrows: both premises are the inductive hypothesis; the flip changes nothing when both sides are the same.</p></div>
+<div class="piece frame"><p><b>Lemma (reflexivity).</b> \(\tau <:_{\mathsf a} \tau\) for every \(\tau\). By induction on \(\tau\).</p>
+<div class="display">\[
+\dfrac{}{\mathsf{int} <:_{\mathsf a} \mathsf{int}}{\scriptstyle \text{}} \qquad \dfrac{}{\mathsf{bool} <:_{\mathsf a} \mathsf{bool}}{\scriptstyle \text{}}
+\]</div>
+<div class="display">\[
+\dfrac{\tau_1 <:_{\mathsf a} \tau_1 \ \text{(IH)} \quad \tau_2 <:_{\mathsf a} \tau_2 \ \text{(IH)}}{\tau_1 \to \tau_2 <:_{\mathsf a} \tau_1 \to \tau_2}{\scriptstyle \text{SA-Arrow}}
+\]</div>
+<div class="display">\[
+\dfrac{\{\ell_i\} \subseteq \{\ell_i\} \quad \tau_i <:_{\mathsf a} \tau_i \ \text{(IH, each } i)}{\{\ell_i{:}\tau_i\} <:_{\mathsf a} \{\ell_i{:}\tau_i\}}{\scriptstyle \text{SA-Rcd}}
+\]</div><p class="step-note">Records: the subset condition is trivial, each field is the inductive hypothesis.</p></div>
+<div class="piece frame"><p><b>Lemma (reflexivity).</b> \(\tau <:_{\mathsf a} \tau\) for every \(\tau\). \(\checkmark\)</p>
+<p>Likewise S-Trans: a declarative rule with no algorithmic counterpart. So:</p>
+<p><b>Lemma (transitivity).</b> If \(\sigma <:_{\mathsf a} \tau\) and \(\tau <:_{\mathsf a} \rho\) then \(\sigma <:_{\mathsf a} \rho\). By induction on the middle type \(\tau\).</p><p class="step-note">One case per type former, as for reflexivity.</p></div>
+<div class="piece frame"><p><b>Lemma (reflexivity).</b> \(\tau <:_{\mathsf a} \tau\) for every \(\tau\). \(\checkmark\)</p>
+<p>Likewise S-Trans: a declarative rule with no algorithmic counterpart. So:</p>
+<p><b>Lemma (transitivity).</b> If \(\sigma <:_{\mathsf a} \tau\) and \(\tau <:_{\mathsf a} \rho\) then \(\sigma <:_{\mathsf a} \rho\). By induction on the middle type \(\tau\).</p>
+<div class="display">\[
+\sigma <:_{\mathsf a} \mathsf{int} \quad \mathsf{int} <:_{\mathsf a} \rho \qquad\text{only by the base rule, so}\qquad \sigma = \rho = \mathsf{int}
+\]</div><p class="step-note">Base types.</p></div>
+<div class="piece frame"><p><b>Lemma (reflexivity).</b> \(\tau <:_{\mathsf a} \tau\) for every \(\tau\). \(\checkmark\)</p>
+<p>Likewise S-Trans: a declarative rule with no algorithmic counterpart. So:</p>
+<p><b>Lemma (transitivity).</b> If \(\sigma <:_{\mathsf a} \tau\) and \(\tau <:_{\mathsf a} \rho\) then \(\sigma <:_{\mathsf a} \rho\). By induction on the middle type \(\tau\).</p>
+<div class="display">\[
+\sigma <:_{\mathsf a} \mathsf{int} \quad \mathsf{int} <:_{\mathsf a} \rho \qquad\text{only by the base rule, so}\qquad \sigma = \rho = \mathsf{int}
+\]</div>
+<div class="display">\[
+\dfrac{\dfrac{\rho_1 <:_{\mathsf a} \tau_1 \quad \tau_1 <:_{\mathsf a} \sigma_1}{\rho_1 <:_{\mathsf a} \sigma_1}{\scriptstyle \text{IH (τ₁)}} \qquad \dfrac{\sigma_2 <:_{\mathsf a} \tau_2 \quad \tau_2 <:_{\mathsf a} \rho_2}{\sigma_2 <:_{\mathsf a} \rho_2}{\scriptstyle \text{IH (τ₂)}}}{\sigma_1 \to \sigma_2 <:_{\mathsf a} \rho_1 \to \rho_2}{\scriptstyle \text{SA-Arrow}}
+\]</div><p class="step-note">Arrows: \(\sigma = \sigma_1 \to \sigma_2\), \(\rho = \rho_1 \to \rho_2\), the four premises read off the two hypotheses. The inductive hypothesis, twice; on the left the premises are chained in the other order.</p></div>
+<div class="piece frame keep"><p><b>Lemma (reflexivity).</b> \(\tau <:_{\mathsf a} \tau\) for every \(\tau\). \(\checkmark\)</p>
+<p>Likewise S-Trans: a declarative rule with no algorithmic counterpart. So:</p>
+<p><b>Lemma (transitivity).</b> If \(\sigma <:_{\mathsf a} \tau\) and \(\tau <:_{\mathsf a} \rho\) then \(\sigma <:_{\mathsf a} \rho\). By induction on the middle type \(\tau\).</p>
+<div class="display">\[
+\sigma <:_{\mathsf a} \mathsf{int} \quad \mathsf{int} <:_{\mathsf a} \rho \qquad\text{only by the base rule, so}\qquad \sigma = \rho = \mathsf{int}
+\]</div>
+<div class="display">\[
+\dfrac{\dfrac{\rho_1 <:_{\mathsf a} \tau_1 \quad \tau_1 <:_{\mathsf a} \sigma_1}{\rho_1 <:_{\mathsf a} \sigma_1}{\scriptstyle \text{IH (τ₁)}} \qquad \dfrac{\sigma_2 <:_{\mathsf a} \tau_2 \quad \tau_2 <:_{\mathsf a} \rho_2}{\sigma_2 <:_{\mathsf a} \rho_2}{\scriptstyle \text{IH (τ₂)}}}{\sigma_1 \to \sigma_2 <:_{\mathsf a} \rho_1 \to \rho_2}{\scriptstyle \text{SA-Arrow}}
+\]</div>
+<div class="display">\[
+\dfrac{\{m_l\} \subseteq \{\ell_i\} \subseteq \{k_j\} \qquad \dfrac{\sigma_j <:_{\mathsf a} \tau_i \quad \tau_i <:_{\mathsf a} \rho_l}{\sigma_j <:_{\mathsf a} \rho_l}{\scriptstyle \text{IH (τᵢ)}}}{\{k_j{:}\sigma_j\} <:_{\mathsf a} \{m_l{:}\rho_l\}}{\scriptstyle \text{SA-Rcd}}
+\]</div><p class="step-note">Records: \(\sigma = \{k_j{:}\sigma_j\}\), \(\rho = \{m_l{:}\rho_l\}\). The subset conditions compose; each shared field is the inductive hypothesis.</p></div>
+</div>
+<div class="page-only">
+<p><b>Lemma (reflexivity).</b> \(\tau <:_{\mathsf a} \tau\) for every \(\tau\). By induction on \(\tau\).</p>
+<div class="display">\[
+\dfrac{}{\mathsf{int} <:_{\mathsf a} \mathsf{int}}{\scriptstyle \text{}} \qquad \dfrac{}{\mathsf{bool} <:_{\mathsf a} \mathsf{bool}}{\scriptstyle \text{}}
+\]</div>
+<div class="display">\[
+\dfrac{\tau_1 <:_{\mathsf a} \tau_1 \ \text{(IH)} \quad \tau_2 <:_{\mathsf a} \tau_2 \ \text{(IH)}}{\tau_1 \to \tau_2 <:_{\mathsf a} \tau_1 \to \tau_2}{\scriptstyle \text{SA-Arrow}}
+\]</div>
+<div class="display">\[
+\dfrac{\{\ell_i\} \subseteq \{\ell_i\} \quad \tau_i <:_{\mathsf a} \tau_i \ \text{(IH, each } i)}{\{\ell_i{:}\tau_i\} <:_{\mathsf a} \{\ell_i{:}\tau_i\}}{\scriptstyle \text{SA-Rcd}}
+\]</div>
+<p><b>Lemma (transitivity).</b> If \(\sigma <:_{\mathsf a} \tau\) and \(\tau <:_{\mathsf a} \rho\) then \(\sigma <:_{\mathsf a} \rho\). By induction on the middle type \(\tau\).</p>
+<p><b>int, bool.</b> \(\sigma <:_{\mathsf a} \mathsf{int}\) only by the base rule, so \(\sigma = \mathsf{int}\); likewise \(\rho\). Same for \(\mathsf{bool}\).</p>
+<div class="display">\[
+\text{Given: } \dfrac{\tau_1 <:_{\mathsf a} \sigma_1 \quad \sigma_2 <:_{\mathsf a} \tau_2}{\sigma_1 \to \sigma_2 <:_{\mathsf a} \tau_1 \to \tau_2}{\scriptstyle \text{SA-Arrow}} \qquad \dfrac{\rho_1 <:_{\mathsf a} \tau_1 \quad \tau_2 <:_{\mathsf a} \rho_2}{\tau_1 \to \tau_2 <:_{\mathsf a} \rho_1 \to \rho_2}{\scriptstyle \text{SA-Arrow}}
+\]</div>
+<div class="display">\[
+\text{Build: } \dfrac{\dfrac{\rho_1 <:_{\mathsf a} \tau_1 \quad \tau_1 <:_{\mathsf a} \sigma_1}{\rho_1 <:_{\mathsf a} \sigma_1}{\scriptstyle \text{IH(τ₁)}} \quad \dfrac{\sigma_2 <:_{\mathsf a} \tau_2 \quad \tau_2 <:_{\mathsf a} \rho_2}{\sigma_2 <:_{\mathsf a} \rho_2}{\scriptstyle \text{IH(τ₂)}}}{\sigma_1 \to \sigma_2 <:_{\mathsf a} \rho_1 \to \rho_2}{\scriptstyle \text{SA-Arrow}}
+\]</div>
+</div>
+<p><b>⇐</b> Each declarative rule, as an algorithmic one.</p>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\dfrac{\tau_1 <: \sigma_1 \quad \sigma_2 <: \tau_2}{\sigma_1 \to \sigma_2 <: \tau_1 \to \tau_2}{\scriptstyle \text{S-Arrow}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\tau_1 <: \sigma_1 \quad \sigma_2 <: \tau_2}{\sigma_1 \to \sigma_2 <: \tau_1 \to \tau_2}{\scriptstyle \text{S-Arrow}}\ \mapsto\ \dfrac{\tau_1 <:_{\mathsf a} \sigma_1 \quad \sigma_2 <:_{\mathsf a} \tau_2}{\sigma_1 \to \sigma_2 <:_{\mathsf a} \tau_1 \to \tau_2}{\scriptstyle \text{SA-Arrow}}
+\]<p class="step-note">Same premises, same shape. Nothing to do.</p></div>
+</div>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\dfrac{\sigma_i <: \tau_i \ \text{each } i}{\{\ell_i{:}\sigma_i\} <: \{\ell_i{:}\tau_i\}}{\scriptstyle \text{S-RcdDepth}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\sigma_i <: \tau_i \ \text{each } i}{\{\ell_i{:}\sigma_i\} <: \{\ell_i{:}\tau_i\}}{\scriptstyle \text{S-RcdDepth}}\ \mapsto\ \dfrac{I \subseteq I \quad \sigma_i <:_{\mathsf a} \tau_i}{\{\ell_i{:}\sigma_i\} <:_{\mathsf a} \{\ell_i{:}\tau_i\}}{\scriptstyle \text{SA-Rcd}}
+\]<p class="step-note">Every field is shared, so the subset condition is \(I \subseteq I\).</p></div>
+</div>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\dfrac{J \subseteq I}{\{\ell_i{:}\tau_i\}_{i \in I} <: \{\ell_j{:}\tau_j\}_{j \in J}}{\scriptstyle \text{S-RcdWidth}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{J \subseteq I}{\{\ell_i{:}\tau_i\}_{i \in I} <: \{\ell_j{:}\tau_j\}_{j \in J}}{\scriptstyle \text{S-RcdWidth}}\ \mapsto\ \dfrac{J \subseteq I \quad \class{hl-blue}{\bbox[#eef1f6,2pt]{\tau_j <:_{\mathsf a} \tau_j}}}{\{\ell_i{:}\tau_i\}_{i \in I} <:_{\mathsf a} \{\ell_j{:}\tau_j\}_{j \in J}}{\scriptstyle \text{SA-Rcd}}
+\]<p class="step-note">Width keeps some fields and checks nothing on them. SA-Rcd insists on a check for each kept field, so something has to supply \(\tau_j <:_{\mathsf a} \tau_j\).</p></div>
+</div>
+<p>The boxed premise is the reflexivity lemma.</p>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\dfrac{}{\tau <: \tau}{\scriptstyle \text{S-Refl}} \qquad\qquad \dfrac{\sigma <: \tau \quad \tau <: \rho}{\sigma <: \rho}{\scriptstyle \text{S-Trans}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{}{\tau <: \tau}{\scriptstyle \text{S-Refl}}\ \mapsto\ \text{the reflexivity lemma} \qquad\qquad \dfrac{\sigma <: \tau \quad \tau <: \rho}{\sigma <: \rho}{\scriptstyle \text{S-Trans}}\ \mapsto\ \text{the transitivity lemma}
+\]<p class="step-note">The two dropped rules are the two lemmas. Every declarative rule is covered.</p></div>
+</div>
+<p>Both directions done: the two relations are the same. Pierce 16.1.2 and 16.1.5. And <code>subtype</code> terminates: every recursive call is on parts of its inputs (16.1.6).</p>
+
+<h3><code>typeof</code>, finished</h3>
+<pre class="lang"><code>typeof : context → term → type
+
+typeof Γ x                        = Γ(x)
+typeof Γ (λx:τ₁. e)               = τ₁ → typeof (Γ, x:τ₁) e
+typeof Γ (e₁ e₂)                  = let τ₁ → τ₂ = typeof Γ e₁ in
+                                    if <b class="work-key">subtype (typeof Γ e₂) τ₁</b> then τ₂ else fail
+typeof Γ {ℓ₁ = e₁, …, ℓₙ = eₙ}    = {ℓ₁ : typeof Γ e₁, …, ℓₙ : typeof Γ eₙ}
+typeof Γ (e.ℓ)                    = let {…, ℓ:τ, …} = typeof Γ e in τ</code></pre>
+<p>Run it on <code>getx {x = 1, y = 2}</code> again. The test is now <code>subtype {x:int, y:int} {x:int}</code>:</p>
+<div class="pieces frames top">
+<div class="piece frame"><pre class="lang"><code>subtype : type → type → bool
+
+subtype int  int                            = true
+subtype bool bool                           = true
+subtype (σ₁ → σ₂) (τ₁ → τ₂)                 = subtype τ₁ σ₁  &amp;&amp;  subtype σ₂ τ₂
+<b class="work-key">subtype {k₁:σ₁, …, kₘ:σₘ} {ℓ₁:τ₁, …, ℓₙ:τₙ}  = for each ℓᵢ : τᵢ,
+                                                some kⱼ = ℓᵢ  and  subtype σⱼ τᵢ</b>
+subtype _ _                                 = false</code></pre>
+<p><code>subtype {x:int, y:int} {x:int}</code>: two records, so the record clause.</p></div>
+<div class="piece frame"><pre class="lang"><code>subtype : type → type → bool
+
+subtype int  int                            = true
+subtype bool bool                           = true
+subtype (σ₁ → σ₂) (τ₁ → τ₂)                 = subtype τ₁ σ₁  &amp;&amp;  subtype σ₂ τ₂
+<b class="work-key">subtype {k₁:σ₁, …, kₘ:σₘ} {ℓ₁:τ₁, …, ℓₙ:τₙ}  = for each ℓᵢ : τᵢ,
+                                                some kⱼ = ℓᵢ  and  subtype σⱼ τᵢ</b>
+subtype _ _                                 = false</code></pre>
+<p><code>subtype {x:int, y:int} {x:int}</code>: two records, so the record clause.</p>
+<p>One field on the right, <code>x : int</code>. Is there a <code>kⱼ = x</code> on the left? Yes, <code>x : int</code>.</p></div>
+<div class="piece frame"><pre class="lang"><code>subtype : type → type → bool
+
+<b class="work-key">subtype int  int                            = true</b>
+subtype bool bool                           = true
+subtype (σ₁ → σ₂) (τ₁ → τ₂)                 = subtype τ₁ σ₁  &amp;&amp;  subtype σ₂ τ₂
+subtype {k₁:σ₁, …, kₘ:σₘ} {ℓ₁:τ₁, …, ℓₙ:τₙ}  = for each ℓᵢ : τᵢ,
+                                                some kⱼ = ℓᵢ  and  subtype σⱼ τᵢ
+subtype _ _                                 = false</code></pre>
+<p><code>subtype {x:int, y:int} {x:int}</code>: two records, so the record clause.</p>
+<p>One field on the right, <code>x : int</code>. Is there a <code>kⱼ = x</code> on the left? Yes, <code>x : int</code>.</p>
+<p><code>subtype int int</code>: the base clause. True.</p></div>
+<div class="piece frame keep"><pre class="lang"><code>subtype : type → type → bool
+
+subtype int  int                            = true
+subtype bool bool                           = true
+subtype (σ₁ → σ₂) (τ₁ → τ₂)                 = subtype τ₁ σ₁  &amp;&amp;  subtype σ₂ τ₂
+<b class="work-key">subtype {k₁:σ₁, …, kₘ:σₘ} {ℓ₁:τ₁, …, ℓₙ:τₙ}  = for each ℓᵢ : τᵢ,
+                                                some kⱼ = ℓᵢ  and  subtype σⱼ τᵢ</b>
+subtype _ _                                 = false</code></pre>
+<p><code>subtype {x:int, y:int} {x:int}</code>: two records, so the record clause.</p>
+<p>One field on the right, <code>x : int</code>. Is there a <code>kⱼ = x</code> on the left? Yes, <code>x : int</code>.</p>
+<p><code>subtype int int</code>: the base clause. True.</p>
+<p>No more fields on the right, so true. <code>y</code> was never asked about. Back in <code>typeof</code>: the check passes, result <code>int</code>.</p></div>
+</div>
+
+<h3>Read it back as rules</h3>
+<div class="pieces ch-table two">
+<div class="rules ch ch-labels"><div class="cell ch-label">clause</div><div class="cell ch-label clause">rule</div></div>
+<div class="rules ch"><div class="piece"><pre class="lang"><code>typeof Γ (e₁ e₂)
+  = let τ₁ → τ₂ = typeof Γ e₁ in
+    if subtype (typeof Γ e₂) τ₁ then τ₂ else fail</code></pre></div><div class="cell piece">\[\dfrac{\Gamma \vdash_{\mathsf a} e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash_{\mathsf a} e_2 : \tau \quad \tau <:_{\mathsf a} \tau_1}{\Gamma \vdash_{\mathsf a} e_1\, e_2 : \tau_2}{\scriptstyle \text{TA-App}}\]</div></div>
+</div>
+<p>Write \(\Gamma \vdash_{\mathsf a} e : \tau\) for "<code>typeof Γ e</code> returns \(\tau\)". The other clauses read back as the rules we started from, with \(\vdash_{\mathsf a}\) in place of \(\vdash\).</p>
+
+<h3>Compare with the declarative rules</h3>
+<div class="pieces frames">
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}{\scriptstyle \text{T-Var}} \qquad \dfrac{\Gamma, x{:}\tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}{\scriptstyle \text{T-Abs}} \qquad \dfrac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}{\scriptstyle \text{T-App}} \qquad \dfrac{\Gamma \vdash e : \sigma \quad \sigma <: \tau}{\Gamma \vdash e : \tau}{\scriptstyle \text{T-Sub}} \\[14pt]
+\dfrac{\Gamma \vdash e_1 : \tau_1 \ \cdots\ \Gamma \vdash e_n : \tau_n}{\Gamma \vdash \{\ell_1 = e_1, \ldots, \ell_n = e_n\} : \{\ell_1{:}\tau_1, \ldots, \ell_n{:}\tau_n\}}{\scriptstyle \text{T-Rcd}} \qquad \dfrac{\Gamma \vdash e : \{\ell_i{:}\tau_i\}}{\Gamma \vdash e.\ell_j : \tau_j}{\scriptstyle \text{T-Proj}}
+\end{gathered}
+\]<p class="step-note">The declarative typing rules.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}{\scriptstyle \text{T-Var}} \qquad \dfrac{\Gamma, x{:}\tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}{\scriptstyle \text{T-Abs}} \qquad \dfrac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}{\scriptstyle \text{T-App}} \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{\cancel{\dfrac{\Gamma \vdash e : \sigma \quad \sigma <: \tau}{\Gamma \vdash e : \tau}{\scriptstyle \text{T-Sub}}}}} \\[14pt]
+\dfrac{\Gamma \vdash e_1 : \tau_1 \ \cdots\ \Gamma \vdash e_n : \tau_n}{\Gamma \vdash \{\ell_1 = e_1, \ldots, \ell_n = e_n\} : \{\ell_1{:}\tau_1, \ldots, \ell_n{:}\tau_n\}}{\scriptstyle \text{T-Rcd}} \qquad \dfrac{\Gamma \vdash e : \{\ell_i{:}\tau_i\}}{\Gamma \vdash e.\ell_j : \tau_j}{\scriptstyle \text{T-Proj}}
+\end{gathered}
+\]<p class="step-note">No clause for T-Sub: no term form to match.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}{\scriptstyle \text{T-Var}} \qquad \dfrac{\Gamma, x{:}\tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}{\scriptstyle \text{T-Abs}} \qquad \dfrac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}{\scriptstyle \text{T-App}} \\[14pt]
+\dfrac{\Gamma \vdash e_1 : \tau_1 \ \cdots\ \Gamma \vdash e_n : \tau_n}{\Gamma \vdash \{\ell_1 = e_1, \ldots, \ell_n = e_n\} : \{\ell_1{:}\tau_1, \ldots, \ell_n{:}\tau_n\}}{\scriptstyle \text{T-Rcd}} \qquad \dfrac{\Gamma \vdash e : \{\ell_i{:}\tau_i\}}{\Gamma \vdash e.\ell_j : \tau_j}{\scriptstyle \text{T-Proj}}
+\end{gathered}
+\]<p class="step-note">Gone.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}{\scriptstyle \text{T-Var}} \qquad \dfrac{\Gamma, x{:}\tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}{\scriptstyle \text{T-Abs}} \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{\cancel{\dfrac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}{\scriptstyle \text{T-App}}}}} \\[14pt]
+\dfrac{\Gamma \vdash e_1 : \tau_1 \ \cdots\ \Gamma \vdash e_n : \tau_n}{\Gamma \vdash \{\ell_1 = e_1, \ldots, \ell_n = e_n\} : \{\ell_1{:}\tau_1, \ldots, \ell_n{:}\tau_n\}}{\scriptstyle \text{T-Rcd}} \qquad \dfrac{\Gamma \vdash e : \{\ell_i{:}\tau_i\}}{\Gamma \vdash e.\ell_j : \tau_j}{\scriptstyle \text{T-Proj}}
+\end{gathered}
+\]<p class="step-note">T-App's test was equality.</p></div>
+<div class="display piece frame keep">\[
+\begin{gathered}
+\dfrac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}{\scriptstyle \text{T-Var}} \qquad \dfrac{\Gamma, x{:}\tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}{\scriptstyle \text{T-Abs}} \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{\dfrac{\Gamma \vdash_{\mathsf a} e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash_{\mathsf a} e_2 : \tau \quad \tau <:_{\mathsf a} \tau_1}{\Gamma \vdash_{\mathsf a} e_1\, e_2 : \tau_2}{\scriptstyle \text{TA-App}}}} \\[14pt]
+\dfrac{\Gamma \vdash e_1 : \tau_1 \ \cdots\ \Gamma \vdash e_n : \tau_n}{\Gamma \vdash \{\ell_1 = e_1, \ldots, \ell_n = e_n\} : \{\ell_1{:}\tau_1, \ldots, \ell_n{:}\tau_n\}}{\scriptstyle \text{T-Rcd}} \qquad \dfrac{\Gamma \vdash e : \{\ell_i{:}\tau_i\}}{\Gamma \vdash e.\ell_j : \tau_j}{\scriptstyle \text{T-Proj}}
+\end{gathered}
+\]<p class="step-note">In its place, the clause as a rule: the argument's type is checked against the parameter's with \(<:_{\mathsf a}\). The one place subsumption was ever needed.</p></div>
+</div>
+
+<h3>Same relation?</h3>
+<div class="display">\[
+\Gamma \vdash_{\mathsf a} e : \tau \quad \overset{?}{\text{iff}} \quad \Gamma \vdash e : \tau
+\]</div>
+<div class="pieces frames">
+<div class="display piece frame">\[
+\dfrac{\vdots}{\Gamma \vdash e : \tau}
+\]<p class="step-note">Some derivation of \(\Gamma \vdash e : \tau\).</p></div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\vdots}{\Gamma \vdash e : \tau} \quad \dfrac{}{\tau <: \tau}{\scriptstyle \text{S-Refl}}}{\Gamma \vdash e : \tau}{\scriptstyle \text{T-Sub}}
+\]<p class="step-note">T-Sub with S-Refl under it. Also a derivation.</p></div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\dfrac{\vdots}{\Gamma \vdash e : \tau} \quad \dfrac{}{\tau <: \tau}{\scriptstyle \text{S-Refl}}}{\Gamma \vdash e : \tau}{\scriptstyle \text{T-Sub}} \quad \dfrac{}{\tau <: \tau}{\scriptstyle \text{S-Refl}}}{\Gamma \vdash e : \tau}{\scriptstyle \text{T-Sub}}
+\]<p class="step-note">And again, forever.</p></div>
+<div class="display piece frame">\[
+\dfrac{\vdash 1 : \mathsf{int} \quad \vdash 2 : \mathsf{int}}{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}, y{:}\mathsf{int}\}}{\scriptstyle \text{T-Rcd}}
+\]<p class="step-note">T-Rcd: the one type <code>typeof</code> computes.</p></div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\vdash 1 : \mathsf{int} \quad \vdash 2 : \mathsf{int}}{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}, y{:}\mathsf{int}\}}{\scriptstyle \text{T-Rcd}} \quad \{x{:}\mathsf{int}, y{:}\mathsf{int}\} <: \{x{:}\mathsf{int}\}}{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}\}}{\scriptstyle \text{T-Sub}}
+\]<p class="step-note">T-Sub and width: a second type.</p></div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\dfrac{\vdash 1 : \mathsf{int} \quad \vdash 2 : \mathsf{int}}{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}, y{:}\mathsf{int}\}}{\scriptstyle \text{T-Rcd}} \quad \{x{:}\mathsf{int}, y{:}\mathsf{int}\} <: \{x{:}\mathsf{int}\}}{\vdash \{x = 1, y = 2\} : \{x{:}\mathsf{int}\}}{\scriptstyle \text{T-Sub}} \quad \{x{:}\mathsf{int}\} <: \{\}}{\vdash \{x = 1, y = 2\} : \{\}}{\scriptstyle \text{T-Sub}}
+\]<p class="step-note">And a third. All of them correct, only one computed.</p></div>
+<div class="piece frame keep"><p>T-Sub gives the term every type above \(\{x{:}\mathsf{int}, y{:}\mathsf{int}\}\). <code>typeof</code> returns exactly one, the bottom of that pile. So the two judgements cannot agree on \(\tau\): not an iff. What they can agree on: the algorithm's type sits below every declarative one. Two statements.</p></div>
+</div>
+<p><b>⇒ Soundness.</b> If \(\Gamma \vdash_{\mathsf a} e : \tau\) then \(\Gamma \vdash e : \tau\). Induction on the algorithmic derivation; each rule, as a declarative derivation.</p>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\dfrac{x{:}\tau \in \Gamma}{\Gamma \vdash_{\mathsf a} x : \tau}{\scriptstyle \text{TA-Var}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{x{:}\tau \in \Gamma}{\Gamma \vdash_{\mathsf a} x : \tau}{\scriptstyle \text{TA-Var}}\ \mapsto\ \dfrac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}{\scriptstyle \text{T-Var}}
+\]<p class="step-note">The same rule; the premises are the inductive hypothesis.</p></div>
+</div>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\dfrac{\Gamma, x{:}\tau_1 \vdash_{\mathsf a} e : \tau_2}{\Gamma \vdash_{\mathsf a} \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}{\scriptstyle \text{TA-Abs}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\Gamma, x{:}\tau_1 \vdash_{\mathsf a} e : \tau_2}{\Gamma \vdash_{\mathsf a} \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}{\scriptstyle \text{TA-Abs}}\ \mapsto\ \dfrac{\Gamma, x{:}\tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}{\scriptstyle \text{T-Abs}}
+\]<p class="step-note">The same rule; the premises are the inductive hypothesis.</p></div>
+</div>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\dfrac{\Gamma \vdash_{\mathsf a} e_1 : \tau_1 \ \cdots\ \Gamma \vdash_{\mathsf a} e_n : \tau_n}{\Gamma \vdash_{\mathsf a} \{\ell_1 = e_1, \ldots, \ell_n = e_n\} : \{\ell_1{:}\tau_1, \ldots, \ell_n{:}\tau_n\}}{\scriptstyle \text{TA-Rcd}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\Gamma \vdash_{\mathsf a} e_1 : \tau_1 \ \cdots\ \Gamma \vdash_{\mathsf a} e_n : \tau_n}{\Gamma \vdash_{\mathsf a} \{\ell_1 = e_1, \ldots, \ell_n = e_n\} : \{\ell_1{:}\tau_1, \ldots, \ell_n{:}\tau_n\}}{\scriptstyle \text{TA-Rcd}}\ \mapsto\ \dfrac{\Gamma \vdash e_1 : \tau_1 \ \cdots\ \Gamma \vdash e_n : \tau_n}{\Gamma \vdash \{\ell_1 = e_1, \ldots, \ell_n = e_n\} : \{\ell_1{:}\tau_1, \ldots, \ell_n{:}\tau_n\}}{\scriptstyle \text{T-Rcd}}
+\]<p class="step-note">The same rule; the premises are the inductive hypothesis.</p></div>
+</div>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\dfrac{\Gamma \vdash_{\mathsf a} e : \{\ell_i{:}\tau_i\}}{\Gamma \vdash_{\mathsf a} e.\ell_j : \tau_j}{\scriptstyle \text{TA-Proj}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\Gamma \vdash_{\mathsf a} e : \{\ell_i{:}\tau_i\}}{\Gamma \vdash_{\mathsf a} e.\ell_j : \tau_j}{\scriptstyle \text{TA-Proj}}\ \mapsto\ \dfrac{\Gamma \vdash e : \{\ell_i{:}\tau_i\}}{\Gamma \vdash e.\ell_j : \tau_j}{\scriptstyle \text{T-Proj}}
+\]<p class="step-note">The same rule; the premises are the inductive hypothesis.</p></div>
+</div>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\dfrac{\Gamma \vdash_{\mathsf a} e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash_{\mathsf a} e_2 : \tau \quad \tau <:_{\mathsf a} \tau_1}{\Gamma \vdash_{\mathsf a} e_1\, e_2 : \tau_2}{\scriptstyle \text{TA-App}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\Gamma \vdash_{\mathsf a} e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash_{\mathsf a} e_2 : \tau \quad \class{hl-blue}{\bbox[#eef1f6,2pt]{\tau <:_{\mathsf a} \tau_1}}}{\Gamma \vdash_{\mathsf a} e_1\, e_2 : \tau_2}{\scriptstyle \text{TA-App}}\ \mapsto\ \dfrac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \class{hl-blue}{\bbox[#eef1f6,2pt]{\dfrac{\Gamma \vdash e_2 : \tau \quad \tau <: \tau_1}{\Gamma \vdash e_2 : \tau_1}{\scriptstyle \text{T-Sub}}}}}{\Gamma \vdash e_1\, e_2 : \tau_2}{\scriptstyle \text{T-App}}
+\]<p class="step-note">The check becomes one T-Sub on the argument; the premises are the inductive hypothesis, and \(<:\) is the subtyping theorem.</p></div>
+</div>
+<p><b>⇐ Completeness, minimal typing.</b> If \(\Gamma \vdash e : \tau\) then \(\Gamma \vdash_{\mathsf a} e : \sigma\) for some \(\sigma <: \tau\): the algorithm's type is below every declarative one. Induction on the declarative derivation; one case per rule.</p>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\dfrac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}{\scriptstyle \text{T-Var}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}{\scriptstyle \text{T-Var}}\ \mapsto\ \dfrac{x{:}\tau \in \Gamma}{\Gamma \vdash_{\mathsf a} x : \tau \ \text{ and } \ \tau <: \tau}{\scriptstyle \text{TA-Var}}
+\]<p class="step-note">The same rule; the same type, below itself by reflexivity.</p></div>
+<div class="display piece frame">\[
+\dfrac{\Gamma, x{:}\tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}{\scriptstyle \text{T-Abs}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\Gamma, x{:}\tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}{\scriptstyle \text{T-Abs}}\ \mapsto\ \dfrac{\Gamma, x{:}\tau_1 \vdash_{\mathsf a} e : \sigma_2 \quad \sigma_2 <: \tau_2 \ \text{(IH)}}{\Gamma \vdash_{\mathsf a} \lambda x{:}\tau_1.\, e : \tau_1 \to \sigma_2 \ \text{ and } \ \tau_1 \to \sigma_2 <: \tau_1 \to \tau_2}{\scriptstyle \text{TA-Abs, S-Arrow}}
+\]<p class="step-note">The body gets a type below \(\tau_2\), so the arrow is below \(\tau_1 \to \tau_2\): S-Arrow, with reflexivity on the argument.</p></div>
+<div class="display piece frame">\[
+\dfrac{\Gamma \vdash e_1 : \tau_1 \ \cdots\ \Gamma \vdash e_n : \tau_n}{\Gamma \vdash \{\ell_i = e_i\} : \{\ell_i{:}\tau_i\}}{\scriptstyle \text{T-Rcd}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\Gamma \vdash e_1 : \tau_1 \ \cdots\ \Gamma \vdash e_n : \tau_n}{\Gamma \vdash \{\ell_i = e_i\} : \{\ell_i{:}\tau_i\}}{\scriptstyle \text{T-Rcd}}\ \mapsto\ \dfrac{\Gamma \vdash_{\mathsf a} e_i : \sigma_i \quad \sigma_i <: \tau_i \ \text{(IH, each } i)}{\Gamma \vdash_{\mathsf a} \{\ell_i = e_i\} : \{\ell_i{:}\sigma_i\} \ \text{ and } \ \{\ell_i{:}\sigma_i\} <: \{\ell_i{:}\tau_i\}}{\scriptstyle \text{TA-Rcd, S-RcdDepth}}
+\]<p class="step-note">Each field gets a type below \(\tau_i\); by depth the record type is below \(\{\ell_i{:}\tau_i\}\).</p></div>
+<div class="display piece frame">\[
+\dfrac{\Gamma \vdash e : \{\ell_i{:}\tau_i\}}{\Gamma \vdash e.\ell_j : \tau_j}{\scriptstyle \text{T-Proj}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\Gamma \vdash e : \{\ell_i{:}\tau_i\}}{\Gamma \vdash e.\ell_j : \tau_j}{\scriptstyle \text{T-Proj}}\ \mapsto\ \dfrac{\Gamma \vdash_{\mathsf a} e : \{k_l{:}\sigma_l\} \quad \{k_l{:}\sigma_l\} <: \{\ell_i{:}\tau_i\} \ \text{(IH)}}{\Gamma \vdash_{\mathsf a} e.\ell_j : \sigma_l \ \text{ and } \ \sigma_l <: \tau_j}{\scriptstyle \text{TA-Proj}}
+\]<p class="step-note">A record type below \(\{\ell_i{:}\tau_i\}\) still has the field \(\ell_j\), at some \(\sigma_l <: \tau_j\): that is what SA-Rcd says.</p></div>
+<div class="display piece frame">\[
+\dfrac{\Gamma \vdash e : \sigma \quad \sigma <: \tau}{\Gamma \vdash e : \tau}{\scriptstyle \text{T-Sub}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\Gamma \vdash e : \sigma \quad \sigma <: \tau}{\Gamma \vdash e : \tau}{\scriptstyle \text{T-Sub}}\ \mapsto\ \dfrac{\Gamma \vdash_{\mathsf a} e : \sigma\prime \quad \sigma\prime <: \sigma \ \text{(IH)} \quad \sigma <: \tau}{\Gamma \vdash_{\mathsf a} e : \sigma\prime \ \text{ and } \ \sigma\prime <: \tau}{\scriptstyle \text{S-Trans}}
+\]<p class="step-note">The algorithm does nothing at this node. The inductive hypothesis gives a type below \(\sigma\); transitivity puts it below \(\tau\).</p></div>
+<div class="display piece frame">\[
+\dfrac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}{\scriptstyle \text{T-App}}
+\]<p class="step-note">Application. Two premises, two inductive hypotheses.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}{\scriptstyle \text{T-App}} \\[10pt] \text{IH on } e_1: \quad \Gamma \vdash_{\mathsf a} e_1 : \rho, \quad \rho <: \tau_1 \to \tau_2
+\end{gathered}
+\]<p class="step-note">The function has an algorithmic type, below the arrow the rule used.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}{\scriptstyle \text{T-App}} \\[10pt] \text{IH on } e_1: \quad \Gamma \vdash_{\mathsf a} e_1 : \rho, \quad \rho <: \tau_1 \to \tau_2 \\[10pt] \rho <: \tau_1 \to \tau_2 \ \text{ so } \ \rho = \sigma_1 \to \sigma_2 \ \text{ with } \ \class{hl-blue}{\bbox[#eef1f6,2pt]{\tau_1 <: \sigma_1}}, \ \sigma_2 <: \tau_2
+\end{gathered}
+\]<p class="step-note">Below an arrow is an arrow: S-Arrow read backwards. Note the direction: the parameter type \(\sigma_1\) is <em>above</em> \(\tau_1\).</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}{\scriptstyle \text{T-App}} \\[10pt] \text{IH on } e_1: \quad \Gamma \vdash_{\mathsf a} e_1 : \rho, \quad \rho <: \tau_1 \to \tau_2 \\[10pt] \rho <: \tau_1 \to \tau_2 \ \text{ so } \ \rho = \sigma_1 \to \sigma_2 \ \text{ with } \ \class{hl-blue}{\bbox[#eef1f6,2pt]{\tau_1 <: \sigma_1}}, \ \sigma_2 <: \tau_2 \\[10pt] \text{IH on } e_2: \quad \Gamma \vdash_{\mathsf a} e_2 : \sigma, \quad \class{hl-blue}{\bbox[#eef1f6,2pt]{\sigma <: \tau_1}}
+\end{gathered}
+\]<p class="step-note">The argument has an algorithmic type, below \(\tau_1\).</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}{\scriptstyle \text{T-App}} \\[10pt] \text{IH on } e_1: \quad \Gamma \vdash_{\mathsf a} e_1 : \rho, \quad \rho <: \tau_1 \to \tau_2 \\[10pt] \rho <: \tau_1 \to \tau_2 \ \text{ so } \ \rho = \sigma_1 \to \sigma_2 \ \text{ with } \ \class{hl-blue}{\bbox[#eef1f6,2pt]{\tau_1 <: \sigma_1}}, \ \sigma_2 <: \tau_2 \\[10pt] \text{IH on } e_2: \quad \Gamma \vdash_{\mathsf a} e_2 : \sigma, \quad \class{hl-blue}{\bbox[#eef1f6,2pt]{\sigma <: \tau_1}} \\[10pt] \sigma <: \tau_1 <: \sigma_1 \ \text{ so } \ \class{hl-blue}{\bbox[#eef1f6,2pt]{\sigma <:_{\mathsf a} \sigma_1}}
+\end{gathered}
+\]<p class="step-note">Transitivity. This is exactly the check in the application clause: it passes.</p></div>
+<div class="display piece frame keep">\[
+\begin{gathered}
+\dfrac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}{\scriptstyle \text{T-App}} \\[10pt] \text{IH on } e_1: \quad \Gamma \vdash_{\mathsf a} e_1 : \rho, \quad \rho <: \tau_1 \to \tau_2 \\[10pt] \rho <: \tau_1 \to \tau_2 \ \text{ so } \ \rho = \sigma_1 \to \sigma_2 \ \text{ with } \ \class{hl-blue}{\bbox[#eef1f6,2pt]{\tau_1 <: \sigma_1}}, \ \sigma_2 <: \tau_2 \\[10pt] \text{IH on } e_2: \quad \Gamma \vdash_{\mathsf a} e_2 : \sigma, \quad \class{hl-blue}{\bbox[#eef1f6,2pt]{\sigma <: \tau_1}} \\[10pt] \sigma <: \tau_1 <: \sigma_1 \ \text{ so } \ \class{hl-blue}{\bbox[#eef1f6,2pt]{\sigma <:_{\mathsf a} \sigma_1}} \\[10pt] \dfrac{\Gamma \vdash_{\mathsf a} e_1 : \sigma_1 \to \sigma_2 \quad \Gamma \vdash_{\mathsf a} e_2 : \sigma \quad \sigma <:_{\mathsf a} \sigma_1}{\Gamma \vdash_{\mathsf a} e_1\, e_2 : \sigma_2}{\scriptstyle \text{TA-App}} \qquad \sigma_2 <: \tau_2
+\end{gathered}
+\]<p class="step-note">TA-App fires, with result \(\sigma_2\), which is below \(\tau_2\). Done.</p></div>
+</div>
+
+<h2>4. Type safety</h2>
+<p>Same dynamics as HW4: call-by-value, two redexes.</p>
+<div class="display">\[
+(\lambda x{:}\tau.\, e)\ v \longrightarrow e[x \mapsto v] \qquad\qquad \{\ell_i = v_i\}.\ell_j \longrightarrow v_j
+\]</div>
+<p>Progress and preservation, as in Lecture 13. For \(\vdash_{\mathsf a}\): one rule per term form, so inverting a derivation is reading its last rule.</p>
+<p><b>Canonical forms.</b> A closed value's algorithmic type says what it is; only TA-Abs gives an arrow type, only TA-Rcd a record type.</p>
+<div class="display">\[
+\vdash_{\mathsf a} v : \tau_1 \to \tau_2 \ \Longrightarrow\ v = \lambda x{:}\tau_1.\, e \qquad\qquad \vdash_{\mathsf a} v : \{\ell_i{:}\tau_i\} \ \Longrightarrow\ v = \{\ell_i = v_i\}
+\]</div>
+<h3>Progress</h3>
+<p><b>Theorem (progress).</b> If \(\vdash_{\mathsf a} e : \tau\) then \(e\) is a value or \(e \longrightarrow e'\). Induction on the derivation; the same proof as for STLC, with canonical forms doing the same job.</p>
+<ul class="pieces">
+  <li class="piece"><b>Case \(e = x\).</b> Impossible: the context is empty.</li>
+  <li class="piece"><b>Case \(e = \lambda x{:}\tau_1.\, e'\).</b> A value.</li>
+  <li class="piece"><b>Case \(e = e_1\, e_2\).</b>
+    <ul>
+      <li class="piece">\(e_1\) steps: so does \(e_1\, e_2\).</li>
+      <li class="piece">\(e_1\) a value, \(e_2\) steps: so does \(e_1\, e_2\).</li>
+      <li class="piece">both values: canonical forms, \(e_1 = \lambda x{:}\tau_1.\, e'\), so β fires.</li>
+    </ul>
+  </li>
+  <li class="piece"><b>Case \(e = \{\ell_i = e_i\}\).</b>
+    <ul>
+      <li class="piece">some \(e_k\) steps (the first one): so does \(\{\ell_i = e_i\}\).</li>
+      <li class="piece">all values: a value.</li>
+    </ul>
+  </li>
+  <li class="piece"><b>Case \(e = e'.\ell_j\).</b>
+    <ul>
+      <li class="piece">\(e'\) steps: so does \(e'.\ell_j\).</li>
+      <li class="piece">\(e'\) a value: canonical forms, \(e' = \{\ell_i = v_i\}\) with the field \(\ell_j\), so projection fires. \(\square\)</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>Preservation: the old statement is false</h3>
+<p>Lecture 13: if \(\vdash_{\mathsf a} e : \tau\) and \(e \longrightarrow e\prime\) then \(\vdash_{\mathsf a} e\prime : \tau\)?</p>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\vdash_{\mathsf a} (\lambda r{:}\{x{:}\mathsf{int}\}.\, r)\ \{x = 1, y = 2\} : \{x{:}\mathsf{int}\}
+\]<p class="step-note">A term and its algorithmic type: the function returns its argument, of type \(\{x{:}\mathsf{int}\}\).</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\vdash_{\mathsf a} (\lambda r{:}\{x{:}\mathsf{int}\}.\, r)\ \{x = 1, y = 2\} : \{x{:}\mathsf{int}\} \\[10pt] 
+\longrightarrow\ \{x = 1, y = 2\}
+\end{gathered}
+\]<p class="step-note">One β step.</p></div>
+<div class="display piece frame keep">\[
+\begin{gathered}
+\vdash_{\mathsf a} (\lambda r{:}\{x{:}\mathsf{int}\}.\, r)\ \{x = 1, y = 2\} : \{x{:}\mathsf{int}\} \\[10pt] 
+\longrightarrow\ \{x = 1, y = 2\} \qquad \vdash_{\mathsf a} \{x = 1, y = 2\} : \class{hl-blue}{\bbox[#eef1f6,2pt]{\{x{:}\mathsf{int}, y{:}\mathsf{int}\}}}
+\end{gathered}
+\]<p class="step-note">The result's algorithmic type is \(\{x{:}\mathsf{int}, y{:}\mathsf{int}\}\). Not \(\{x{:}\mathsf{int}\}\).</p></div>
+</div>
+<p>So the statement has to allow a subtype:</p>
+<div class="display">\[
+\text{If } \vdash_{\mathsf a} e : \tau \text{ and } e \longrightarrow e\prime \text{ then } \vdash_{\mathsf a} e\prime : \tau\prime \text{ for some } \class{hl-blue}{\bbox[#eef1f6,2pt]{\tau\prime <: \tau}}
+\]</div>
+<h3>Substitution</h3>
+<p><b>Lemma (substitution, up to subtyping).</b> If \(\Gamma, x{:}\sigma \vdash_{\mathsf a} e : \tau\) and \(\vdash_{\mathsf a} v : \sigma\prime\) with \(\sigma\prime <: \sigma\), then \(\Gamma \vdash_{\mathsf a} e[x \mapsto v] : \tau\prime\) for some \(\tau\prime <: \tau\). Needed in the β case of preservation, where the argument's type is only a subtype of the parameter's. Induction on \(e\); the application case is the completeness case again.</p>
+
+<h3>Preservation</h3>
+<p>The algorithm returns one type, and the example showed that type can change along a step. So the theorem asks for a subtype of the original type, not the type itself.</p>
+<p><b>Theorem (preservation, up to subtyping).</b> If \(\vdash_{\mathsf a} e : \tau\) and \(e \longrightarrow e'\) then \(\vdash_{\mathsf a} e' : \tau'\) for some \(\tau' <: \tau\). Induction on the step.</p>
+<ul class="pieces">
+  <li class="piece"><b>Case \((\lambda x{:}\sigma.\, e)\ v \longrightarrow e[x \mapsto v]\).</b>
+    <ul>
+      <li class="piece">Hypotheses:
+        <ul>
+          <li class="piece">\(\vdash_{\mathsf a} (\lambda x{:}\sigma.\, e)\ v : \tau\) — given.</li>
+          <li class="piece">TA-App, the only rule for an application:
+            <ul>
+              <li class="piece">\(\vdash_{\mathsf a} \lambda x{:}\sigma.\, e : \sigma \to \tau\)</li>
+              <li class="piece">\(\vdash_{\mathsf a} v : \sigma'\)</li>
+              <li class="piece">\(\sigma' <:_{\mathsf a} \sigma\)</li>
+            </ul>
+          </li>
+          <li class="piece">\(x{:}\sigma \vdash_{\mathsf a} e : \tau\) — TA-Abs, the only rule for a λ.</li>
+        </ul>
+      </li>
+      <li class="piece">Goal: \(\vdash_{\mathsf a} e[x \mapsto v] : \tau'\) for some \(\tau' <: \tau\).</li>
+      <li class="piece">Proof: using \(x{:}\sigma \vdash_{\mathsf a} e : \tau\), \(\vdash_{\mathsf a} v : \sigma'\) and \(\sigma' <: \sigma\), by the substitution lemma we have \(\vdash_{\mathsf a} e[x \mapsto v] : \tau'\) for some \(\tau' <: \tau\).</li>
+    </ul>
+  </li>
+  <li class="piece"><b>Case \(\{\ell_i = v_i\}.\ell_j \longrightarrow v_j\).</b>
+    <ul>
+      <li class="piece">Hypotheses:
+        <ul>
+          <li class="piece">\(\vdash_{\mathsf a} \{\ell_i = v_i\}.\ell_j : \tau\) — given.</li>
+          <li class="piece">TA-Proj:
+            <ul>
+              <li class="piece">\(\vdash_{\mathsf a} \{\ell_i = v_i\} : \{\ell_i{:}\tau_i\}\)</li>
+              <li class="piece">\(\tau = \tau_j\)</li>
+            </ul>
+          </li>
+          <li class="piece">\(\vdash_{\mathsf a} v_i : \tau_i\) for each \(i\) — TA-Rcd.</li>
+        </ul>
+      </li>
+      <li class="piece">Goal: \(\vdash_{\mathsf a} v_j : \tau'\) for some \(\tau' <: \tau_j\).</li>
+      <li class="piece">Proof: using \(\vdash_{\mathsf a} v_j : \tau_j\), take \(\tau' = \tau_j\); by reflexivity, \(\tau_j <: \tau_j\).</li>
+    </ul>
+  </li>
+  <li class="piece"><b>Case \(E[r] \longrightarrow E[r']\) with \(r \longrightarrow r'\).</b>
+    <ul>
+      <li class="piece">Hypotheses:
+        <ul>
+          <li class="piece">\(\vdash_{\mathsf a} E[r] : \tau\) — given.</li>
+          <li class="piece">\(\vdash_{\mathsf a} r : \rho\) — the redex has a type of its own inside the derivation.</li>
+          <li class="piece">Inductive hypothesis on \(r \longrightarrow r'\):
+            <ul>
+              <li class="piece">\(\vdash_{\mathsf a} r' : \rho'\)</li>
+              <li class="piece">\(\rho' <: \rho\)</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+      <li class="piece">Goal: \(\vdash_{\mathsf a} E[r'] : \tau'\) for some \(\tau' <: \tau\).</li>
+      <li class="piece">Proof: by cases on \(E\), using \(\vdash_{\mathsf a} r' : \rho'\) and \(\rho' <: \rho\) in place of \(r\)'s typing. Function position: by S-Arrow, \(\rho'\) is an arrow with parameter type above \(\tau_1\), so by transitivity the check still passes. Argument position: by transitivity, \(\rho' <: \rho <:_{\mathsf a} \tau_1\). Record field: by depth, the record type is below the old one. Projection: by SA-Rcd, the field is still there. In each case \(\vdash_{\mathsf a} E[r'] : \tau'\) with \(\tau' <: \tau\). \(\square\)</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>Back to the declarative system</h3>
+<p>In review, three theorems:</p>
+<ul class="pieces">
+  <li class="piece"><b>Minimal types.</b> If \(\Gamma \vdash e : \tau\) then \(\Gamma \vdash_{\mathsf a} e : \sigma\) for some \(\sigma <: \tau\).</li>
+  <li class="piece"><b>Preservation, up to subtyping.</b> If \(\vdash_{\mathsf a} e : \tau\) and \(e \longrightarrow e\prime\) then \(\vdash_{\mathsf a} e\prime : \tau\prime\) for some \(\tau\prime <: \tau\).</li>
+  <li class="piece"><b>Soundness.</b> If \(\Gamma \vdash_{\mathsf a} e : \tau\) then \(\Gamma \vdash e : \tau\).</li>
+</ul>
+<p><b>Corollary (preservation for the declarative system).</b></p>
+<p style="margin-left:2em">If \(\vdash e : \tau\) and \(e \longrightarrow e\prime\) then \(\vdash e\prime : \tau\).</p>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\vdash e : \tau \qquad\qquad e \longrightarrow e'
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\vdash e : \tau}{\vdash_{\mathsf a} e : \sigma \quad \sigma <: \tau}{\scriptstyle \text{minimal types}} \qquad e \longrightarrow e'
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\vdash e : \tau}{\vdash_{\mathsf a} e : \sigma \quad \sigma <: \tau}{\scriptstyle \text{minimal types}} \qquad e \longrightarrow e'}{\vdash_{\mathsf a} e' : \sigma' \quad \sigma' <: \sigma}{\scriptstyle \text{preservation}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\dfrac{\vdash e : \tau}{\vdash_{\mathsf a} e : \sigma \quad \sigma <: \tau}{\scriptstyle \text{minimal types}} \qquad e \longrightarrow e'}{\vdash_{\mathsf a} e' : \sigma' \quad \sigma' <: \sigma}{\scriptstyle \text{preservation}}}{\vdash e' : \sigma' \quad \sigma' <: \sigma <: \tau}{\scriptstyle \text{soundness, S-Trans}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\dfrac{\dfrac{\dfrac{\vdash e : \tau}{\vdash_{\mathsf a} e : \sigma \quad \sigma <: \tau}{\scriptstyle \text{minimal types}} \qquad e \longrightarrow e'}{\vdash_{\mathsf a} e' : \sigma' \quad \sigma' <: \sigma}{\scriptstyle \text{preservation}}}{\vdash e' : \sigma' \quad \sigma' <: \sigma <: \tau}{\scriptstyle \text{soundness, S-Trans}}}{\vdash e' : \tau}{\scriptstyle \text{T-Sub}}
+\]</div>
+</div>
+<p>Progress for \(\vdash\): minimal types, then progress for \(\vdash_{\mathsf a}\). So the declarative system is type safe, with every proof done on the algorithmic side.</p>
+
+<h2>In Rocq</h2>
+<p>The whole of this page as a Rocq file: the language, the subtyping rules, the typing rules with T-Sub, and the derivation above as a proof. Folded; open any block to read it, or press Run to check it in the browser.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-1">From Coq Require Import ZArith Bool String List Permutation.
+Import ListNotations.
+Open Scope Z_scope.
+Open Scope string_scope.
+
+Definition name := string.
+Definition label := string.
+
+Inductive ty : Type :=
+| TInt
+| TBool
+| TArr (τ1 τ2 : ty)
+| TUnit
+| TVoid
+| TRcd (fs : list (label * ty)).
+
+Inductive exp : Type :=
+| Num (n : Z)
+| Tru
+| Fls
+| Unit
+| Var (x : name)
+| Lam (x : name) (τ : ty) (e : exp)
+| App (e1 e2 : exp)
+| If (e e1 e2 : exp)
+| Rcd (fs : list (label * exp))
+| Proj (e : exp) (l : label).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 27 lines">Show code · 27 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-2">Declare Scope ty_scope.
+Delimit Scope ty_scope with ty.
+Bind Scope ty_scope with ty.
+Notation "'INT'" := TInt.
+Notation "'BOOL'" := TBool.
+Notation "'ONE'" := TUnit.
+Notation "'ZERO'" := TVoid.
+Notation "τ1 ⇒ τ2" := (TArr τ1 τ2) (at level 60, right associativity) : ty_scope.
+Notation "l ∶ v" := (pair l v) (at level 59, no associativity).
+Notation "⦃ ⦄" := (TRcd nil) : ty_scope.
+Notation "⦃ f1 , .. , fn ⦄" := (TRcd (cons f1 .. (cons fn nil) ..)) : ty_scope.
+Arguments TArr (_ _)%ty.
+Arguments TRcd _%ty.
+Arguments Lam _ _%ty _.
+
+Notation "'const' n" := (Num n) (at level 1, n at level 0).
+Notation "'TRUE'" := Tru.
+Notation "'FALSE'" := Fls.
+Notation "'UNIT'" := Unit.
+Notation "'var' x" := (Var x) (at level 1, x at level 0).
+Notation "'λ' x : τ , e" := (Lam x τ e)
+  (at level 99, x at level 0, τ at level 99, e at level 99).
+Notation "e1 · e2" := (App e1 e2) (at level 40, left associativity).
+Notation "'IF' e 'THEN' e1 'ELSE' e2 'FI'" := (If e e1 e2) (at level 80).
+Notation "⦃ ⦄" := (Rcd nil).
+Notation "⦃ f1 , .. , fn ⦄" := (Rcd (cons f1 .. (cons fn nil) ..)).
+Notation "e ∙ l" := (Proj e l) (at level 2, left associativity).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 27 lines">Show code · 27 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-3">Definition x : name := "x".
+Definition y : name := "y".
+Definition z : name := "z".
+Definition r : name := "r".
+
+Definition p : exp := ⦃ "x" ∶ const 1 , "y" ∶ const 2 ⦄.
+Definition getx : exp := λ r : ⦃ "x" ∶ INT ⦄ , var r ∙ "x".</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 7 lines">Show code · 7 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-4">Reserved Notation "σ &lt;: τ" (at level 70).
+
+Inductive sub : ty -&gt; ty -&gt; Prop :=
+| s_refl τ :
+    τ &lt;: τ
+| s_trans σ τ ρ :
+    σ &lt;: τ -&gt; τ &lt;: ρ -&gt;
+    σ &lt;: ρ
+| s_top τ :
+    τ &lt;: ONE
+| s_bot τ :
+    ZERO &lt;: τ
+| s_arrow σ1 σ2 τ1 τ2 :
+    τ1 &lt;: σ1 -&gt; σ2 &lt;: τ2 -&gt;
+    σ1 ⇒ σ2 &lt;: τ1 ⇒ τ2
+| s_width fs gs :
+    TRcd (fs ++ gs)%list &lt;: TRcd fs
+| s_depth fs gs :
+    sub_fields fs gs -&gt;
+    TRcd fs &lt;: TRcd gs
+| s_perm fs gs :
+    Permutation fs gs -&gt;
+    TRcd fs &lt;: TRcd gs
+with sub_fields : list (label * ty) -&gt; list (label * ty) -&gt; Prop :=
+| sf_nil :
+    sub_fields [] []
+| sf_cons l σ τ fs gs :
+    σ &lt;: τ -&gt; sub_fields fs gs -&gt;
+    sub_fields ((l ∶ σ) :: fs) ((l ∶ τ) :: gs)
+where "σ &lt;: τ" := (sub σ τ).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 30 lines">Show code · 30 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-5">Example width_xy : ⦃ "x" ∶ INT , "y" ∶ INT ⦄ &lt;: ⦃ "x" ∶ INT ⦄.
+Proof.
+  apply (s_width [ "x" ∶ INT ] [ "y" ∶ INT ]).
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-6">Example width_perm : ⦃ "x" ∶ INT , "y" ∶ INT ⦄ &lt;: ⦃ "y" ∶ INT ⦄.
+Proof.
+  apply s_trans with (τ := (⦃ "y" ∶ INT , "x" ∶ INT ⦄)%ty).
+  - apply s_perm. apply perm_swap.
+  - apply (s_width [ "y" ∶ INT ] [ "x" ∶ INT ]).
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 6 lines">Show code · 6 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-7">Example arrow_ex :
+  ⦃ "x" ∶ INT ⦄ ⇒ INT &lt;: ⦃ "x" ∶ INT , "y" ∶ INT ⦄ ⇒ ONE.
+Proof.
+  apply s_arrow.
+  - (* argument side, flipped: {x:int, y:int} &lt;: {x:int} *)
+    exact width_xy.
+  - (* result side: int &lt;: 1 *)
+    apply s_top.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 9 lines">Show code · 9 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-8">Definition ctx := list (name * ty).
+
+Fixpoint lookup (Γ : ctx) (x : name) : option ty :=
+  match Γ with
+  | [] =&gt; None
+  | (y ∶ τ) :: Γ' =&gt; if String.eqb x y then Some τ else lookup Γ' x
+  end.
+
+Fixpoint field (fs : list (label * ty)) (l : label) : option ty :=
+  match fs with
+  | [] =&gt; None
+  | (l' ∶ τ) :: fs' =&gt; if String.eqb l l' then Some τ else field fs' l
+  end.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 13 lines">Show code · 13 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-9">Reserved Notation "Γ ⊢ e : τ" (at level 70, e at level 99, τ at level 69).
+
+Inductive has_type : ctx -&gt; exp -&gt; ty -&gt; Prop :=
+| t_num Γ n :
+    Γ ⊢ const n : INT
+| t_true Γ :
+    Γ ⊢ TRUE : BOOL
+| t_false Γ :
+    Γ ⊢ FALSE : BOOL
+| t_unit Γ :
+    Γ ⊢ UNIT : ONE
+| t_var Γ x τ :
+    lookup Γ x = Some τ -&gt;
+    Γ ⊢ var x : τ
+| t_lam Γ x τ1 e τ2 :
+    (x ∶ τ1) :: Γ ⊢ e : τ2 -&gt;
+    Γ ⊢ λ x : τ1 , e : τ1 ⇒ τ2
+| t_app Γ e1 e2 τ1 τ2 :
+    Γ ⊢ e1 : τ1 ⇒ τ2 -&gt; Γ ⊢ e2 : τ1 -&gt;
+    Γ ⊢ e1 · e2 : τ2
+| t_if Γ e e1 e2 τ :
+    Γ ⊢ e : BOOL -&gt; Γ ⊢ e1 : τ -&gt; Γ ⊢ e2 : τ -&gt;
+    Γ ⊢ IF e THEN e1 ELSE e2 FI : τ
+| t_rcd Γ es τs :
+    has_type_fields Γ es τs -&gt;
+    Γ ⊢ Rcd es : TRcd τs
+| t_proj Γ e τs l τ :
+    Γ ⊢ e : TRcd τs -&gt; field τs l = Some τ -&gt;
+    Γ ⊢ e ∙ l : τ
+| t_sub Γ e σ τ :
+    Γ ⊢ e : σ -&gt; σ &lt;: τ -&gt;
+    Γ ⊢ e : τ
+with has_type_fields : ctx -&gt; list (label * exp) -&gt; list (label * ty) -&gt; Prop :=
+| tf_nil Γ :
+    has_type_fields Γ [] []
+| tf_cons Γ l e τ es τs :
+    Γ ⊢ e : τ -&gt; has_type_fields Γ es τs -&gt;
+    has_type_fields Γ ((l ∶ e) :: es) ((l ∶ τ) :: τs)
+where "Γ ⊢ e : τ" := (has_type Γ e τ).
+
+Notation "⊢ e : τ" := (has_type [] e τ)
+  (at level 70, e at level 99, τ at level 69).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 42 lines">Show code · 42 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-10">Example p_type : ⊢ p : ⦃ "x" ∶ INT , "y" ∶ INT ⦄.
+Proof.
+  unfold p.
+  apply t_rcd.
+  apply tf_cons. { apply t_num. }
+  apply tf_cons. { apply t_num. }
+  apply tf_nil.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-11">Example getx_type : ⊢ getx : ⦃ "x" ∶ INT ⦄ ⇒ INT.
+Proof.
+  unfold getx.
+  apply t_lam.
+  apply t_proj with (τs := [ "x" ∶ INT ]).
+  - apply t_var. reflexivity.
+  - reflexivity.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-12">Example getx_p : ⊢ getx · p : INT.
+Proof.
+  apply t_app with (τ1 := (⦃ "x" ∶ INT ⦄)%ty).
+  - exact getx_type.
+  - apply t_sub with (σ := (⦃ "x" ∶ INT , "y" ∶ INT ⦄)%ty).
+    + exact p_type.
+    + exact width_xy.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-13">Print Assumptions getx_p.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 1 line">Show code · 1 line</button></div></div>
+
+
+</div>
+<div id="slide-nav"><button class="prev" type="button" title="Previous slide (←)">◀</button><span class="count"></span><button class="next" type="button" title="Next slide (→)">▶</button></div>
+</div>
+</div>
+<script>
+window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, svg: { fontCache: 'global' } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.js"></script>
+<script>
+/* Slide mode.  The page is cut into slides at every h2 and h3 and at every
+   slide break (an <hr class="slide-break">).  Nothing moves: the elements
+   of the other slides are just hidden, so the Rocq blocks stay one
+   document and running a block still checks everything before it.
+   Within a slide, each element after the first appears on its own key
+   press, so a slide is revealed one piece at a time.  A folded block
+   marked "unfold" (<details class="unfold">) opens in slide mode, and
+   each .piece inside it counts as an element of its own, as do the
+   .piece parts of an element with class "pieces".  A section whose
+   h2 has class "one-slide" is a single long slide that scrolls, except
+   that an h3 with class "own-slide" still starts a slide of its own.
+   Keys: right arrow or Page Down for the next step or slide, left arrow
+   or Page Up to go back (what a presentation clicker sends), Escape to
+   leave.  The address ends in #slide-N, so a reload stays on the slide. */
+(function () {
+  const doc = document.getElementById('document');
+  const scroller = document.getElementById('code-wrapper');
+  const nav = document.getElementById('slide-nav');
+  const count = nav.querySelector('.count');
+  const context = document.getElementById('slide-context');
+  const button = document.getElementById('present-toggle');
+  const slides = [];
+  let cur = [], section = '', whole = false;
+  const close = () => { cur.steps = cur.length - 1; slides.push(cur); cur = []; };
+  const unfolds = [...doc.querySelectorAll(':scope > details.unfold')];
+  const rows = [...doc.querySelectorAll(':scope > .pieces')];
+  /* the boxes around pieces: shown on a slide when one of their pieces is */
+  const holders = [...unfolds, ...rows].flatMap(d => [d, ...d.querySelectorAll('.rules')]);
+  const units = [...doc.children].flatMap(el =>
+    el.matches('details.unfold, .pieces') ? [...el.querySelectorAll('.piece, hr.slide-break')] : [el]);
+  for (const el of units) {
+    if (el.classList.contains('topbar') || el.id === 'slide-context' || el.classList.contains('page-only')) continue;
+    /* a section whose h2 is marked "one-slide" stays one long slide */
+    if (el.tagName === 'H2') whole = el.classList.contains('one-slide');
+    const breaks = el.tagName === 'H2' || el.classList.contains('own-slide') ||
+      (!whole && (el.tagName === 'H3' || el.classList.contains('slide-break')));
+    if (breaks && cur.length) close();
+    if (el.tagName === 'H2') section = el.textContent;
+    if (!cur.length) cur.section = el.tagName === 'H2' ? '' : section;
+    if (el.classList.contains('slide-break')) continue;
+    el.dataset.step = cur.length;
+    cur.push(el);
+  }
+  if (cur.length) close();
+  let at = 0, shown = 0;
+  function label() {
+    const m = slides[at].steps;
+    const steps = m > 12 ? 'step ' + shown + ' of ' + m : '●'.repeat(shown) + '○'.repeat(m - shown);
+    count.textContent = (at + 1) + ' / ' + slides.length + (m ? '  ·  ' + steps : '');
+  }
+  /* frames (pieces of an element with class "frames") replace each other:
+     only the latest one revealed shows, in the same place */
+  const frameSets = [...doc.querySelectorAll(':scope > .frames')];
+  function reveal() {
+    for (const el of slides[at]) el.classList.toggle('off-step', Number(el.dataset.step) > shown);
+    /* the latest revealed piece is 'current': its step note shows, earlier ones hide */
+    for (const el of slides[at]) el.classList.toggle('current', Number(el.dataset.step) === shown);
+    for (const g of frameSets) {
+      const fs = [...g.children];
+      const last = fs.filter(f => !f.classList.contains('off-step') && !f.classList.contains('off-slide')).at(-1);
+      for (const f of fs) f.classList.toggle('off-frame', f !== last);
+    }
+    label();
+  }
+  /* show slide i with its first k steps revealed (all of them if k is 'all') */
+  function show(i, k) {
+    at = Math.max(0, Math.min(slides.length - 1, i));
+    shown = k === 'all' ? slides[at].steps : 0;
+    slides.forEach((els, n) => els.forEach(el => el.classList.toggle('off-slide', n !== at)));
+    for (const h of holders) h.classList.toggle('off-slide', !h.querySelector('.piece:not(.off-slide)'));
+    context.textContent = slides[at].section || '';
+    reveal();
+    history.replaceState(null, '', '#slide-' + (at + 1));
+    scroller.scrollTop = k === 'all' ? scroller.scrollHeight : 0;
+    /* editors that were hidden need to measure themselves again */
+    for (const el of slides[at])
+      for (const cm of el.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  /* in a long slide, bring the piece that just appeared or disappeared
+     to the middle of the screen */
+  const piece = k => slides[at].find(el => Number(el.dataset.step) === k);
+  const focusOn = el => { if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+  function next() {
+    if (shown < slides[at].steps) { shown++; reveal(); focusOn(piece(shown)); }
+    else if (at < slides.length - 1) show(at + 1, 0);
+  }
+  function prev() {
+    if (shown > 0) { const gone = piece(shown); shown--; reveal(); focusOn(gone); }
+    else if (at > 0) show(at - 1, 'all');
+  }
+  function start(i) {
+    for (const d of unfolds) { d.dataset.wasOpen = d.open; d.open = true; }
+    doc.classList.add('presenting'); nav.classList.add('on');
+    button.textContent = '✕ Stop presenting';
+    show(i, 0);
+  }
+  function stop() {
+    doc.classList.remove('presenting'); nav.classList.remove('on');
+    button.textContent = '▶ Present';
+    for (const els of slides) for (const el of els) el.classList.remove('off-slide', 'off-step');
+    for (const h of holders) h.classList.remove('off-slide');
+    for (const g of frameSets) for (const f of g.children) f.classList.remove('off-frame');
+    for (const d of unfolds) d.open = d.dataset.wasOpen === 'true';
+    history.replaceState(null, '', location.pathname + location.search);
+    const first = slides[at][0];
+    if (first) first.scrollIntoView();
+    for (const cm of doc.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  const presenting = () => doc.classList.contains('presenting');
+  button.addEventListener('click', () => presenting() ? stop() : start(at));
+  nav.querySelector('.prev').addEventListener('click', prev);
+  nav.querySelector('.next').addEventListener('click', next);
+  document.addEventListener('keydown', e => {
+    if (!presenting() || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest && e.target.closest('.CodeMirror, input, textarea, select')) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Escape') stop();
+  });
+  const m = location.hash.match(/^#slide-(\d+)$/);
+  if (m) start(Number(m[1]) - 1);
+})();
+</script>
+<script>
+/* jsCoq is loaded from the jsDelivr CDN.  Two problems, two fixes:
+   1. Browsers refuse to start a Worker from another domain, so wrap the
+      worker script in a same-origin blob that imports it.
+   2. The WebAssembly backend finds its runtime (OCaml, zarith, ...) in a
+      node_modules folder next to jsCoq.  The CDN has no such folder, so
+      requests for node_modules/<package>/<file> go to that package's own
+      CDN URL, at a pinned version. */
+function workerPrelude(BASE, PIN) {
+  const nativeFetch = self.fetch.bind(self);
+  function remap(r) {
+    const u = new URL(r, BASE);
+    const m = u.pathname.match(/\/(?:node_modules|undefined)\/(.*)$/);
+    if (m) {
+      const rest = m[1];
+      for (const pkg in PIN)
+        if (rest.startsWith(pkg + '/'))
+          return 'https://cdn.jsdelivr.net/npm/' + pkg + '@' + PIN[pkg] + rest.slice(pkg.length);
+    }
+    return u.href;
+  }
+  self.fetch = (r, o) => nativeFetch(typeof r === 'string' || r instanceof URL ? remap(String(r)) : r, o);
+}
+(function () {
+  const PIN = {
+    'ocaml-wasm': '4.12.0-0',
+    '@ocaml-wasm/4.12--zarith': '1.13.0-0',
+    '@ocaml-wasm/4.12--janestreet-base': '0.16.0-0',
+    '@ocaml-wasm/4.12--num': '1.4.0-0'
+  };
+  const NativeWorker = window.Worker;
+  window.Worker = class extends NativeWorker {
+    constructor(url, opts) {
+      const u = new URL(url, location.href);
+      if (u.origin !== location.origin) {
+        const src = '(' + workerPrelude + ')(' + JSON.stringify(u.href) + ', ' +
+                    JSON.stringify(PIN) + '); importScripts(' + JSON.stringify(u.href) + ');';
+        super(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })), opts);
+      } else {
+        super(url, opts);
+      }
+    }
+  };
+})();
+</script>
+<script type="module">
+  const JSCOQ = 'https://cdn.jsdelivr.net/npm/jscoq@0.17.1/';
+  const { JsCoq } = await import(JSCOQ + 'jscoq.js');
+  const theme0 = document.documentElement.getAttribute('data-theme');
+  const button = document.getElementById('theme-toggle');
+  const label = t => { button.textContent = t === 'dark' ? '☀ Light mode' : '☾ Dark mode'; };
+  label(theme0);
+  const coq = await JsCoq.start(['textarea.coq'], {
+    theme: theme0,
+    base_path: JSCOQ,
+    backend: 'wa',
+    prelude: true,
+    implicit_libs: true,
+    init_pkgs: ['init'],
+    all_pkgs: ['coq'],
+    editor: { mode: { 'company-coq': true }, theme: 'd6' },
+    focus: false
+  });
+  /* The light switch: page colors, jsCoq's panel (and its icons). */
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('jscoq-page-theme', t); } catch (e) {}
+    try { coq.layout.configure({ theme: t }); } catch (e) {}
+    /* jsCoq switches its editors to its own themes here; put ours back.
+       Our editor theme reads the page colors, so it follows data-theme. */
+    try { coq.provider.configure({ theme: 'd6' }); } catch (e) {}
+    label(t);
+  }
+  button.addEventListener('click', () =>
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+  /* The goals panel on the right can be collapsed.  jsCoq hides the
+     panel while #ide-wrapper has the class "toggled" ("toggled away"),
+     and settles that class shortly after it starts, so the class is the
+     source of truth here, and the remembered choice is applied once
+     jsCoq has settled. */
+  const ide = document.getElementById('ide-wrapper');
+  const panelButton = document.getElementById('panel-toggle');
+  const panelOpen = () => !ide.classList.contains('toggled');
+  const panelLabel = () => { panelButton.textContent = panelOpen() ? '◨ Hide goals' : '◧ Show goals'; };
+  const setPanel = open => {
+    ide.classList.toggle('toggled', !open);
+    panelLabel();
+    setTimeout(() => { for (const cm of document.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh(); }, 350);
+  };
+  panelButton.addEventListener('click', () => {
+    const open = !panelOpen();
+    setPanel(open);
+    try { localStorage.setItem('jscoq-panel', open ? 'open' : 'closed'); } catch (e) {}
+  });
+  new MutationObserver(panelLabel).observe(ide, { attributes: true, attributeFilter: ['class'] });
+  let savedPanel = null;
+  try { savedPanel = localStorage.getItem('jscoq-panel'); } catch (e) {}
+  const wantPanel = savedPanel !== 'closed';
+  for (const t of [0, 600, 2000]) setTimeout(() => setPanel(wantPanel), t);
+  panelLabel();
+
+  /* Folded code cells.  A cell opens when you click its button or click
+     into its code, and by itself when Coq reports an error inside it.
+     Stepping into a folded cell leaves it folded; the goals panel still
+     follows along. */
+  const cells = [...document.querySelectorAll('.cell')];
+  function setCell(cell, open) {
+    cell.classList.toggle('is-collapsed', !open);
+    const b = cell.querySelector('.cell-toggle');
+    b.setAttribute('aria-expanded', String(open));
+    b.textContent = open ? 'Hide code' : b.dataset.label;
+    const cm = cell.querySelector('.CodeMirror');
+    if (cm && cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  for (const cell of cells) {
+    cell.querySelector('.cell-toggle').addEventListener('click', () =>
+      setCell(cell, cell.classList.contains('is-collapsed')));
+    /* Run: check everything up to the end of this block, using jsCoq's
+       "run to cursor".  Coq checks in order, so earlier blocks run first.
+       If later blocks were already checked, roll back to the end of this
+       block: "run to cursor" rewinds to just before the sentence at the
+       cursor, so for that the cursor goes to the start of the next block. */
+    cell.querySelector('.cell-run').addEventListener('click', () => {
+      const editorOf = c => c.querySelector('.CodeMirror')?.CodeMirror;
+      /* jsCoq tracks the active editor through focus events, which a
+         scripted focus doesn't always fire, so tell it directly. */
+      const point = (cm, pos) => {
+        cm.focus();
+        cm.setCursor(pos);
+        const sp = coq.provider.snippets.find(s => s.editor === cm);
+        if (sp) coq.provider.currentFocus = sp;
+      };
+      const cm = editorOf(cell);
+      if (!cm) return;
+      const last = cm.lastLine();
+      point(cm, { line: last, ch: cm.getLine(last).length });
+      if (coq.provider.getAtPoint()) {
+        /* the end of this block is already checked */
+        const next = cells[cells.indexOf(cell) + 1];
+        if (!next) return;
+        point(editorOf(next), { line: 0, ch: 0 });
+        if (!coq.provider.getAtPoint()) return;   /* nothing checked after this block */
+      }
+      coq.goCursor();
+      /* moving the cursor scrolls the editor; a folded one should still
+         show its first lines */
+      if (cell.classList.contains('is-collapsed')) {
+        cm.scrollTo(0, 0);
+        const n = cells[cells.indexOf(cell) + 1];
+        if (n && n.classList.contains('is-collapsed')) editorOf(n).scrollTo(0, 0);
+      }
+    });
+    cell.addEventListener('mousedown', e => {
+      if (cell.classList.contains('is-collapsed') && e.target.closest('.CodeMirror')) setCell(cell, true);
+    });
+  }
+  /* A folded editor only draws its first lines, so look at Coq's marks
+     in the editor itself, not at the page, to spot an error. */
+  setInterval(() => {
+    for (const cell of cells) {
+      if (!cell.classList.contains('is-collapsed')) continue;
+      const cm = cell.querySelector('.CodeMirror')?.CodeMirror;
+      if (cm && cm.getAllMarks().some(m => (m.className || '').includes('coq-eval-failed'))) setCell(cell, true);
+    }
+  }, 500);
+  const fold = document.getElementById('fold-toggle');
+  fold.addEventListener('click', () => {
+    const open = fold.getAttribute('aria-pressed') !== 'true';
+    fold.setAttribute('aria-pressed', String(open));
+    fold.textContent = open ? 'Fold all code' : 'Show all code';
+    for (const cell of cells) setCell(cell, open);
+  });
+</script>
+</body>
+</html>

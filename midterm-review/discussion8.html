@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<script>
+/* Pick the theme before anything paints: the saved choice, else the OS setting. */
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('jscoq-page-theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark')
+    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<title>Discussion 8: Termination and denotations</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jscoq@0.17.1/dist/frontend/index.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;650&amp;family=Spectral:ital,wght@0,400;0,600;1,400&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+/* Layout: one reading column, course-handout style; each inference rule is its own block that wraps on phones. */
+:root {
+  --bg: #fbfbf8;
+  --fg: #1d2330;
+  --muted: #5a6273;
+  --navy: #00274c;
+  --maize: #e0a800;
+  --panel: #eef1f6;
+  --line: #d6dbe4;
+  --head: var(--navy);
+  --code-bg: #f3f5f9;
+  --kw: #7a2e8c;
+  --str: #2f6b2f;
+  --num: #a14a00;
+  --font-display: "Commissioner", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Spectral", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+:root[data-theme="dark"] {
+  --bg: #0f1724; --fg: #e4e8ef; --muted: #9aa4b5; --navy: #8fb4e3; --maize: #ffcb05;
+  --panel: #172234; --line: #2a3850; --head: #ffcb05; --code-bg: #121c2c; --kw: #d7a6f0; --str: #9fd39f; --num: #f2b073; color-scheme: dark;
+}
+#document { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 1.05rem; line-height: 1.6; padding-inline: 16px; padding-block: 1.5rem 4rem; }
+#document .CodeMirror { font-size: .8rem; height: auto; }
+#document textarea.coq { width: 100%; }
+header { border-bottom: 3px solid var(--maize); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.eyebrow { font-family: var(--font-display); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1, h2, h3 { font-family: var(--font-display); color: var(--head); text-wrap: balance; line-height: 1.25; }
+h1 { font-size: 1.7rem; margin: .3rem 0 .4rem; font-weight: 650; }
+h2 { font-size: 1.3rem; margin: 2.6rem 0 .6rem; font-weight: 650; padding-top: .4rem; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 1.6rem 0 .4rem; font-weight: 650; }
+p, li { max-width: 65ch; }
+.lede { color: var(--muted); margin: 0; }
+code { font-family: var(--font-mono); font-size: .82em; background: var(--panel); padding: .05em .3em; border-radius: 3px; overflow-wrap: anywhere; }
+.rules { display: flex; flex-wrap: wrap; gap: .4rem 2rem; justify-content: center; align-items: flex-end; margin: .8rem 0 1rem; }
+.rules > div { min-width: 0; max-width: 100%; overflow-x: auto; }
+.display { overflow-x: auto; max-width: 100%; margin: .8rem 0; }
+mjx-container[display="true"] { margin: .4em 0 !important; }
+.thm { background: var(--panel); border-left: 3px solid var(--navy); padding: .7rem 1rem; margin: 1rem 0; }
+.thm p { margin: .3rem 0; }
+.thm .name { font-family: var(--font-display); font-weight: 650; color: var(--navy); }
+.proof { margin: .4rem 0 1rem; }
+.proof em:first-child { font-style: italic; }
+ul { padding-left: 1.2rem; }
+li { margin: .25rem 0; }
+
+#document code { color: var(--fg); }
+/* jsCoq's own stylesheet paints the document white; use the page tokens instead */
+body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #document { background: var(--bg) !important; color: var(--fg) !important; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+#theme-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+#theme-toggle:hover, #fold-toggle:hover, #present-toggle:hover, #panel-toggle:hover { border-color: var(--navy); }
+#fold-toggle, #present-toggle, #panel-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+.topbar .switches { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+/* displayed math scrolls sideways if it must, never up and down */
+.display, .rules > div { overflow-y: hidden; }
+#document .iso-diagram { color: var(--fg); margin: .6rem auto; max-width: 30rem; }
+#document p.aside { font-size: .85em; color: var(--muted); }
+/* math marked with \\class{hl-blue}{\\bbox[...]{...}}: the step note's soft blue behind it */
+mjx-container .hl-blue { color: var(--fg); }
+mjx-container .hl-blue rect { fill: var(--panel) !important; stroke: var(--line) !important; stroke-width: 20 !important; }
+#document:not(.presenting) mjx-container .hl-blue rect { fill: none !important; stroke: none !important; }
+#document pre.lang { background: var(--code-bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: .6rem .9rem; margin: .6rem 0 .9rem; overflow-x: auto; font-family: var(--font-mono); font-size: .78rem; line-height: 1.45; }
+#document pre.lang code { background: none; padding: 0; font-size: inherit; white-space: pre; }
+#document .iso-diagram svg { display: block; width: 100%; height: auto; }
+/* a program, one line per piece, left aligned */
+#document .display.prog { margin: .15rem 0; padding-left: 1.5rem; }
+#document .display.prog + :not(.display.prog) { margin-top: .9rem; }
+#document .display.prog mjx-container[display="true"] { text-align: left !important; margin: .3em 0 !important; }
+.rules.ch { margin: .2rem 0; align-items: center; }
+/* a tree built in stages: the page shows the last stage; slides show one at a time, in one place */
+#document .frames > .frame:not(.keep) { display: none; }
+/* staged trees get wide: a touch smaller */
+#document .frames .display { font-size: .9em; }
+#document.presenting .frames { display: grid; }
+#document.presenting .frames > .frame { display: block; grid-area: 1 / 1; align-self: end; }
+/* frames that grow downward (code with narration under it) stay pinned to the top */
+#document.presenting .frames.top > .frame { align-self: start; }
+/* what each stage did, in one sentence: only in slide mode */
+#document .step-note { display: none; }
+/* a note inside an ordinary piece shows only while that piece is the latest revealed */
+#document.presenting .pieces:not(.frames) > .piece:not(.current) .step-note { display: none !important; }
+#document.presenting .frames > .frame:not(.current) .step-note { display: none !important; }
+#document.presenting .step-note { display: block; text-align: left; font-size: .8em; line-height: 1.4; min-height: 4.2em;
+  margin: .6rem auto 0; max-width: 34em; padding: .5rem .8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+/* opacity, not visibility: a stage's own visible parts must not show through */
+#document.presenting .frames > .frame.off-frame, #document.presenting .frames > .frame.off-step { opacity: 0; }
+.rules.ch > .ch-name { margin-left: -1.2rem; font-size: .9em; overflow: visible; }
+/* the rule correspondence as a table: typing rule | logic rule | name, labeled on top */
+#document .ch-table { display: grid; grid-template-columns: max-content max-content max-content; justify-content: safe center; align-items: center; column-gap: 1.2rem; row-gap: .3rem; margin: .8rem 0 1rem; overflow-x: auto; }
+#document .ch-table .piece { min-width: auto; max-width: none; overflow: visible; }
+#document .ch-table > .rules.ch { display: contents; }
+#document .ch-table .ch-name { margin-left: 0; justify-self: start; }
+#document .ch-table .ch-label { order: -1; text-align: center; font-family: var(--font-display); font-weight: 650; color: var(--head); padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
+#document .ch-table .ch-label span { display: block; font-family: var(--font-body); font-weight: 400; font-size: .8em; color: var(--muted); }
+#document .ch-table .ch-label.ipl { grid-column: 2 / span 2; }
+/* a two-column table: rule | clause.  Rule cells (.cell) are always shown; the clauses (.piece) appear one per press */
+#document .ch-table.two { grid-template-columns: max-content minmax(0, 1fr); justify-content: start; column-gap: 1.6rem; overflow-x: visible; }
+#document .ch-table.two .piece { min-width: 0; }
+/* narrow windows (or the goals panel open on a small projector): rule above its clause */
+@media (max-width: 1100px) {
+  #document .ch-table.two { grid-template-columns: minmax(0, 1fr); }
+  #document .ch-table.two .ch-label.clause { grid-column: 1; }
+  #document .ch-table.two .ch-label { display: none; }
+}
+#document.presenting pre.lang { font-size: 1rem; }
+#document .ch-table.two .ch-label.clause { grid-column: 2; }
+#document .ch-table .cell { min-width: auto; }
+#document .ch-table pre.lang { margin: .2rem 0; }
+#document .ch-table .cell .display, #document .ch-table .cell mjx-container[display="true"] { margin: .2em 0 !important; }
+/* folded code cells: the first two lines show, faded out, until opened */
+.cell { margin: .8rem 0 1.2rem; }
+.cell.is-collapsed .CodeMirror { max-height: 3.3em !important; overflow: hidden; cursor: pointer; }
+.cell.is-collapsed .CodeMirror::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2.2em; background: linear-gradient(to bottom, transparent, var(--code-bg)); pointer-events: none; z-index: 10; }
+.cell-bar { display: flex; align-items: center; gap: 1rem; margin-top: .25rem; }
+.cell-run { font-family: var(--font-display); font-size: .78rem; font-weight: 650; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .15rem .7rem; cursor: pointer; }
+.cell-run:hover { border-color: var(--navy); }
+.cell-run:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+.cell-toggle { display: block; font-family: var(--font-display); font-size: .78rem; color: var(--navy); background: none; border: 0; padding: .15rem 0; cursor: pointer; }
+.cell-toggle:hover { text-decoration: underline; }
+.cell-toggle:focus-visible, #fold-toggle:focus-visible, #present-toggle:focus-visible, #panel-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+#theme-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+
+/* ---- jsCoq in the page's colors ------------------------------------
+   Three hues only, taken from the page: blue for the language (commands
+   bold, keywords plain, tactics a second, greener blue), amber for
+   literals and bullets, gray for comments.  Everything else is plain
+   text.  All at least about 5:1 on the code background, for projectors. */
+:root {
+  --syn-cmd: #0b4f9c; --syn-tactic: #0b6378; --syn-amber: #8a5a00; --syn-comment: #5c6370;
+  --ok-bg: #e7ecf4; --pending-bg: #fbefc4; --failed-bg: #f5d3d3;
+}
+:root[data-theme="dark"] {
+  --syn-cmd: #8cb4ff; --syn-tactic: #6cc4d6; --syn-amber: #f2c14e; --syn-comment: #9aa3b3;
+  --ok-bg: #19273b; --pending-bg: #3b3313; --failed-bg: #4a1f26;
+}
+/* editors */
+/* a question with its answer folded underneath */
+#document details.question { border: 1px solid var(--line); border-radius: 8px; padding: .6rem 1rem; margin: 1rem 0; background: var(--bg); }
+#document details.question > summary { cursor: pointer; font-family: var(--font-display); font-weight: 650; color: var(--head); }
+#document details.question[open] > summary { margin-bottom: .4rem; }
+/* nested-sets diagram */
+.venn { margin: 1rem 0; }
+.venn svg { display: block; width: 100%; max-width: 600px; height: auto; margin: 0 auto; }
+.venn .v-all { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+.venn .v-safe { fill: var(--ok-bg); stroke: var(--navy); stroke-width: 1.5; }
+.venn .v-typed { fill: var(--pending-bg); stroke: var(--maize); stroke-width: 2; }
+.venn .v-label { fill: var(--fg); font-family: var(--font-display); font-weight: 650; font-size: 20px; }
+.venn .v-ex { fill: var(--fg); font-family: var(--font-body); font-style: italic; font-size: 18px; }
+#document .cite { font-size: .85rem; color: var(--muted); }
+#document ul.refs { font-size: .88rem; color: var(--muted); padding-left: 1.1rem; }
+#document ul.refs li { margin: .3rem 0; }
+#document table.ref { border-collapse: collapse; margin: .8rem 0 1rem; font-size: .95rem; }
+#document table.ref th, #document table.ref td { border-bottom: 1px solid var(--line); padding: .3rem .9rem .3rem 0; text-align: left; }
+#document table.ref th { font-family: var(--font-display); font-weight: 650; color: var(--head); }
+/* step rules that do the real work */
+.rules > div.work { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 6px; padding: 0 .7rem; }
+.work-key { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 4px; padding: 0 .3rem; }
+/* math marked new with \\class{hl-new}{...}: maize marker behind the text */
+mjx-container .hl-new { color: var(--fg); }
+mjx-container .hl-new rect { fill: var(--pending-bg) !important; stroke: var(--maize) !important; stroke-width: 20 !important; }
+.cm-s-d6.CodeMirror { background: var(--code-bg) !important; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; }
+.cm-s-d6 .CodeMirror-gutters { background: var(--code-bg) !important; border-right: 1px solid var(--line) !important; }
+.cm-s-d6 .CodeMirror-linenumber { color: var(--muted) !important; }
+.cm-s-d6 .CodeMirror-cursor { border-left-color: var(--fg) !important; }
+.cm-s-d6 .CodeMirror-selected, .cm-s-d6.CodeMirror-focused .CodeMirror-selected { background: var(--line) !important; }
+.cm-s-d6 span[class*="cm-"] { color: var(--fg) !important; font-weight: 400; font-style: normal; }
+.cm-s-d6 span.cm-builtin { color: var(--syn-cmd) !important; font-weight: 700; }
+.cm-s-d6 span.cm-keyword { color: var(--syn-cmd) !important; }
+.cm-s-d6 span.cm-tactic { color: var(--syn-tactic) !important; font-weight: 600; }
+.cm-s-d6 span.cm-terminator { color: var(--syn-tactic) !important; font-weight: 700; }
+.cm-s-d6 span.cm-comment { color: var(--syn-comment) !important; font-style: italic; }
+.cm-s-d6 span.cm-string, .cm-s-d6 span.cm-number { color: var(--syn-amber) !important; }
+.cm-s-d6 span.cm-coq-bullet { color: var(--syn-amber) !important; font-weight: 700; }
+.cm-s-d6 span.cm-coq-focus { color: var(--muted) !important; }
+.cm-s-d6 span.CodeMirror-matchingbracket { color: var(--fg) !important; outline: 1px solid var(--maize); text-shadow: none; }
+/* how far Coq has checked */
+.cm-s-d6 .coq-eval-ok { background-color: var(--ok-bg) !important; }
+.cm-s-d6 .coq-eval-ok.coq-highlight { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-pending { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-failed { background-color: var(--failed-bg) !important; }
+/* the goals / messages panel */
+body.jscoq-main #panel-wrapper { background: var(--bg) !important; color: var(--fg) !important; border-left: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel { border-top: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel > .caption { background: var(--panel) !important; color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper #toolbar { border-bottom: 1px solid var(--line) !important; }
+body.jscoq-main #vsep, body.jscoq-main #hsep { background: var(--line) !important; }
+body.jscoq-main #panel-wrapper a, body.jscoq-main #panel-wrapper a:visited { color: var(--navy) !important; }
+body.jscoq-main #panel-wrapper #goal-panel p.system { color: var(--muted) !important; }
+body.jscoq-main #panel-wrapper [class*="constr."], body.jscoq-main #panel-wrapper [class*="module."],
+body.jscoq-main #panel-wrapper [class*="tactic."] { color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper .constr\.keyword, body.jscoq-main #panel-wrapper .module\.keyword,
+body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !important; }
+
+/* slide mode: one slide of the page at a time, at projector size */
+#document hr.slide-break { display: none; }
+#document.presenting .off-step { visibility: hidden; }
+/* collapsed table borders ignore visibility */
+#document.presenting tr.off-step > td, #document.presenting tr.off-step > th { border-color: transparent; }
+#document .slide-only { display: none; }
+/* notebook-only text (e.g. the narration a slide carries in its step notes) */
+#document.presenting .page-only { display: none; }
+#document.presenting .off-slide { display: none !important; }
+#document.presenting { font-size: 1.4rem; line-height: 1.5; padding-block: 1rem 5rem; }
+#document.presenting .CodeMirror { font-size: 1.05rem; }
+#document.presenting .topbar .eyebrow { display: none; }
+#document.presenting h1 { font-size: 1.8em; }
+#document.presenting h2 { font-size: 1.5em; margin-top: .4rem; border-top: 0; }
+#document.presenting h3 { font-size: 1.2em; margin-top: .4rem; }
+#document.presenting .topbar button { font-size: .8rem; }
+#document.presenting table.ref { font-size: .85em; }
+#document.presenting details:not(.unfold) .display, #document.presenting details:not(.unfold) .rules { font-size: .72em; }
+#document.presenting details.unfold { border: 0; padding: 0; margin: 0; background: none; }
+#document.presenting details.unfold > summary { display: none; }
+#document.presenting .slide-only { display: block; }
+#document.presenting #slide-context { font-family: var(--font-display); font-weight: 650; font-size: .8rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 .4rem; }
+#document.presenting #slide-context:empty { display: none; }
+#slide-nav { position: fixed; left: 16px; bottom: 14px; z-index: 50; display: none; gap: .4rem; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .3rem .5rem; font-family: var(--font-display); font-size: .9rem; color: var(--fg); }
+#document.presenting ~ #slide-nav, #slide-nav.on { display: flex; }
+#slide-nav button { font: inherit; }
+#slide-nav .count { min-width: 4.5em; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body class="jscoq-main">
+<div id="ide-wrapper" class="toggled">
+<div id="code-wrapper">
+<div id="document">
+<div class="topbar">
+<p class="eyebrow" style="margin-top:0">Runs in your browser: click into a code block and press Alt+↓ (Option+↓ on a Mac) to step, or Alt+Enter to run to the cursor. Goals show in the panel on the right.</p>
+<div class="switches">
+<button id="present-toggle" type="button">▶ Present</button>
+<button id="fold-toggle" type="button" aria-pressed="false">Show all code</button>
+<button id="panel-toggle" type="button" title="Collapse or open the goals and messages panel"></button>
+<button id="theme-toggle" type="button"></button>
+</div>
+</div>
+<p id="slide-context" class="slide-only"></p>
+
+<header>
+  <p class="eyebrow">CSE 590 · Fall 2026 · Discussion 8</p>
+  <h1>Termination and denotations</h1>
+  <p class="lede">Lectures 15 and 16, as a reference. Rocq: <code>Discussion 8/Discussion8.v</code>, in file order.</p>
+</header>
+<details class="question">
+<summary>0. The language, from Discussion 6</summary>
+<p>Imports.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-1">From Coq Require Import ZArith String List.
+Import ListNotations.
+Open Scope Z_scope.
+Open Scope string_scope.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
+<p>Types and expressions, with notation.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-2">Definition name := string.
+
+Inductive ty : Type :=
+| TInt
+| TBool
+| TArr (τ1 τ2 : ty).
+
+Inductive exp : Type :=
+| Num (n : Z)
+| Tru
+| Fls
+| Var (x : name)
+| Lam (x : name) (τ : ty) (e : exp)
+| App (e1 e2 : exp)
+| Plus (e1 e2 : exp)
+| If (e e1 e2 : exp).
+
+Notation "'INT'" := TInt.
+Notation "'BOOL'" := TBool.
+Notation "τ1 ⇒ τ2" := (TArr τ1 τ2) (at level 30, right associativity).
+
+Notation "'const' n" := (Num n) (at level 1, n at level 0).
+Notation "'TRUE'" := Tru.
+Notation "'FALSE'" := Fls.
+Notation "'var' x" := (Var x) (at level 1, x at level 0).
+Notation "'λ' x : τ , e" := (Lam x τ e)
+  (at level 99, x at level 0, τ at level 99, e at level 99).
+Notation "e1 · e2" := (App e1 e2) (at level 40, left associativity).
+Notation "e1 ⊕ e2" := (Plus e1 e2) (at level 50, left associativity).
+Notation "'IF' e 'THEN' e1 'ELSE' e2 'FI'" := (If e e1 e2) (at level 80).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 30 lines">Show code · 30 lines</button></div></div>
+<p>Values, and <code>val</code>.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-3">Inductive value : exp -&gt; Prop :=
+| v_num n : value (const n)
+| v_true : value TRUE
+| v_false : value FALSE
+| v_lam x τ e : value (λ x : τ , e).
+
+Definition val : Type := { e : exp | value e }.
+Definition exp_of (v : val) : exp := proj1_sig v.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
+<p>Substitution and the redex rules.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-4">Fixpoint subst (x : name) (v : exp) (e : exp) : exp :=
+  match e with
+  | const n =&gt; const n
+  | TRUE =&gt; TRUE
+  | FALSE =&gt; FALSE
+  | var y =&gt; if String.eqb y x then v else var y
+  | λ y : τ , body =&gt;
+      if String.eqb y x then λ y : τ , body
+      else λ y : τ , subst x v body
+  | e1 · e2 =&gt; subst x v e1 · subst x v e2
+  | e1 ⊕ e2 =&gt; subst x v e1 ⊕ subst x v e2
+  | IF e THEN e1 ELSE e2 FI =&gt;
+      IF subst x v e THEN subst x v e1 ELSE subst x v e2 FI
+  end.
+
+Notation "e [ x ↦ v ]" := (subst x v e) (at level 2, x at level 99).
+
+Inductive redex : exp -&gt; exp -&gt; Prop :=
+| r_beta x τ e v : value v -&gt; redex ((λ x : τ , e) · v) (e [x ↦ v])
+| r_plus n1 n2 : redex (const n1 ⊕ const n2) (const (n1 + n2))
+| r_if_true e1 e2 : redex (IF TRUE THEN e1 ELSE e2 FI) e1
+| r_if_false e1 e2 : redex (IF FALSE THEN e1 ELSE e2 FI) e2.
+
+Notation "e '⟶r' e'" := (redex e e') (at level 70).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 24 lines">Show code · 24 lines</button></div></div>
+<p>Evaluation contexts, steps, runs.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-5">Inductive ectx : Type :=
+| Hole
+| AppL (E : ectx) (e2 : exp)
+| AppR (v : val) (E : ectx)
+| PlusL (E : ectx) (e2 : exp)
+| PlusR (n : Z) (E : ectx)
+| IfC (E : ectx) (e1 e2 : exp).
+
+Fixpoint plug (E : ectx) (e : exp) : exp :=
+  match E with
+  | Hole =&gt; e
+  | AppL E e2 =&gt; plug E e · e2
+  | AppR v E =&gt; exp_of v · plug E e
+  | PlusL E e2 =&gt; plug E e ⊕ e2
+  | PlusR n E =&gt; const n ⊕ plug E e
+  | IfC E e1 e2 =&gt; IF plug E e THEN e1 ELSE e2 FI
+  end.
+
+Notation "E [ e ]" := (plug E e) (at level 2, e at level 99).
+
+Reserved Notation "e '⟶' e'" (at level 70).
+
+Inductive step : exp -&gt; exp -&gt; Prop :=
+| s_ctx E r r' : redex r r' -&gt; E [r] ⟶ E [r']
+where "e ⟶ e'" := (step e e').
+
+Reserved Notation "e '⟶*' e'" (at level 70).
+
+Inductive multi : exp -&gt; exp -&gt; Prop :=
+| m_refl e : e ⟶* e
+| m_step e1 e2 e3 : e1 ⟶ e2 -&gt; e2 ⟶* e3 -&gt; e1 ⟶* e3
+where "e ⟶* e'" := (multi e e').</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 32 lines">Show code · 32 lines</button></div></div>
+<p>Contexts, lookup, typing.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-6">Definition ctx := list (name * ty).
+
+Fixpoint lookup {A : Type} (Γ : list (name * A)) (y : name) : option A :=
+  match Γ with
+  | nil =&gt; None
+  | (x, a) :: Γ' =&gt; if String.eqb y x then Some a else lookup Γ' y
+  end.
+
+Reserved Notation "Γ ⊢ e : τ" (at level 70, e at level 99, τ at level 69).
+
+Inductive has_type : ctx -&gt; exp -&gt; ty -&gt; Prop :=
+| t_num Γ n :
+    Γ ⊢ const n : INT
+| t_true Γ :
+    Γ ⊢ TRUE : BOOL
+| t_false Γ :
+    Γ ⊢ FALSE : BOOL
+| t_var Γ x τ :
+    lookup Γ x = Some τ -&gt;
+    Γ ⊢ var x : τ
+| t_lam Γ x τ1 e τ2 :
+    (x, τ1) :: Γ ⊢ e : τ2 -&gt;
+    Γ ⊢ λ x : τ1 , e : τ1 ⇒ τ2
+| t_app Γ e1 e2 τ1 τ2 :
+    Γ ⊢ e1 : τ1 ⇒ τ2 -&gt; Γ ⊢ e2 : τ1 -&gt;
+    Γ ⊢ e1 · e2 : τ2
+| t_plus Γ e1 e2 :
+    Γ ⊢ e1 : INT -&gt; Γ ⊢ e2 : INT -&gt;
+    Γ ⊢ e1 ⊕ e2 : INT
+| t_if Γ e e1 e2 τ :
+    Γ ⊢ e : BOOL -&gt; Γ ⊢ e1 : τ -&gt; Γ ⊢ e2 : τ -&gt;
+    Γ ⊢ IF e THEN e1 ELSE e2 FI : τ
+where "Γ ⊢ e : τ" := (has_type Γ e τ).
+
+Notation "⊢ e : τ" := (has_type nil e τ)
+  (at level 70, e at level 99, τ at level 69).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 36 lines">Show code · 36 lines</button></div></div>
+<p>Canonical forms at function type; a step inside a context.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-7">Lemma canonical_arr v τ1 τ2 :
+  value v -&gt; ⊢ v : τ1 ⇒ τ2 -&gt; exists x e, v = λ x : τ1 , e.
+Proof.
+  intros Hv Ht.
+  destruct Hv as [n | | | x τ e]; try (inversion Ht; fail).
+  inversion Ht; subst. exists x, e. reflexivity.
+Qed.
+
+Fixpoint compose (E E' : ectx) : ectx :=
+  match E with
+  | Hole =&gt; E'
+  | AppL E e2 =&gt; AppL (compose E E') e2
+  | AppR v E =&gt; AppR v (compose E E')
+  | PlusL E e2 =&gt; PlusL (compose E E') e2
+  | PlusR n E =&gt; PlusR n (compose E E')
+  | IfC E e1 e2 =&gt; IfC (compose E E') e1 e2
+  end.
+
+Lemma plug_compose E E' e : (compose E E') [e] = E [E' [e]].
+Proof.
+  induction E as [ | E IH e2 | v E IH | E IH e2 | n E IH | E IH e1 e2 ];
+    simpl; try rewrite IH; reflexivity.
+Qed.
+
+Lemma step_in_context E e e' : e ⟶ e' -&gt; E [e] ⟶ E [e'].
+Proof.
+  intros Hs. destruct Hs as [E' r r' Hr].
+  rewrite &lt;- (plug_compose E E' r), &lt;- (plug_compose E E' r').
+  apply s_ctx. apply Hr.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 30 lines">Show code · 30 lines</button></div></div>
+<p>Runs compose; a run inside a context.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-8">Lemma multi_trans e1 e2 e3 : e1 ⟶* e2 -&gt; e2 ⟶* e3 -&gt; e1 ⟶* e3.
+Proof.
+  intros H12 H23. induction H12 as [ | e1 e2 e3' Hs Hrest IH].
+  - apply H23.
+  - apply (m_step _ _ _ Hs). apply IH. apply H23.
+Qed.
+
+Lemma multi_in_context E e e' : e ⟶* e' -&gt; E [e] ⟶* E [e'].
+Proof.
+  intros Hrun. induction Hrun as [ | e1 e2 e3 Hs Hrest IH].
+  - apply m_refl.
+  - apply (m_step _ _ _ (step_in_context E _ _ Hs)). apply IH.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 13 lines">Show code · 13 lines</button></div></div>
+<p>Weakening; the substitution lemma.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-9">Definition incl (Γ Γ' : ctx) : Prop :=
+  forall x τ, lookup Γ x = Some τ -&gt; lookup Γ' x = Some τ.
+
+Lemma weakening Γ Γ' e τ : incl Γ Γ' -&gt; Γ ⊢ e : τ -&gt; Γ' ⊢ e : τ.
+Proof.
+  intros Hincl Ht. revert Γ' Hincl.
+  induction Ht as [ Γ n | Γ | Γ | Γ x τ Hx | Γ x τ1 e τ2 He IH
+                  | Γ e1 e2 τ1 τ2 H1 IH1 H2 IH2 | Γ e1 e2 H1 IH1 H2 IH2
+                  | Γ e e1 e2 τ H IH H1 IH1 H2 IH2 ];
+    intros Γ' Hincl.
+  - apply t_num.
+  - apply t_true.
+  - apply t_false.
+  - apply t_var. apply Hincl. apply Hx.
+  - apply t_lam. apply IH.
+    intros y σ. simpl. destruct (String.eqb y x).
+    + intros Hy. apply Hy.
+    + apply Hincl.
+  - apply t_app with (τ1 := τ1).
+    + apply IH1. apply Hincl.
+    + apply IH2. apply Hincl.
+  - apply t_plus.
+    + apply IH1. apply Hincl.
+    + apply IH2. apply Hincl.
+  - apply t_if.
+    + apply IH. apply Hincl.
+    + apply IH1. apply Hincl.
+    + apply IH2. apply Hincl.
+Qed.
+
+Lemma substitution Γ x τ1 v e τ :
+  (x, τ1) :: Γ ⊢ e : τ -&gt; ⊢ v : τ1 -&gt; Γ ⊢ e [x ↦ v] : τ.
+Proof.
+  intros Ht Hv. revert Γ τ Ht.
+  induction e as [ n | | | y | y τy body IH | e1 IH1 e2 IH2 | e1 IH1 e2 IH2
+                 | e IH e1 IH1 e2 IH2 ];
+    intros Γ τ Ht; simpl.
+  - inversion Ht; subst. apply t_num.
+  - inversion Ht; subst. apply t_true.
+  - inversion Ht; subst. apply t_false.
+  - inversion Ht as [ | | | Γ0 y0 τ0 Hy | | | | ]; subst.
+    simpl in Hy. destruct (String.eqb y x).
+    + injection Hy as Hτ. subst.
+      apply weakening with (Γ := nil).
+      * intros z σ Hz. discriminate Hz.
+      * apply Hv.
+    + apply t_var. apply Hy.
+  - inversion Ht as [ | | | | Γ0 y0 τ0 body0 τ2 Hbody | | | ]; subst.
+    destruct (String.eqb_spec y x) as [Hyx | Hyx].
+    + subst y. apply t_lam.
+      apply weakening with (Γ := (x, τy) :: (x, τ1) :: Γ).
+      * intros z σ. simpl. destruct (String.eqb z x); intros Hz; apply Hz.
+      * apply Hbody.
+    + apply t_lam. apply IH.
+      apply weakening with (Γ := (y, τy) :: (x, τ1) :: Γ).
+      * intros z σ. simpl.
+        destruct (String.eqb_spec z y) as [Hzy | Hzy];
+          destruct (String.eqb_spec z x) as [Hzx | Hzx];
+          try (intros Hz; apply Hz).
+        subst. contradiction.
+      * apply Hbody.
+  - inversion Ht as [ | | | | | Γ0 e10 e20 τa τb Hfun Harg | | ]; subst.
+    apply t_app with (τ1 := τa).
+    + apply IH1. apply Hfun.
+    + apply IH2. apply Harg.
+  - inversion Ht as [ | | | | | | Γ0 e10 e20 H1 H2 | ]; subst.
+    apply t_plus.
+    + apply IH1. apply H1.
+    + apply IH2. apply H2.
+  - inversion Ht as [ | | | | | | | Γ0 e0 e10 e20 τ0 Hb H1 H2 ]; subst.
+    apply t_if.
+    + apply IH. apply Hb.
+    + apply IH1. apply H1.
+    + apply IH2. apply H2.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 75 lines">Show code · 75 lines</button></div></div>
+</details>
+
+<h2>1. Termination</h2>
+<div class="thm"><p><span class="name">Definition (terminates).</span> \(e\) terminates when \(e \longrightarrow^* v\) for some value \(v\).</p></div>
+<div class="thm"><p><span class="name">Theorem (termination).</span> If \(\vdash e : \tau\) then \(e\) terminates.</p></div>
+<div class="thm"><p><span class="name">Example.</span> With \(\mathtt{twice} = \lambda f{:}\mathsf{int} \to \mathsf{int}.\, \lambda x{:}\mathsf{int}.\, f\,(f\,x)\) and \(\mathtt{succ} = \lambda x{:}\mathsf{int}.\, x + 1\):</p>
+<div class="display">\[
+\mathtt{twice}\ \mathtt{succ}\ 2 \longrightarrow (\lambda x{:}\mathsf{int}.\, \mathtt{succ}\,(\mathtt{succ}\,x))\, 2 \longrightarrow \mathtt{succ}\,(\mathtt{succ}\,2) \longrightarrow^* 4
+\]</div></div>
+<p><code>terminates</code>, as stated.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-10">Definition terminates (e : exp) : Prop := exists v, e ⟶* v /\ value v.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 1 line">Show code · 1 line</button></div></div>
+
+<h2>2. Attempt: induction on the typing derivation</h2>
+<div class="thm"><p><span class="name">Attempt.</span> Induction on \(\vdash e : \tau\). Cases \(n\), \(\mathsf{true}\), \(\mathsf{false}\), \(\lambda x{:}\tau.\, e\): already values. Case \(x\): no closed variable. Case \(e_1\, e_2\):</p>
+<ul>
+  <li>Inversion: \(\vdash e_1 : \tau_1 \to \tau_2\) and \(\vdash e_2 : \tau_1\).</li>
+  <li>Inductive hypotheses: \(e_1 \longrightarrow^* \lambda x{:}\tau_1.\, e_1'\) (a value of function type is a λ, by preservation and canonical forms) and \(e_2 \longrightarrow^* v\) for some value \(v\).</li>
+  <li>Run: \(e_1\, e_2 \longrightarrow^* (\lambda x{:}\tau_1.\, e_1')\, v \longrightarrow e_1'[x \mapsto v]\).</li>
+  <li>Needed: \(e_1'[x \mapsto v]\) terminates. There is no hypothesis about \(e_1'[x \mapsto v]\). Stuck.</li>
+</ul></div>
+<div class="thm"><p><span class="name">Example.</span> On \(\mathtt{twice}\ \mathtt{succ}\ 2\): the hypotheses are \(\mathtt{twice}\ \mathtt{succ} \longrightarrow^* \lambda x{:}\mathsf{int}.\, \mathtt{succ}\,(\mathtt{succ}\,x)\) and \(2 \longrightarrow^* 2\). The run reaches \(\mathtt{succ}\,(\mathtt{succ}\,2)\). Needed: \(\mathtt{succ}\,(\mathtt{succ}\,2)\) terminates. Nothing in the hypotheses mentions \(\mathtt{succ}\,(\mathtt{succ}\,2)\).</p></div>
+<div class="thm"><p><span class="name">Remark.</span> "\(e_1'[x \mapsto v]\) is well typed, so apply the inductive hypothesis" is invalid: the hypothesis is for subderivations, and the derivation of \(e_1'[x \mapsto v]\) is not one. \(v\) is copied into every \(x\), so that derivation can be larger than those of \(e_1\) and \(e_2\) together.</p></div>
+<p>The attempt in Rocq, with preservation along a run assumed. The proof is aborted at the goal above.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-11">Section Attempt1.
+
+  Hypothesis preservation_multi :
+    forall e e' τ, ⊢ e : τ -&gt; e ⟶* e' -&gt; ⊢ e' : τ.
+
+  Theorem termination_attempt_1 e τ : ⊢ e : τ -&gt; terminates e.
+  Proof.
+    (* Induction on the typing derivation needs the context to be a
+       variable: prove the statement for any Γ that happens to be empty. *)
+    enough (H : forall Γ, Γ ⊢ e : τ -&gt; Γ = @nil (name * ty) -&gt; terminates e)
+      by (intros Ht; apply (H nil Ht eq_refl)).
+    intros Γ Ht.
+    induction Ht as [ Γ n | Γ | Γ | Γ x τ Hx | Γ x τ1 e τ2 He IH
+                    | Γ e1 e2 τ1 τ2 H1 IH1 H2 IH2 | Γ e1 e2 H1 IH1 H2 IH2
+                    | Γ e e1 e2 τ H IH H1 IH1 H2 IH2 ];
+      intros HΓ; subst Γ.
+    - (* n: already a value *)
+      exists (const n). split. apply m_refl. apply v_num.
+    - exists TRUE. split. apply m_refl. apply v_true.
+    - exists FALSE. split. apply m_refl. apply v_false.
+    - (* x: no closed variable *)
+      discriminate Hx.
+    - (* λ: already a value *)
+      exists (λ x : τ1 , e). split. apply m_refl. apply v_lam.
+    - (* e1 e2: the IH gives values v1, v2 ... *)
+      destruct (IH1 eq_refl) as [v1 [Hr1 Hv1]].
+      destruct (IH2 eq_refl) as [v2 [Hr2 Hv2]].
+      (* ... v1 is well typed, so by canonical forms it is a λ ... *)
+      assert (Ht1 : ⊢ v1 : τ1 ⇒ τ2) by (apply (preservation_multi e1); assumption).
+      destruct (canonical_arr v1 τ1 τ2 Hv1 Ht1) as [x [e1' Heq]]. subst v1.
+      (* ... and e1 e2 ⟶* (λx:τ1. e1') v2 ⟶ e1'[x ↦ v2].  To finish we
+         would need: e1'[x ↦ v2] terminates.  Nothing says so. *)
+      unfold terminates.
+      assert (Hrun : e1 · e2 ⟶* e1' [x ↦ v2]).
+      { apply multi_trans with (e2 := (λ x : τ1 , e1') · e2).
+        - apply (multi_in_context (AppL Hole e2)). apply Hr1.
+        - apply multi_trans with (e2 := (λ x : τ1 , e1') · v2).
+          + apply (multi_in_context (AppR (exist _ _ (v_lam x τ1 e1')) Hole)).
+            apply Hr2.
+          + apply (m_step _ _ _ (s_ctx Hole _ _ (r_beta x τ1 e1' v2 Hv2))).
+            apply m_refl. }
+      (* The goal asks for a value that e1'[x ↦ v2] reaches.  The
+         hypotheses say nothing about e1'[x ↦ v2]: stuck. *)
+  Abort.
+
+End Attempt1.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 46 lines">Show code · 46 lines</button></div></div>
+
+<h2>3. The logical relation</h2>
+<div class="thm"><p><span class="name">Definition (good values \(\mathcal{V}_\tau\), good expressions \(\mathcal{E}_\tau\)).</span> By recursion on \(\tau\). \(\mathcal{V}_\tau\) is a set of closed values.</p>
+<div class="display">\[
+\begin{aligned}
+\mathcal{V}_{\mathsf{int}} &= \{\, n \mid n \in \mathbb{Z} \,\} \\
+\mathcal{V}_{\mathsf{bool}} &= \{\, \mathsf{true}, \mathsf{false} \,\} \\
+\mathcal{V}_{\tau_1 \to \tau_2} &= \{\, v \mid \forall v' \in \mathcal{V}_{\tau_1}.\ v\, v' \in \mathcal{E}_{\tau_2} \,\} \\
+\mathcal{E}_\tau &= \{\, e \mid e \longrightarrow^* v \text{ and } v \in \mathcal{V}_\tau \,\}
+\end{aligned}
+\]</div></div>
+<div class="thm"><p><span class="name">Example.</span> \(\mathtt{succ} \in \mathcal{V}_{\mathsf{int} \to \mathsf{int}}\): for \(n \in \mathcal{V}_{\mathsf{int}}\), \(\mathtt{succ}\, n \longrightarrow n + 1 \in \mathcal{V}_{\mathsf{int}}\). \(\mathtt{twice} \in \mathcal{V}_{(\mathsf{int} \to \mathsf{int}) \to \mathsf{int} \to \mathsf{int}}\): for \(g \in \mathcal{V}_{\mathsf{int} \to \mathsf{int}}\), \(\mathtt{twice}\, g \longrightarrow \lambda x{:}\mathsf{int}.\, g\,(g\,x)\), and for \(n \in \mathcal{V}_{\mathsf{int}}\), \((\lambda x{:}\mathsf{int}.\, g\,(g\,x))\, n \longrightarrow g\,(g\,n)\), which reaches a number because \(g\) is good, applied twice.</p></div>
+<div class="thm"><p><span class="name">Lemma.</span> If \(v \in \mathcal{V}_\tau\) then \(v\) is a value and \(\vdash v : \tau\). (In Rocq both are part of the function clause.)</p></div>
+<div class="thm"><p><span class="name">Lemma (anti-reduction).</span> If \(e \longrightarrow e'\) and \(e' \in \mathcal{E}_\tau\) then \(e \in \mathcal{E}_\tau\). Likewise for \(e \longrightarrow^* e'\).</p></div>
+<p>\(\mathcal{V}\) and \(\mathcal{E}\); the two facts; anti-reduction.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-12">Fixpoint V (τ : ty) (v : exp) : Prop :=
+  match τ with
+  | INT =&gt; exists n, v = const n
+  | BOOL =&gt; v = TRUE \/ v = FALSE
+  | τ1 ⇒ τ2 =&gt;
+      ⊢ v : τ1 ⇒ τ2 /\ value v /\
+      forall v', V τ1 v' -&gt; exists v'', v · v' ⟶* v'' /\ V τ2 v''
+  end.
+
+Definition E (τ : ty) (e : exp) : Prop := exists v, e ⟶* v /\ V τ v.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 10 lines">Show code · 10 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-13">Lemma V_value τ v : V τ v -&gt; value v.
+Proof.
+  destruct τ as [ | | τ1 τ2 ]; simpl; intros H.
+  - destruct H as [n Hn]. subst. apply v_num.
+  - destruct H as [H | H]; subst. apply v_true. apply v_false.
+  - destruct H as [_ [Hv _]]. apply Hv.
+Qed.
+
+Lemma V_typed τ v : V τ v -&gt; ⊢ v : τ.
+Proof.
+  destruct τ as [ | | τ1 τ2 ]; simpl; intros H.
+  - destruct H as [n Hn]. subst. apply t_num.
+  - destruct H as [H | H]; subst. apply t_true. apply t_false.
+  - destruct H as [Ht _]. apply Ht.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 15 lines">Show code · 15 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-14">Lemma E_step_back τ e e' : e ⟶ e' -&gt; E τ e' -&gt; E τ e.
+Proof.
+  intros Hs [v [Hrun Hv]].
+  exists v. split.
+  - apply (m_step _ _ _ Hs). apply Hrun.
+  - apply Hv.
+Qed.
+
+Lemma E_multi_back τ e e' : e ⟶* e' -&gt; E τ e' -&gt; E τ e.
+Proof.
+  intros Hrun [v [Hrun' Hv]].
+  exists v. split.
+  - apply multi_trans with (e2 := e'). apply Hrun. apply Hrun'.
+  - apply Hv.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 15 lines">Show code · 15 lines</button></div></div>
+<div class="thm"><p><span class="name">Attempt (closed statement).</span> If \(\vdash e : \tau\) then \(e \in \mathcal{E}_\tau\). Induction on \(\vdash e : \tau\).</p>
+<ul>
+  <li>Case \(e_1\, e_2\): \(e_1 \longrightarrow^* \lambda x{:}\tau_1.\, e_1' \in \mathcal{V}_{\tau_1 \to \tau_2}\) and \(e_2 \longrightarrow^* v \in \mathcal{V}_{\tau_1}\). By the function clause, \((\lambda x{:}\tau_1.\, e_1')\, v \in \mathcal{E}_{\tau_2}\). By anti-reduction, \(e_1\, e_2 \in \mathcal{E}_{\tau_2}\). Closes.</li>
+  <li>Case \(\lambda x{:}\tau_1.\, e'\): it is a value, so it must be in \(\mathcal{V}_{\tau_1 \to \tau_2}\). Take \(v \in \mathcal{V}_{\tau_1}\); \((\lambda x{:}\tau_1.\, e')\, v \longrightarrow e'[x \mapsto v]\); needed \(e'[x \mapsto v] \in \mathcal{E}_{\tau_2}\). \(e'\) is open, the statement is about closed terms: no hypothesis. Stuck.</li>
+</ul></div>
+<p>The attempt in Rocq, aborted at the λ case.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-15">Theorem termination_attempt_2 e τ : ⊢ e : τ -&gt; E τ e.
+Proof.
+  intros Ht.
+  remember (@nil (name * ty)) as Γ.
+  induction Ht as [ Γ n | Γ | Γ | Γ x τ Hx | Γ x τ1 e τ2 He IH
+                  | Γ e1 e2 τ1 τ2 H1 IH1 H2 IH2 | Γ e1 e2 H1 IH1 H2 IH2
+                  | Γ e e1 e2 τ H IH H1 IH1 H2 IH2 ];
+    subst Γ.
+  - exists (const n). split. apply m_refl. exists n. reflexivity.
+  - exists TRUE. split. apply m_refl. left. reflexivity.
+  - exists FALSE. split. apply m_refl. right. reflexivity.
+  - discriminate Hx.
+  - (* λ: it is a value, so it reaches itself.  But now 𝒱 asks more:
+       applied to any good v1, the λ must reduce to a good value.  That
+       is about e[x ↦ v1], and e is not closed: no IH for it. *)
+    exists (λ x : τ1 , e). split. apply m_refl.
+    simpl. split. { apply t_lam. apply He. } split. { apply v_lam. }
+    intros v1 Hv1.
+    (* The goal: (λx:τ1. e) v1 reaches a good value.  One β step leaves
+       e[x ↦ v1].  The IH is about e under the context x:τ1, where
+       Γ = nil was required: it does not apply.  Stuck. *)
+    clear IH.
+Abort.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 23 lines">Show code · 23 lines</button></div></div>
+
+<h2>4. The fundamental theorem</h2>
+<div class="thm"><p><span class="name">Definition (closing substitution).</span> \(\gamma\) is a list of pairs \(x \mapsto v\); \(e[\gamma]\) applies them in order. The good substitutions for \(\Gamma\), and the semantic judgement:</p>
+<div class="display">\[
+\begin{aligned}
+\mathcal{G}_{\cdot} &= \{\, \cdot \,\} \\
+\mathcal{G}_{\Gamma, x:\tau} &= \{\, (\gamma, x \mapsto v) \mid \gamma \in \mathcal{G}_\Gamma,\ v \in \mathcal{V}_\tau \,\} \\
+\Gamma \models e \in \tau &:= \forall \gamma \in \mathcal{G}_\Gamma.\ e[\gamma] \in \mathcal{E}_\tau
+\end{aligned}
+\]</div></div>
+<p>\(e[\gamma]\), \(\mathcal{G}_\Gamma\), and dropping a variable from \(\gamma\).</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-16">Definition env := list (name * exp).
+
+Fixpoint msubst (γ : env) (e : exp) : exp :=
+  match γ with
+  | nil =&gt; e
+  | (x, v) :: γ' =&gt; msubst γ' (e [x ↦ v])
+  end.
+
+Fixpoint drop {A : Type} (x : name) (l : list (name * A)) : list (name * A) :=
+  match l with
+  | nil =&gt; nil
+  | (y, a) :: l' =&gt; if String.eqb y x then drop x l' else (y, a) :: drop x l'
+  end.
+
+Inductive G : ctx -&gt; env -&gt; Prop :=
+| G_nil : G nil nil
+| G_cons x τ v Γ γ : V τ v -&gt; G Γ γ -&gt; G ((x, τ) :: Γ) ((x, v) :: γ).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 17 lines">Show code · 17 lines</button></div></div>
+<div class="thm"><p><span class="name">Theorem (fundamental).</span> If \(\Gamma \vdash e : \tau\) then \(\Gamma \models e \in \tau\). Induction on \(\Gamma \vdash e : \tau\); let \(\gamma \in \mathcal{G}_\Gamma\).</p>
+<ul>
+  <li>Case \(x\) with \(x{:}\tau \in \Gamma\): \(x[\gamma]\) is the value \(\gamma\) gives \(x\), which is in \(\mathcal{V}_\tau\) by the definition of \(\mathcal{G}_\Gamma\), hence in \(\mathcal{E}_\tau\).</li>
+  <li>Case \(e_1\, e_2\): \((e_1\, e_2)[\gamma] = e_1[\gamma]\ e_2[\gamma]\). Inductive hypotheses: \(e_1[\gamma] \in \mathcal{E}_{\tau_1 \to \tau_2}\), \(e_2[\gamma] \in \mathcal{E}_{\tau_1}\). Then as in the closed attempt: \(e_1[\gamma] \longrightarrow^* \lambda x{:}\tau_1.\, e_1'\), \(e_2[\gamma] \longrightarrow^* v\), \((\lambda x{:}\tau_1.\, e_1')\, v \in \mathcal{E}_{\tau_2}\) by the function clause, and anti-reduction.</li>
+  <li>Case \(\lambda x{:}\tau_1.\, e'\) with \(\Gamma, x{:}\tau_1 \vdash e' : \tau_2\): \((\lambda x{:}\tau_1.\, e')[\gamma] = \lambda x{:}\tau_1.\, e'[\gamma]\), with \(x\) not in \(\gamma\) by α-renaming. It is a value. For \(v \in \mathcal{V}_{\tau_1}\): \((\lambda x{:}\tau_1.\, e'[\gamma])\, v \longrightarrow e'[\gamma][x \mapsto v] = e'[\gamma, x \mapsto v]\), and \((\gamma, x \mapsto v) \in \mathcal{G}_{\Gamma, x:\tau_1}\), so the inductive hypothesis for \(e'\) gives \(e'[\gamma, x \mapsto v] \in \mathcal{E}_{\tau_2}\). Anti-reduction.</li>
+</ul></div>
+<div class="thm"><p><span class="name">Corollary (termination).</span> Take \(\Gamma = \cdot\), \(\gamma = \cdot\); \(e[\cdot] = e\), so \(e \in \mathcal{E}_\tau\), so \(e \longrightarrow^* v \in \mathcal{V}_\tau\), a value.</p></div>
+<div class="thm"><p><span class="name">Remark.</span> In Rocq the induction is on \(e\), inverting the typing rule at each step, so that at a λ the context can be changed from \(\Gamma, x{:}\tau_1\) to \(\Gamma\) with its old \(x\) dropped. The substitution facts used are folded below.</p></div>
+<details class="question">
+<summary>Substitution lemmas</summary>
+<p>Free variables; closed terms.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-17">Fixpoint free (x : name) (e : exp) : Prop :=
+  match e with
+  | const _ | TRUE | FALSE =&gt; False
+  | var y =&gt; y = x
+  | λ y : _ , b =&gt; y &lt;&gt; x /\ free x b
+  | e1 · e2 | e1 ⊕ e2 =&gt; free x e1 \/ free x e2
+  | IF e THEN e1 ELSE e2 FI =&gt; free x e \/ free x e1 \/ free x e2
+  end.
+
+Definition closed (e : exp) : Prop := forall x, ~ free x e.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 10 lines">Show code · 10 lines</button></div></div>
+<p>A closed well-typed term has no free variables.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-18">Lemma free_in_context x e Γ τ :
+  free x e -&gt; Γ ⊢ e : τ -&gt; exists σ, lookup Γ x = Some σ.
+Proof.
+  intros Hf Ht. revert Hf.
+  induction Ht as [ Γ n | Γ | Γ | Γ y τ Hy | Γ y τ1 e τ2 He IH
+                  | Γ e1 e2 τ1 τ2 H1 IH1 H2 IH2 | Γ e1 e2 H1 IH1 H2 IH2
+                  | Γ e e1 e2 τ H IH H1 IH1 H2 IH2 ];
+    simpl; intros Hf; try contradiction.
+  - subst. exists τ. apply Hy.
+  - destruct Hf as [Hyx Hf].
+    destruct (IH Hf) as [σ Hσ]. simpl in Hσ.
+    destruct (String.eqb_spec x y) as [Hxy | Hxy].
+    + subst. contradiction.
+    + exists σ. apply Hσ.
+  - destruct Hf as [Hf | Hf]. apply IH1, Hf. apply IH2, Hf.
+  - destruct Hf as [Hf | Hf]. apply IH1, Hf. apply IH2, Hf.
+  - destruct Hf as [Hf | [Hf | Hf]]. apply IH, Hf. apply IH1, Hf. apply IH2, Hf.
+Qed.
+
+Lemma typed_closed e τ : ⊢ e : τ -&gt; closed e.
+Proof.
+  intros Ht x Hf.
+  destruct (free_in_context x e nil τ Hf Ht) as [σ Hσ].
+  discriminate Hσ.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 25 lines">Show code · 25 lines</button></div></div>
+<p>Substituting for a non-free variable does nothing; a closed value kills the variable; substitutions for different variables commute.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-19">Lemma subst_not_free x v e : ~ free x e -&gt; e [x ↦ v] = e.
+Proof.
+  induction e as [ n | | | y | y τ b IH | e1 IH1 e2 IH2 | e1 IH1 e2 IH2
+                 | e IH e1 IH1 e2 IH2 ];
+    simpl; intros Hnf.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - destruct (String.eqb_spec y x) as [Hyx | Hyx].
+    + subst. exfalso. apply Hnf. reflexivity.
+    + reflexivity.
+  - destruct (String.eqb_spec y x) as [Hyx | Hyx].
+    + reflexivity.
+    + rewrite IH. reflexivity. intros Hf. apply Hnf. split; assumption.
+  - rewrite IH1, IH2. reflexivity.
+    intros Hf; apply Hnf; right; apply Hf.
+    intros Hf; apply Hnf; left; apply Hf.
+  - rewrite IH1, IH2. reflexivity.
+    intros Hf; apply Hnf; right; apply Hf.
+    intros Hf; apply Hnf; left; apply Hf.
+  - rewrite IH, IH1, IH2. reflexivity.
+    intros Hf; apply Hnf; right; right; apply Hf.
+    intros Hf; apply Hnf; right; left; apply Hf.
+    intros Hf; apply Hnf; left; apply Hf.
+Qed.
+
+Lemma subst_closed x v e : closed e -&gt; e [x ↦ v] = e.
+Proof. intros Hc. apply subst_not_free. apply Hc. Qed.
+
+Lemma subst_kills_free x v e : closed v -&gt; ~ free x (e [x ↦ v]).
+Proof.
+  intros Hc.
+  induction e as [ n | | | y | y τ b IH | e1 IH1 e2 IH2 | e1 IH1 e2 IH2
+                 | e IH e1 IH1 e2 IH2 ];
+    simpl.
+  - intros H. apply H.
+  - intros H. apply H.
+  - intros H. apply H.
+  - destruct (String.eqb_spec y x) as [Hyx | Hyx].
+    + apply Hc.
+    + simpl. intros H. apply Hyx. apply H.
+  - destruct (String.eqb_spec y x) as [Hyx | Hyx].
+    + simpl. intros [H _]. apply H. apply Hyx.
+    + simpl. intros [_ H]. apply IH. apply H.
+  - intros [H | H]. apply IH1, H. apply IH2, H.
+  - intros [H | H]. apply IH1, H. apply IH2, H.
+  - intros [H | [H | H]]. apply IH, H. apply IH1, H. apply IH2, H.
+Qed.
+
+Lemma swap_subst x y v w e :
+  x &lt;&gt; y -&gt; closed v -&gt; closed w -&gt;
+  (e [x ↦ v]) [y ↦ w] = (e [y ↦ w]) [x ↦ v].
+Proof.
+  intros Hxy Hv Hw.
+  induction e as [ n | | | z | z τ b IH | e1 IH1 e2 IH2 | e1 IH1 e2 IH2
+                 | e IH e1 IH1 e2 IH2 ];
+    simpl.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - destruct (String.eqb_spec z x) as [Hzx | Hzx];
+      destruct (String.eqb_spec z y) as [Hzy | Hzy]; simpl.
+    + subst. contradiction.
+    + rewrite (subst_closed y w v Hv).
+      destruct (String.eqb_spec z x) as [H | H]. reflexivity. contradiction.
+    + rewrite (subst_closed x v w Hw).
+      destruct (String.eqb_spec z y) as [H | H]. reflexivity. contradiction.
+    + destruct (String.eqb_spec z y) as [H | H]. contradiction.
+      destruct (String.eqb_spec z x) as [H' | H']. contradiction. reflexivity.
+  - destruct (String.eqb_spec z x) as [Hzx | Hzx];
+      destruct (String.eqb_spec z y) as [Hzy | Hzy]; simpl.
+    + subst. contradiction.
+    + destruct (String.eqb_spec z y) as [H | H]. contradiction.
+      destruct (String.eqb_spec z x) as [H' | H']. reflexivity. contradiction.
+    + destruct (String.eqb_spec z x) as [H | H]. contradiction.
+      destruct (String.eqb_spec z y) as [H' | H']. reflexivity. contradiction.
+    + destruct (String.eqb_spec z y) as [H | H]. contradiction.
+      destruct (String.eqb_spec z x) as [H' | H']. contradiction.
+      rewrite IH. reflexivity.
+  - rewrite IH1, IH2. reflexivity.
+  - rewrite IH1, IH2. reflexivity.
+  - rewrite IH, IH1, IH2. reflexivity.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 83 lines">Show code · 83 lines</button></div></div>
+<p>A closed term is unchanged by \(\gamma\); a single substitution commutes with a \(\gamma\) not mentioning its variable.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-20">Lemma msubst_closed γ e : closed e -&gt; msubst γ e = e.
+Proof.
+  revert e. induction γ as [ | [x v] γ IH ]; intros e Hc; simpl.
+  - reflexivity.
+  - rewrite (subst_closed x v e Hc). apply IH. apply Hc.
+Qed.
+
+Definition closed_env (γ : env) : Prop := Forall (fun p =&gt; closed (snd p)) γ.
+
+Lemma subst_msubst x v γ e :
+  closed v -&gt; closed_env γ -&gt;
+  (msubst (drop x γ) e) [x ↦ v] = msubst (drop x γ) (e [x ↦ v]).
+Proof.
+  intros Hv Hγ. revert e.
+  induction γ as [ | [y w] γ IH ]; intros e; simpl.
+  - reflexivity.
+  - inversion Hγ as [ | p γ' Hw Hγ' ]; subst. simpl in Hw.
+    destruct (String.eqb_spec y x) as [Hyx | Hyx].
+    + apply IH. apply Hγ'.
+    + simpl. rewrite IH by apply Hγ'.
+      rewrite (swap_subst y x w v e) by assumption. reflexivity.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 22 lines">Show code · 22 lines</button></div></div>
+<p>\(e[\gamma]\) through each form of \(e\).</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-21">Lemma msubst_var γ x :
+  closed_env γ -&gt;
+  msubst γ (var x) = match lookup γ x with Some v =&gt; v | None =&gt; var x end.
+Proof.
+  intros Hγ.
+  induction γ as [ | [y v] γ IH ]; simpl.
+  - reflexivity.
+  - inversion Hγ as [ | p γ' Hv Hγ' ]; subst. simpl in Hv.
+    destruct (String.eqb_spec x y) as [Hxy | Hxy].
+    + apply msubst_closed. apply Hv.
+    + apply IH. apply Hγ'.
+Qed.
+
+Lemma msubst_num γ n : msubst γ (const n) = const n.
+Proof. induction γ as [ | [y v] γ IH ]; simpl. reflexivity. apply IH. Qed.
+
+Lemma msubst_true γ : msubst γ TRUE = TRUE.
+Proof. induction γ as [ | [y v] γ IH ]; simpl. reflexivity. apply IH. Qed.
+
+Lemma msubst_false γ : msubst γ FALSE = FALSE.
+Proof. induction γ as [ | [y v] γ IH ]; simpl. reflexivity. apply IH. Qed.
+
+Lemma msubst_lam γ x τ b :
+  msubst γ (λ x : τ , b) = λ x : τ , msubst (drop x γ) b.
+Proof.
+  revert b. induction γ as [ | [y v] γ IH ]; intros b; simpl.
+  - reflexivity.
+  - destruct (String.eqb_spec x y) as [Hxy | Hxy];
+      destruct (String.eqb_spec y x) as [Hyx | Hyx].
+    + apply IH.
+    + subst. contradiction.
+    + subst. contradiction.
+    + simpl. apply IH.
+Qed.
+
+Lemma msubst_app γ e1 e2 : msubst γ (e1 · e2) = msubst γ e1 · msubst γ e2.
+Proof.
+  revert e1 e2. induction γ as [ | [y v] γ IH ]; intros e1 e2; simpl.
+  - reflexivity.
+  - apply IH.
+Qed.
+
+Lemma msubst_plus γ e1 e2 : msubst γ (e1 ⊕ e2) = msubst γ e1 ⊕ msubst γ e2.
+Proof.
+  revert e1 e2. induction γ as [ | [y v] γ IH ]; intros e1 e2; simpl.
+  - reflexivity.
+  - apply IH.
+Qed.
+
+Lemma msubst_if γ e e1 e2 :
+  msubst γ (IF e THEN e1 ELSE e2 FI)
+  = IF msubst γ e THEN msubst γ e1 ELSE msubst γ e2 FI.
+Proof.
+  revert e e1 e2. induction γ as [ | [y v] γ IH ]; intros e e1 e2; simpl.
+  - reflexivity.
+  - apply IH.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 57 lines">Show code · 57 lines</button></div></div>
+<p>Good substitutions are closed, send each variable to a good value, and survive dropping a variable.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-22">Lemma G_closed Γ γ : G Γ γ -&gt; closed_env γ.
+Proof.
+  intros HG. induction HG as [ | x τ v Γ γ Hv HG IH ].
+  - apply Forall_nil.
+  - apply Forall_cons.
+    + apply (typed_closed v τ). apply V_typed. apply Hv.
+    + apply IH.
+Qed.
+
+Lemma G_lookup Γ γ x τ :
+  G Γ γ -&gt; lookup Γ x = Some τ -&gt;
+  exists v, lookup γ x = Some v /\ V τ v.
+Proof.
+  intros HG. induction HG as [ | y σ v Γ γ Hv HG IH ]; simpl; intros Hx.
+  - discriminate Hx.
+  - destruct (String.eqb_spec x y) as [Hxy | Hxy].
+    + injection Hx as Hστ. subst. exists v. split. reflexivity. apply Hv.
+    + apply IH. apply Hx.
+Qed.
+
+Lemma G_drop x Γ γ : G Γ γ -&gt; G (drop x Γ) (drop x γ).
+Proof.
+  intros HG. induction HG as [ | y τ v Γ γ Hv HG IH ]; simpl.
+  - apply G_nil.
+  - destruct (String.eqb y x).
+    + apply IH.
+    + apply G_cons. apply Hv. apply IH.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 28 lines">Show code · 28 lines</button></div></div>
+<p>Lookup after drop and append; \(e[\gamma]\) is typed under the leftover context; the context swap at a λ.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-23">Lemma lookup_drop {A : Type} (l : list (name * A)) x y :
+  lookup (drop x l) y = if String.eqb y x then None else lookup l y.
+Proof.
+  induction l as [ | [z a] l IH ]; simpl.
+  - destruct (String.eqb y x); reflexivity.
+  - destruct (String.eqb_spec z x) as [Hzx | Hzx].
+    + subst z. rewrite IH. destruct (String.eqb_spec y x); reflexivity.
+    + simpl. destruct (String.eqb_spec y z) as [Hyz | Hyz].
+      * subst z. destruct (String.eqb_spec y x) as [Hyx | Hyx].
+        contradiction. reflexivity.
+      * apply IH.
+Qed.
+
+Lemma lookup_app {A : Type} (l1 l2 : list (name * A)) y :
+  lookup (l1 ++ l2)%list y
+  = match lookup l1 y with Some a =&gt; Some a | None =&gt; lookup l2 y end.
+Proof.
+  induction l1 as [ | [z a] l1 IH ]; simpl.
+  - reflexivity.
+  - destruct (String.eqb y z). reflexivity. apply IH.
+Qed.
+
+Lemma msubst_typed Γ γ :
+  G Γ γ -&gt; forall Δ e τ, (Γ ++ Δ)%list ⊢ e : τ -&gt; Δ ⊢ msubst γ e : τ.
+Proof.
+  intros HG. induction HG as [ | x σ v Γ γ Hv HG IH ]; intros Δ e τ Ht; simpl.
+  - apply Ht.
+  - apply IH. apply substitution with (τ1 := σ).
+    + apply Ht.
+    + apply V_typed. apply Hv.
+Qed.
+
+Lemma incl_drop x τ1 Γ : incl ((x, τ1) :: Γ) (drop x Γ ++ (x, τ1) :: nil)%list.
+Proof.
+  intros y σ. simpl. rewrite lookup_app, lookup_drop.
+  destruct (String.eqb_spec y x) as [Hyx | Hyx]; simpl.
+  - destruct (String.eqb_spec y x) as [H | H].
+    + intros Hσ. apply Hσ.
+    + contradiction.
+  - intros H. rewrite H. reflexivity.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 41 lines">Show code · 41 lines</button></div></div>
+</details>
+<p>The theorem and the corollary. <code>Print Assumptions</code>: closed under the global context.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-24">Theorem fundamental e : forall Γ τ γ, Γ ⊢ e : τ -&gt; G Γ γ -&gt; E τ (msubst γ e).
+Proof.
+  induction e as [ n | | | x | x τ1 b IH | e1 IH1 e2 IH2 | e1 IH1 e2 IH2
+                 | e IH e1 IH1 e2 IH2 ];
+    intros Γ τ γ Ht HG.
+  - (* n *)
+    inversion Ht; subst. rewrite msubst_num.
+    exists (const n). split. apply m_refl. exists n. reflexivity.
+  - (* true *)
+    inversion Ht; subst. rewrite msubst_true.
+    exists TRUE. split. apply m_refl. left. reflexivity.
+  - (* false *)
+    inversion Ht; subst. rewrite msubst_false.
+    exists FALSE. split. apply m_refl. right. reflexivity.
+  - (* x: no longer vacuous.  x[γ] is the value γ gives x, which is
+       good because γ is. *)
+    inversion Ht as [ | | | Γ0 x0 τ0 Hx | | | | ]; subst.
+    destruct (G_lookup Γ γ x τ HG Hx) as [v [Hv HV]].
+    rewrite (msubst_var γ x (G_closed Γ γ HG)). rewrite Hv.
+    exists v. split. apply m_refl. apply HV.
+  - (* λx:τ1. b *)
+    inversion Ht as [ | | | | Γ0 x0 τ0 b0 τ2 Hb | | | ]; subst.
+    rewrite msubst_lam.
+    (* the body, closed by γ except for x, is typed under x:τ1 alone *)
+    assert (Hb' : (x, τ1) :: nil ⊢ msubst (drop x γ) b : τ2).
+    { apply (msubst_typed (drop x Γ) (drop x γ) (G_drop x Γ γ HG)).
+      apply (weakening ((x, τ1) :: Γ)). apply incl_drop. apply Hb. }
+    exists (λ x : τ1 , msubst (drop x γ) b). split. apply m_refl.
+    simpl. split. { apply t_lam. apply Hb'. } split. { apply v_lam. }
+    (* now the λ has to be good: take any good v1 *)
+    intros v1 Hv1.
+    assert (Hval1 : value v1) by (apply (V_value τ1), Hv1).
+    assert (Hcl1 : closed v1) by (apply (typed_closed v1 τ1), V_typed, Hv1).
+    (* β: (λx:τ1. b[γ-x]) v1 ⟶ b[γ-x][x ↦ v1] = b[γ-x, x ↦ v1] *)
+    assert (Hstep : (λ x : τ1 , msubst (drop x γ) b) · v1
+                    ⟶ msubst ((x, v1) :: drop x γ) b).
+    { simpl. rewrite &lt;- subst_msubst by (assumption || apply (G_closed Γ γ HG)).
+      apply (s_ctx Hole). apply r_beta. apply Hval1. }
+    (* the IH for b, with the closing substitution γ-x, x ↦ v1 *)
+    assert (HE : E τ2 (msubst ((x, v1) :: drop x γ) b)).
+    { apply (IH ((x, τ1) :: drop x Γ)).
+      - apply (weakening ((x, τ1) :: Γ)).
+        + intros y σ. simpl. destruct (String.eqb_spec y x) as [Hyx | Hyx].
+          * intros H. apply H.
+          * rewrite lookup_drop. destruct (String.eqb_spec y x) as [H | H].
+            contradiction. intros H'. apply H'.
+        + apply Hb.
+      - apply G_cons. apply Hv1. apply (G_drop x Γ γ HG). }
+    destruct HE as [v [Hrun Hv]].
+    exists v. split.
+    + apply (m_step _ _ _ Hstep). apply Hrun.
+    + apply Hv.
+  - (* e1 e2: both parts reach good values; a good function value sends
+       the good argument to a good result; anti-reduction. *)
+    inversion Ht as [ | | | | | Γ0 e10 e20 τ1 τ2 H1 H2 | | ]; subst.
+    rewrite msubst_app.
+    destruct (IH1 Γ (τ1 ⇒ τ) γ H1 HG) as [v1 [Hrun1 Hv1]].
+    destruct (IH2 Γ τ1 γ H2 HG) as [v2 [Hrun2 Hv2]].
+    destruct Hv1 as [Ht1 [Hval1 Hgood]].
+    destruct (Hgood v2 Hv2) as [v [Hrun Hv]].
+    exists v. split.
+    + apply multi_trans with (e2 := v1 · msubst γ e2).
+      { apply (multi_in_context (AppL Hole _)). apply Hrun1. }
+      apply multi_trans with (e2 := v1 · v2).
+      { apply (multi_in_context (AppR (exist _ v1 Hval1) Hole)). apply Hrun2. }
+      apply Hrun.
+    + apply Hv.
+  - (* e1 + e2: both reach numbers; their sum is a number *)
+    inversion Ht as [ | | | | | | Γ0 e10 e20 H1 H2 | ]; subst.
+    rewrite msubst_plus.
+    destruct (IH1 Γ INT γ H1 HG) as [v1 [Hrun1 [n1 Hn1]]]. subst v1.
+    destruct (IH2 Γ INT γ H2 HG) as [v2 [Hrun2 [n2 Hn2]]]. subst v2.
+    exists (const (n1 + n2)). split.
+    + apply multi_trans with (e2 := const n1 ⊕ msubst γ e2).
+      { apply (multi_in_context (PlusL Hole _)). apply Hrun1. }
+      apply multi_trans with (e2 := const n1 ⊕ const n2).
+      { apply (multi_in_context (PlusR n1 Hole)). apply Hrun2. }
+      apply (m_step _ _ _ (s_ctx Hole _ _ (r_plus n1 n2))). apply m_refl.
+    + exists (n1 + n2). reflexivity.
+  - (* if: the condition reaches true or false; then the branch *)
+    inversion Ht as [ | | | | | | | Γ0 e0 e10 e20 τ0 H H1 H2 ]; subst.
+    rewrite msubst_if.
+    destruct (IH Γ BOOL γ H HG) as [v [Hrun Hv]].
+    destruct Hv as [Hv | Hv]; subst v.
+    + destruct (IH1 Γ τ γ H1 HG) as [v1 [Hrun1 Hv1]].
+      exists v1. split.
+      * apply multi_trans with (e2 := IF TRUE THEN msubst γ e1 ELSE msubst γ e2 FI).
+        { apply (multi_in_context (IfC Hole _ _)). apply Hrun. }
+        apply (m_step _ _ _ (s_ctx Hole _ _ (r_if_true _ _))). apply Hrun1.
+      * apply Hv1.
+    + destruct (IH2 Γ τ γ H2 HG) as [v2 [Hrun2 Hv2]].
+      exists v2. split.
+      * apply multi_trans with (e2 := IF FALSE THEN msubst γ e1 ELSE msubst γ e2 FI).
+        { apply (multi_in_context (IfC Hole _ _)). apply Hrun. }
+        apply (m_step _ _ _ (s_ctx Hole _ _ (r_if_false _ _))). apply Hrun2.
+      * apply Hv2.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 97 lines">Show code · 97 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-25">Theorem termination e τ : ⊢ e : τ -&gt; terminates e.
+Proof.
+  intros Ht.
+  destruct (fundamental e nil τ nil Ht G_nil) as [v [Hrun Hv]].
+  exists v. split. apply Hrun. apply (V_value τ). apply Hv.
+Qed.
+
+Print Assumptions termination.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
+
+<h2>5. Denotational semantics</h2>
+<div class="thm"><p><span class="name">Definition (types and contexts as sets).</span></p>
+<div class="display">\[
+\begin{aligned}
+[\![\mathsf{int}]\!] &= \mathbb{Z} & [\![\mathsf{bool}]\!] &= \{\mathsf{true}, \mathsf{false}\} & [\![\tau_1 \to \tau_2]\!] &= [\![\tau_1]\!] \to [\![\tau_2]\!] \\
+[\![\cdot]\!] &= \{*\} & [\![\Gamma, x{:}\tau]\!] &= [\![\Gamma]\!] \times [\![\tau]\!]
+\end{aligned}
+\]</div></div>
+<div class="thm"><p><span class="name">Definition (terms as functions).</span> For \(\Gamma \vdash e : \tau\), \([\![e]\!] : [\![\Gamma]\!] \to [\![\tau]\!]\), by recursion on the derivation:</p>
+<div class="display">\[
+\begin{aligned}
+[\![x]\!]\,\gamma &= \gamma(x) \\
+[\![n]\!]\,\gamma &= n \qquad [\![\mathsf{true}]\!]\,\gamma = \mathsf{true} \qquad [\![\mathsf{false}]\!]\,\gamma = \mathsf{false} \\
+[\![e_1 + e_2]\!]\,\gamma &= [\![e_1]\!]\,\gamma + [\![e_2]\!]\,\gamma \\
+[\![\lambda x{:}\tau_1.\, e]\!]\,\gamma &= z \mapsto [\![e]\!]\,(\gamma, x \mapsto z) \\
+[\![e_1\, e_2]\!]\,\gamma &= ([\![e_1]\!]\,\gamma)\,([\![e_2]\!]\,\gamma) \\
+[\![\mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2]\!]\,\gamma &= \begin{cases} [\![e_1]\!]\,\gamma & [\![e]\!]\,\gamma = \mathsf{true} \\ [\![e_2]\!]\,\gamma & [\![e]\!]\,\gamma = \mathsf{false} \end{cases}
+\end{aligned}
+\]</div>
+<p>A closed term is a function from \(\{*\}\): an element \([\![e]\!](*) \in [\![\tau]\!]\).</p></div>
+<div class="thm"><p><span class="name">Example.</span> \([\![\mathtt{succ}]\!](*) = n \mapsto n + 1\). \([\![\mathtt{twice}]\!](*) = g \mapsto n \mapsto g(g(n))\). \([\![\mathtt{twice}\ \mathtt{succ}\ 2]\!](*) = ([\![\mathtt{twice}]\!](*))\,([\![\mathtt{succ}]\!](*))\,(2) = 4\).</p></div>
+<div class="thm"><p><span class="name">Example (open term).</span> \(y{:}\mathsf{int}, x{:}\mathsf{int} \vdash \mathsf{if}\ \mathsf{true}\ \mathsf{then}\ x\ \mathsf{else}\ y\). An element of \([\![\Gamma]\!]\) is \(((*, 10), 20)\), innermost first: \(x = 10\), \(y = 20\). The meaning at it is \(10\).</p></div>
+<p>\([\![\tau]\!]\) and \([\![\Gamma]\!]\) as Rocq types.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-26">Fixpoint den_ty (τ : ty) : Type :=
+  match τ with
+  | INT =&gt; Z
+  | BOOL =&gt; bool
+  | τ1 ⇒ τ2 =&gt; den_ty τ1 -&gt; den_ty τ2
+  end.
+
+Notation "⟦ τ ⟧" := (den_ty τ) (at level 0).
+
+Fixpoint den_ctx (Γ : ctx) : Type :=
+  match Γ with
+  | nil =&gt; unit
+  | (x, τ) :: Γ' =&gt; den_ctx Γ' * ⟦ τ ⟧
+  end.
+
+Notation "⟦ Γ ⟧c" := (den_ctx Γ) (at level 0).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 16 lines">Show code · 16 lines</button></div></div>
+<p>The derivation as data (<code>deriv</code>, in <code>Type</code>, variables by position), \(\gamma(x)\), and \([\![e]\!]\).</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-27">Inductive member : name -&gt; ty -&gt; ctx -&gt; Type :=
+| here x τ Γ : member x τ ((x, τ) :: Γ)
+| there x τ y σ Γ : y &lt;&gt; x -&gt; member x τ Γ -&gt; member x τ ((y, σ) :: Γ).
+
+Inductive deriv : ctx -&gt; exp -&gt; ty -&gt; Type :=
+| d_num Γ n : deriv Γ (const n) INT
+| d_true Γ : deriv Γ TRUE BOOL
+| d_false Γ : deriv Γ FALSE BOOL
+| d_var Γ x τ : member x τ Γ -&gt; deriv Γ (var x) τ
+| d_lam Γ x τ1 e τ2 : deriv ((x, τ1) :: Γ) e τ2 -&gt; deriv Γ (λ x : τ1 , e) (τ1 ⇒ τ2)
+| d_app Γ e1 e2 τ1 τ2 : deriv Γ e1 (τ1 ⇒ τ2) -&gt; deriv Γ e2 τ1 -&gt; deriv Γ (e1 · e2) τ2
+| d_plus Γ e1 e2 : deriv Γ e1 INT -&gt; deriv Γ e2 INT -&gt; deriv Γ (e1 ⊕ e2) INT
+| d_if Γ e e1 e2 τ : deriv Γ e BOOL -&gt; deriv Γ e1 τ -&gt; deriv Γ e2 τ -&gt;
+    deriv Γ (IF e THEN e1 ELSE e2 FI) τ.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 14 lines">Show code · 14 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-28">Fixpoint fetch {x τ Γ} (m : member x τ Γ) : ⟦ Γ ⟧c -&gt; ⟦ τ ⟧ :=
+  match m with
+  | here _ _ _ =&gt; fun γ =&gt; snd γ
+  | there _ _ _ _ _ _ m' =&gt; fun γ =&gt; fetch m' (fst γ)
+  end.
+
+Fixpoint den {Γ e τ} (d : deriv Γ e τ) : ⟦ Γ ⟧c -&gt; ⟦ τ ⟧ :=
+  match d with
+  | d_num _ n =&gt; fun γ =&gt; n
+  | d_true _ =&gt; fun γ =&gt; true
+  | d_false _ =&gt; fun γ =&gt; false
+  | d_var _ _ _ m =&gt; fun γ =&gt; fetch m γ
+  | d_lam _ _ _ _ _ d' =&gt; fun γ z =&gt; den d' (γ, z)
+  | d_app _ _ _ _ _ d1 d2 =&gt; fun γ =&gt; (den d1 γ) (den d2 γ)
+  | d_plus _ _ _ d1 d2 =&gt; fun γ =&gt; den d1 γ + den d2 γ
+  | d_if _ _ _ _ _ d0 d1 d2 =&gt; fun γ =&gt; if den d0 γ then den d1 γ else den d2 γ
+  end.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 17 lines">Show code · 17 lines</button></div></div>
+<p>\(\mathtt{succ}\), \(\mathtt{twice}\), and \(\mathtt{twice}\ \mathtt{succ}\ 2\), computed.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-29">Definition succ : exp := λ "x" : INT , var "x" ⊕ const 1.
+
+Definition d_succ_in (Γ : ctx) : deriv Γ succ (INT ⇒ INT) :=
+  d_lam _ _ _ _ _ (d_plus _ _ _ (d_var _ _ _ (here _ _ _)) (d_num _ 1)).
+
+Definition d_succ : deriv nil succ (INT ⇒ INT) := d_succ_in nil.
+
+Check (den d_succ tt).
+Compute (den d_succ tt 41).
+
+Definition twice : exp :=
+  λ "f" : INT ⇒ INT , λ "x" : INT , var "f" · (var "f" · var "x").
+
+Definition d_twice : deriv nil twice ((INT ⇒ INT) ⇒ INT ⇒ INT) :=
+  d_lam _ _ _ _ _ (d_lam _ _ _ _ _
+    (d_app _ _ _ _ _
+      (d_var _ _ _ (there _ _ _ _ _ (proj1 (String.eqb_neq "x" "f") eq_refl) (here _ _ _)))
+      (d_app _ _ _ _ _
+        (d_var _ _ _ (there _ _ _ _ _ (proj1 (String.eqb_neq "x" "f") eq_refl) (here _ _ _)))
+        (d_var _ _ _ (here _ _ _))))).
+
+Check (den d_twice tt).
+Compute (den d_twice tt (den d_succ tt) 2).
+
+Definition twice_succ_two : exp := twice · succ · const 2.
+
+Definition d_twice_succ_two : deriv nil twice_succ_two INT :=
+  d_app _ _ _ _ _ (d_app _ _ _ _ _ d_twice d_succ) (d_num _ 2).
+
+Compute (den d_twice_succ_two tt).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 30 lines">Show code · 30 lines</button></div></div>
+<p>The open term.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-30">Definition d_open : deriv (("y", INT) :: ("x", INT) :: nil)
+                          (IF TRUE THEN var "x" ELSE var "y" FI) INT :=
+  d_if _ _ _ _ _ (d_true _)
+       (d_var _ _ _ (there _ _ _ _ _ (proj1 (String.eqb_neq "y" "x") eq_refl) (here _ _ _)))
+       (d_var _ _ _ (here _ _ _)).
+
+Compute (den d_open (tt, 10, 20)).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 7 lines">Show code · 7 lines</button></div></div>
+
+<h2>6. Soundness and adequacy</h2>
+<div class="thm"><p><span class="name">Theorem (soundness).</span> If \(e \longrightarrow^* v\) then \([\![e]\!] = [\![v]\!]\). By induction on the run, from the one-step lemma.</p></div>
+<div class="thm"><p><span class="name">Lemma (one step).</span> If \(e \longrightarrow e'\) then \([\![e]\!] = [\![e']\!]\). Functions are equal when equal at every \(\gamma\); one case per rule.</p>
+<ul>
+  <li>\(\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow e_1\): \([\![\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2]\!]\,\gamma = [\![e_1]\!]\,\gamma\), by the \(\mathsf{if}\) clause, since \([\![\mathsf{true}]\!]\,\gamma = \mathsf{true}\).</li>
+  <li>\(n_1 + n_2 \longrightarrow n_3\): both sides are the integer \(n_1 + n_2\).</li>
+  <li>\((\lambda x{:}\tau.\, e)\, v \longrightarrow e[x \mapsto v]\): \([\![(\lambda x{:}\tau.\, e)\, v]\!]\,\gamma = [\![e]\!]\,(\gamma, x \mapsto [\![v]\!]\,\gamma) = [\![e[x \mapsto v]]\!]\,\gamma\), the last step by compositionality.</li>
+  <li>\(E[r] \longrightarrow E[r']\): \([\![E[r]]\!]\,\gamma = ([\![E]\!]\,\gamma)([\![r]\!]\,\gamma) = ([\![E]\!]\,\gamma)([\![r']\!]\,\gamma) = [\![E[r']]\!]\,\gamma\), by compositionality for contexts and the redex case.</li>
+</ul></div>
+<div class="thm"><p><span class="name">Lemma (compositionality).</span> \([\![e[x \mapsto v]]\!]\,\gamma = [\![e]\!]\,(\gamma, x \mapsto [\![v]\!]\,\gamma)\), by induction on \(e\). For a context, \([\![E[e]]\!]\,\gamma = ([\![E]\!]\,\gamma)([\![e]\!]\,\gamma)\): a context is a term with a variable for the hole.</p></div>
+<div class="thm"><p><span class="name">Example.</span> \(\mathtt{twice}\ \mathtt{succ}\ 2 \longrightarrow (\lambda x{:}\mathsf{int}.\, \mathtt{succ}\,(\mathtt{succ}\,x))\, 2\), and \([\![\mathtt{twice}\ \mathtt{succ}\ 2]\!](*) = 4 = [\![(\lambda x{:}\mathsf{int}.\, \mathtt{succ}\,(\mathtt{succ}\,x))\, 2]\!](*)\).</p></div>
+<p>The \(\mathsf{if}\) and \(+\) cases, by <code>reflexivity</code>; the step on the example, and both meanings computed.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-31">Lemma den_if_true Γ e1 e2 τ (d1 : deriv Γ e1 τ) (d2 : deriv Γ e2 τ) γ :
+  den (d_if _ _ _ _ _ (d_true _) d1 d2) γ = den d1 γ.
+Proof. reflexivity. Qed.
+
+Lemma den_plus Γ n1 n2 γ :
+  den (d_plus Γ _ _ (d_num _ n1) (d_num _ n2)) γ = den (d_num Γ (n1 + n2)) γ.
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 7 lines">Show code · 7 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-32">Definition after_step : exp := (λ "x" : INT , succ · (succ · var "x")) · const 2.
+
+Example twice_step : twice_succ_two ⟶ after_step.
+Proof.
+  apply (s_ctx (AppL Hole (const 2))). apply r_beta. apply v_lam.
+Qed.
+
+Definition d_after_step : deriv nil after_step INT :=
+  d_app _ _ _ _ _
+    (d_lam _ _ _ _ _
+      (d_app _ _ _ _ _ (d_succ_in _)
+        (d_app _ _ _ _ _ (d_succ_in _) (d_var _ _ _ (here _ _ _)))))
+    (d_num _ 2).
+
+Example beta_sound : den d_twice_succ_two tt = den d_after_step tt.
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 16 lines">Show code · 16 lines</button></div></div>
+<div class="thm"><p><span class="name">Theorem (adequacy).</span> If \(\vdash e : \mathsf{bool}\) then \(e \longrightarrow^* [\![e]\!](*)\). Likewise at \(\mathsf{int}\), and at every type without \(\to\) in it. Not as stated at \(\tau_1 \to \tau_2\): \(e\) runs to a λ, not to a function.</p></div>
+<div class="thm"><p><span class="name">Definition (binary logical relation).</span> \(v \approx^{\mathcal{V}}_\tau x\) between a closed value and \(x \in [\![\tau]\!]\); \(e \approx^{\mathcal{E}}_\tau x\) between a closed expression and \(x\).</p>
+<div class="display">\[
+\begin{aligned}
+n \approx^{\mathcal{V}}_{\mathsf{int}} m &\iff n = m \\
+b \approx^{\mathcal{V}}_{\mathsf{bool}} b' &\iff b = b' \\
+v \approx^{\mathcal{V}}_{\tau_1 \to \tau_2} f &\iff \forall v' \approx^{\mathcal{V}}_{\tau_1} x.\ v\, v' \approx^{\mathcal{E}}_{\tau_2} f(x) \\
+e \approx^{\mathcal{E}}_\tau x &\iff e \longrightarrow^* v \text{ and } v \approx^{\mathcal{V}}_\tau x
+\end{aligned}
+\]</div></div>
+<div class="thm"><p><span class="name">Theorem (fundamental, binary).</span> If \(\Gamma \vdash e : \tau\) and \(\gamma\) relates each variable's value to its denotation, then \(e[\gamma] \approx^{\mathcal{E}}_\tau [\![e]\!]\,\gamma\). Proof as in section 4. Adequacy is the case \(\Gamma = \cdot\), \(\tau = \mathsf{bool}\).</p></div>
+<p>Adequacy stated (proof not in this file) and the relation.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-33">Definition exp_of_bool (b : bool) : exp := if b then TRUE else FALSE.
+
+Theorem adequacy_bool e (d : deriv nil e BOOL) : e ⟶* exp_of_bool (den d tt).
+Proof.
+  (* Proved with a logical relation between values and denotations,
+     the binary version of Part 1's.  Its definition is below; the
+     proof is the fundamental theorem again, and is not in this file. *)
+Admitted.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-34">Fixpoint Vd (τ : ty) : exp -&gt; ⟦ τ ⟧ -&gt; Prop :=
+  match τ return exp -&gt; ⟦ τ ⟧ -&gt; Prop with
+  | INT =&gt; fun v n =&gt; v = const n
+  | BOOL =&gt; fun v b =&gt; v = exp_of_bool b
+  | τ1 ⇒ τ2 =&gt; fun v f =&gt;
+      value v /\
+      forall v' x, Vd τ1 v' x -&gt; exists v'', v · v' ⟶* v'' /\ Vd τ2 v'' (f x)
+  end.
+
+Definition Ed (τ : ty) (e : exp) (x : ⟦ τ ⟧) : Prop :=
+  exists v, e ⟶* v /\ Vd τ v x.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 11 lines">Show code · 11 lines</button></div></div>
+<div class="thm"><p><span class="name">Remark (Rice).</span> Termination makes "\(\vdash e : \mathsf{int}\) computes \(0\)" decidable and non-trivial, so STLC is not Turing complete.</p></div>
+
+
+</div>
+<div id="slide-nav"><button class="prev" type="button" title="Previous slide (←)">◀</button><span class="count"></span><button class="next" type="button" title="Next slide (→)">▶</button></div>
+</div>
+</div>
+<script>
+window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, svg: { fontCache: 'global' } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.js"></script>
+<script>
+/* Slide mode.  The page is cut into slides at every h2 and h3 and at every
+   slide break (an <hr class="slide-break">).  Nothing moves: the elements
+   of the other slides are just hidden, so the Rocq blocks stay one
+   document and running a block still checks everything before it.
+   Within a slide, each element after the first appears on its own key
+   press, so a slide is revealed one piece at a time.  A folded block
+   marked "unfold" (<details class="unfold">) opens in slide mode, and
+   each .piece inside it counts as an element of its own, as do the
+   .piece parts of an element with class "pieces".  A section whose
+   h2 has class "one-slide" is a single long slide that scrolls, except
+   that an h3 with class "own-slide" still starts a slide of its own.
+   Keys: right arrow or Page Down for the next step or slide, left arrow
+   or Page Up to go back (what a presentation clicker sends), Escape to
+   leave.  The address ends in #slide-N, so a reload stays on the slide. */
+(function () {
+  const doc = document.getElementById('document');
+  const scroller = document.getElementById('code-wrapper');
+  const nav = document.getElementById('slide-nav');
+  const count = nav.querySelector('.count');
+  const context = document.getElementById('slide-context');
+  const button = document.getElementById('present-toggle');
+  const slides = [];
+  let cur = [], section = '', whole = false;
+  const close = () => { cur.steps = cur.length - 1; slides.push(cur); cur = []; };
+  const unfolds = [...doc.querySelectorAll(':scope > details.unfold')];
+  const rows = [...doc.querySelectorAll(':scope > .pieces')];
+  /* the boxes around pieces: shown on a slide when one of their pieces is */
+  const holders = [...unfolds, ...rows].flatMap(d => [d, ...d.querySelectorAll('.rules')]);
+  const units = [...doc.children].flatMap(el =>
+    el.matches('details.unfold, .pieces') ? [...el.querySelectorAll('.piece, hr.slide-break')] : [el]);
+  for (const el of units) {
+    if (el.classList.contains('topbar') || el.id === 'slide-context' || el.classList.contains('page-only')) continue;
+    /* a section whose h2 is marked "one-slide" stays one long slide */
+    if (el.tagName === 'H2') whole = el.classList.contains('one-slide');
+    const breaks = el.tagName === 'H2' || el.classList.contains('own-slide') ||
+      (!whole && (el.tagName === 'H3' || el.classList.contains('slide-break')));
+    if (breaks && cur.length) close();
+    if (el.tagName === 'H2') section = el.textContent;
+    if (!cur.length) cur.section = el.tagName === 'H2' ? '' : section;
+    if (el.classList.contains('slide-break')) continue;
+    el.dataset.step = cur.length;
+    cur.push(el);
+  }
+  if (cur.length) close();
+  let at = 0, shown = 0;
+  function label() {
+    const m = slides[at].steps;
+    const steps = m > 12 ? 'step ' + shown + ' of ' + m : '●'.repeat(shown) + '○'.repeat(m - shown);
+    count.textContent = (at + 1) + ' / ' + slides.length + (m ? '  ·  ' + steps : '');
+  }
+  /* frames (pieces of an element with class "frames") replace each other:
+     only the latest one revealed shows, in the same place */
+  const frameSets = [...doc.querySelectorAll(':scope > .frames')];
+  function reveal() {
+    for (const el of slides[at]) el.classList.toggle('off-step', Number(el.dataset.step) > shown);
+    /* the latest revealed piece is 'current': its step note shows, earlier ones hide */
+    for (const el of slides[at]) el.classList.toggle('current', Number(el.dataset.step) === shown);
+    for (const g of frameSets) {
+      const fs = [...g.children];
+      const last = fs.filter(f => !f.classList.contains('off-step') && !f.classList.contains('off-slide')).at(-1);
+      for (const f of fs) f.classList.toggle('off-frame', f !== last);
+    }
+    label();
+  }
+  /* show slide i with its first k steps revealed (all of them if k is 'all') */
+  function show(i, k) {
+    at = Math.max(0, Math.min(slides.length - 1, i));
+    shown = k === 'all' ? slides[at].steps : 0;
+    slides.forEach((els, n) => els.forEach(el => el.classList.toggle('off-slide', n !== at)));
+    for (const h of holders) h.classList.toggle('off-slide', !h.querySelector('.piece:not(.off-slide)'));
+    context.textContent = slides[at].section || '';
+    reveal();
+    history.replaceState(null, '', '#slide-' + (at + 1));
+    scroller.scrollTop = k === 'all' ? scroller.scrollHeight : 0;
+    /* editors that were hidden need to measure themselves again */
+    for (const el of slides[at])
+      for (const cm of el.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  /* in a long slide, bring the piece that just appeared or disappeared
+     to the middle of the screen */
+  const piece = k => slides[at].find(el => Number(el.dataset.step) === k);
+  const focusOn = el => { if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+  function next() {
+    if (shown < slides[at].steps) { shown++; reveal(); focusOn(piece(shown)); }
+    else if (at < slides.length - 1) show(at + 1, 0);
+  }
+  function prev() {
+    if (shown > 0) { const gone = piece(shown); shown--; reveal(); focusOn(gone); }
+    else if (at > 0) show(at - 1, 'all');
+  }
+  function start(i) {
+    for (const d of unfolds) { d.dataset.wasOpen = d.open; d.open = true; }
+    doc.classList.add('presenting'); nav.classList.add('on');
+    button.textContent = '✕ Stop presenting';
+    show(i, 0);
+  }
+  function stop() {
+    doc.classList.remove('presenting'); nav.classList.remove('on');
+    button.textContent = '▶ Present';
+    for (const els of slides) for (const el of els) el.classList.remove('off-slide', 'off-step');
+    for (const h of holders) h.classList.remove('off-slide');
+    for (const g of frameSets) for (const f of g.children) f.classList.remove('off-frame');
+    for (const d of unfolds) d.open = d.dataset.wasOpen === 'true';
+    history.replaceState(null, '', location.pathname + location.search);
+    const first = slides[at][0];
+    if (first) first.scrollIntoView();
+    for (const cm of doc.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  const presenting = () => doc.classList.contains('presenting');
+  button.addEventListener('click', () => presenting() ? stop() : start(at));
+  nav.querySelector('.prev').addEventListener('click', prev);
+  nav.querySelector('.next').addEventListener('click', next);
+  document.addEventListener('keydown', e => {
+    if (!presenting() || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest && e.target.closest('.CodeMirror, input, textarea, select')) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Escape') stop();
+  });
+  const m = location.hash.match(/^#slide-(\d+)$/);
+  if (m) start(Number(m[1]) - 1);
+})();
+</script>
+<script>
+/* jsCoq is loaded from the jsDelivr CDN.  Two problems, two fixes:
+   1. Browsers refuse to start a Worker from another domain, so wrap the
+      worker script in a same-origin blob that imports it.
+   2. The WebAssembly backend finds its runtime (OCaml, zarith, ...) in a
+      node_modules folder next to jsCoq.  The CDN has no such folder, so
+      requests for node_modules/<package>/<file> go to that package's own
+      CDN URL, at a pinned version. */
+function workerPrelude(BASE, PIN) {
+  const nativeFetch = self.fetch.bind(self);
+  function remap(r) {
+    const u = new URL(r, BASE);
+    const m = u.pathname.match(/\/(?:node_modules|undefined)\/(.*)$/);
+    if (m) {
+      const rest = m[1];
+      for (const pkg in PIN)
+        if (rest.startsWith(pkg + '/'))
+          return 'https://cdn.jsdelivr.net/npm/' + pkg + '@' + PIN[pkg] + rest.slice(pkg.length);
+    }
+    return u.href;
+  }
+  self.fetch = (r, o) => nativeFetch(typeof r === 'string' || r instanceof URL ? remap(String(r)) : r, o);
+}
+(function () {
+  const PIN = {
+    'ocaml-wasm': '4.12.0-0',
+    '@ocaml-wasm/4.12--zarith': '1.13.0-0',
+    '@ocaml-wasm/4.12--janestreet-base': '0.16.0-0',
+    '@ocaml-wasm/4.12--num': '1.4.0-0'
+  };
+  const NativeWorker = window.Worker;
+  window.Worker = class extends NativeWorker {
+    constructor(url, opts) {
+      const u = new URL(url, location.href);
+      if (u.origin !== location.origin) {
+        const src = '(' + workerPrelude + ')(' + JSON.stringify(u.href) + ', ' +
+                    JSON.stringify(PIN) + '); importScripts(' + JSON.stringify(u.href) + ');';
+        super(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })), opts);
+      } else {
+        super(url, opts);
+      }
+    }
+  };
+})();
+</script>
+<script type="module">
+  const JSCOQ = 'https://cdn.jsdelivr.net/npm/jscoq@0.17.1/';
+  const { JsCoq } = await import(JSCOQ + 'jscoq.js');
+  const theme0 = document.documentElement.getAttribute('data-theme');
+  const button = document.getElementById('theme-toggle');
+  const label = t => { button.textContent = t === 'dark' ? '☀ Light mode' : '☾ Dark mode'; };
+  label(theme0);
+  const coq = await JsCoq.start(['textarea.coq'], {
+    theme: theme0,
+    base_path: JSCOQ,
+    backend: 'wa',
+    prelude: true,
+    implicit_libs: true,
+    init_pkgs: ['init'],
+    all_pkgs: ['coq'],
+    editor: { mode: { 'company-coq': true }, theme: 'd6' },
+    focus: false
+  });
+  /* The light switch: page colors, jsCoq's panel (and its icons). */
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('jscoq-page-theme', t); } catch (e) {}
+    try { coq.layout.configure({ theme: t }); } catch (e) {}
+    /* jsCoq switches its editors to its own themes here; put ours back.
+       Our editor theme reads the page colors, so it follows data-theme. */
+    try { coq.provider.configure({ theme: 'd6' }); } catch (e) {}
+    label(t);
+  }
+  button.addEventListener('click', () =>
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+  /* The goals panel on the right can be collapsed.  jsCoq hides the
+     panel while #ide-wrapper has the class "toggled" ("toggled away"),
+     and settles that class shortly after it starts, so the class is the
+     source of truth here, and the remembered choice is applied once
+     jsCoq has settled. */
+  const ide = document.getElementById('ide-wrapper');
+  const panelButton = document.getElementById('panel-toggle');
+  const panelOpen = () => !ide.classList.contains('toggled');
+  const panelLabel = () => { panelButton.textContent = panelOpen() ? '◨ Hide goals' : '◧ Show goals'; };
+  const setPanel = open => {
+    ide.classList.toggle('toggled', !open);
+    panelLabel();
+    setTimeout(() => { for (const cm of document.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh(); }, 350);
+  };
+  panelButton.addEventListener('click', () => {
+    const open = !panelOpen();
+    setPanel(open);
+    try { localStorage.setItem('jscoq-panel', open ? 'open' : 'closed'); } catch (e) {}
+  });
+  new MutationObserver(panelLabel).observe(ide, { attributes: true, attributeFilter: ['class'] });
+  let savedPanel = null;
+  try { savedPanel = localStorage.getItem('jscoq-panel'); } catch (e) {}
+  const wantPanel = savedPanel !== 'closed';
+  for (const t of [0, 600, 2000]) setTimeout(() => setPanel(wantPanel), t);
+  panelLabel();
+
+  /* Folded code cells.  A cell opens when you click its button or click
+     into its code, and by itself when Coq reports an error inside it.
+     Stepping into a folded cell leaves it folded; the goals panel still
+     follows along. */
+  const cells = [...document.querySelectorAll('.cell')];
+  function setCell(cell, open) {
+    cell.classList.toggle('is-collapsed', !open);
+    const b = cell.querySelector('.cell-toggle');
+    b.setAttribute('aria-expanded', String(open));
+    b.textContent = open ? 'Hide code' : b.dataset.label;
+    const cm = cell.querySelector('.CodeMirror');
+    if (cm && cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  for (const cell of cells) {
+    cell.querySelector('.cell-toggle').addEventListener('click', () =>
+      setCell(cell, cell.classList.contains('is-collapsed')));
+    /* Run: check everything up to the end of this block, using jsCoq's
+       "run to cursor".  Coq checks in order, so earlier blocks run first.
+       If later blocks were already checked, roll back to the end of this
+       block: "run to cursor" rewinds to just before the sentence at the
+       cursor, so for that the cursor goes to the start of the next block. */
+    cell.querySelector('.cell-run').addEventListener('click', () => {
+      const editorOf = c => c.querySelector('.CodeMirror')?.CodeMirror;
+      /* jsCoq tracks the active editor through focus events, which a
+         scripted focus doesn't always fire, so tell it directly. */
+      const point = (cm, pos) => {
+        cm.focus();
+        cm.setCursor(pos);
+        const sp = coq.provider.snippets.find(s => s.editor === cm);
+        if (sp) coq.provider.currentFocus = sp;
+      };
+      const cm = editorOf(cell);
+      if (!cm) return;
+      const last = cm.lastLine();
+      point(cm, { line: last, ch: cm.getLine(last).length });
+      if (coq.provider.getAtPoint()) {
+        /* the end of this block is already checked */
+        const next = cells[cells.indexOf(cell) + 1];
+        if (!next) return;
+        point(editorOf(next), { line: 0, ch: 0 });
+        if (!coq.provider.getAtPoint()) return;   /* nothing checked after this block */
+      }
+      coq.goCursor();
+      /* moving the cursor scrolls the editor; a folded one should still
+         show its first lines */
+      if (cell.classList.contains('is-collapsed')) {
+        cm.scrollTo(0, 0);
+        const n = cells[cells.indexOf(cell) + 1];
+        if (n && n.classList.contains('is-collapsed')) editorOf(n).scrollTo(0, 0);
+      }
+    });
+    cell.addEventListener('mousedown', e => {
+      if (cell.classList.contains('is-collapsed') && e.target.closest('.CodeMirror')) setCell(cell, true);
+    });
+  }
+  /* A folded editor only draws its first lines, so look at Coq's marks
+     in the editor itself, not at the page, to spot an error. */
+  setInterval(() => {
+    for (const cell of cells) {
+      if (!cell.classList.contains('is-collapsed')) continue;
+      const cm = cell.querySelector('.CodeMirror')?.CodeMirror;
+      if (cm && cm.getAllMarks().some(m => (m.className || '').includes('coq-eval-failed'))) setCell(cell, true);
+    }
+  }, 500);
+  const fold = document.getElementById('fold-toggle');
+  fold.addEventListener('click', () => {
+    const open = fold.getAttribute('aria-pressed') !== 'true';
+    fold.setAttribute('aria-pressed', String(open));
+    fold.textContent = open ? 'Fold all code' : 'Show all code';
+    for (const cell of cells) setCell(cell, open);
+  });
+</script>
+</body>
+</html>

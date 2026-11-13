@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSE 590 Midterm Review</title>
+<style>
+:root { color-scheme: light dark; --blue:#00274c; --yellow:#ffcb05; --paper:#fbfaf5; --ink:#18202a; --muted:#5c6370; --line:#c9ced6; }
+* { box-sizing:border-box; }
+body { margin:0; font:17px/1.55 system-ui,sans-serif; background:var(--paper); color:var(--ink); }
+main { width:min(70rem,calc(100% - 2rem)); margin:0 auto; padding:3.5rem 0 5rem; }
+header { border-top:.45rem solid var(--yellow); padding-top:1.25rem; margin-bottom:2rem; }
+h1,h2 { color:var(--blue); line-height:1.15; }
+h1 { font-size:clamp(2.2rem,5vw,4.5rem); margin:.2rem 0 .7rem; }
+.lede { max-width:48rem; color:var(--muted); font-size:1.1rem; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(18rem,1fr)); gap:1rem; }
+.card { display:flex; flex-direction:column; min-height:15rem; padding:1.15rem 1.2rem; border:1px solid var(--line); border-radius:.7rem; background:#fff; box-shadow:0 .2rem .8rem #00274c12; }
+.card h2 { margin:.1rem 0 .45rem; font-size:1.35rem; }
+.card p { margin:.25rem 0; }
+.tag { color:var(--muted); font-size:.82rem; font-weight:650; letter-spacing:.04em; text-transform:uppercase; }
+.actions { margin-top:auto; padding-top:1rem; display:flex; gap:.9rem; flex-wrap:wrap; }
+a { color:#0b4f9c; font-weight:650; }
+.primary { display:inline-block; padding:.35rem .75rem; border-radius:999px; background:var(--blue); color:white; text-decoration:none; }
+.disclosure { max-width:52rem; margin:1.4rem 0 2rem; padding:.8rem 1rem; border-left:.25rem solid var(--yellow); background:#fff; color:var(--muted); }
+.disclosure strong { color:var(--ink); }
+code { font-size:.9em; }
+@media (prefers-color-scheme:dark) {
+  :root { --paper:#111820; --ink:#edf1f7; --muted:#aeb8c6; --line:#344151; --blue:#8cb4ff; }
+  .card,.disclosure { background:#18222e; }
+  .primary { background:#8cb4ff; color:#0b1725; }
+  a { color:#9fc1ff; }
+}
+</style>
+</head>
+<body><main>
+<header>
+  <p class="tag">CSE 590 · Fall 2026</p>
+  <h1>Midterm Review</h1>
+</header>
+
+<aside class="disclosure"><strong>AI disclosure.</strong> Generative AI tools assisted with portions of the LaTeX, Rocq code, and prose. The selection, structure, and pedagogical design of these discussion sections are my own.</aside>
+
+<section class="grid" aria-label="Course review pages">
+  <article class="card"><p class="tag">Discussion 1</p><h2>Names, binding, and alpha-equivalence</h2><p>No recording is available. The original executable source is Agda, with both Agda and Rocq versions included.</p><p class="actions"><a class="primary" href="discussion1.html">Open notebook</a><a href="sources/Discussion1.v">Rocq</a><a href="sources/NamedUntyped.agda">Agda</a></p></article>
+  <article class="card"><p class="tag">Discussion 2</p><h2>Untyped lambda programming</h2><p>No recording is available. Use the Lambda Explorer to compare four evaluation strategies and work with the handout’s definitions.</p><p class="actions"><a class="primary" href="discussion2.html">Open explorer</a></p></article>
+  <article class="card"><p class="tag">Discussion 3</p><h2>Induction and small-step relations</h2><p>Induction principles, Boolean reduction, Mini-IMP configurations, and call-by-value lambda calculus.</p><p class="actions"><a class="primary" href="discussion3.html">Open notebook</a><a href="sources/Discussion3.v">Rocq</a></p></article>
+  <article class="card"><p class="tag">Discussion 4</p><h2>Big-step and small-step agree</h2><p>Arithmetic evaluation, the agreement proof, inversion, full IMP, and divergence.</p><p class="actions"><a class="primary" href="discussion4.html">Open notebook</a><a href="sources/Discussion4.v">Rocq</a></p></article>
+  <article class="card"><p class="tag">Discussion 5</p><h2>Denotational semantics of IMP</h2><p>Functions, partiality, sequencing, loop approximants, equational reasoning, and monads.</p><p class="actions"><a class="primary" href="discussion5.html">Open notebook</a><a href="sources/Discussion5.v">Rocq</a></p></article>
+  <article class="card"><p class="tag">Discussion 6</p><h2>The simply typed lambda calculus</h2><p>Evaluation, typing, progress, weakening, substitution, and preservation.</p><p class="actions"><a class="primary" href="discussion6.html">Open notebook</a><a href="sources/Discussion6.v">Rocq</a></p></article>
+  <article class="card"><p class="tag">Discussion 7</p><h2>Products, sums, and Curry–Howard</h2><p>Program isomorphisms, proof simplification, dependent quantifiers, and excluded middle.</p><p class="actions"><a class="primary" href="discussion7.html">Open notebook</a><a href="sources/Discussion7.v">Rocq</a></p></article>
+  <article class="card"><p class="tag">Discussion 8</p><h2>Termination and denotations</h2><p>Logical relations, the fundamental theorem, denotational semantics, soundness, and adequacy.</p><p class="actions"><a class="primary" href="discussion8.html">Open notebook</a><a href="sources/Discussion8.v">Rocq</a></p></article>
+  <article class="card"><p class="tag">Discussion 9</p><h2>Program equivalence</h2><p>Contextual, denotational, and axiomatic equivalence, with congruence and adequacy.</p><p class="actions"><a class="primary" href="discussion9.html">Open notebook</a><a href="sources/Discussion9.v">Rocq</a></p></article>
+  <article class="card"><p class="tag">Lecture 20</p><h2>Subtyping</h2><p>Record subtyping, subsumption, declarative and algorithmic typing, and type safety.</p><p class="actions"><a class="primary" href="lecture20.html">Open notebook</a><a href="sources/Lecture20.v">Rocq</a></p></article>
+</section>
+</main></body>
+</html>

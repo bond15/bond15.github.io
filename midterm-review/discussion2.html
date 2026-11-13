@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<script>(function(){let t;try{t=localStorage.getItem('d2-theme')}catch(e){}if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t})()</script>
+<title>Discussion 2: Programming in the untyped lambda calculus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;650&family=Spectral:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: one reading column, course-handout style; each inference rule is its own block that wraps on phones. */
+:root {
+  --bg: #fbfbf8;
+  --fg: #1d2330;
+  --muted: #5a6273;
+  --navy: #00274c;
+  --maize: #e0a800;
+  --panel: #eef1f6;
+  --line: #d6dbe4;
+  --head: var(--navy);
+  --code-bg: #f3f5f9;
+  --kw: #7a2e8c;
+  --str: #2f6b2f;
+  --num: #a14a00;
+  --font-display: "Commissioner", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Spectral", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1724; --fg: #e4e8ef; --muted: #9aa4b5; --navy: #8fb4e3; --maize: #ffcb05;
+    --panel: #172234; --line: #2a3850; --head: #ffcb05; --code-bg: #121c2c; --kw: #d7a6f0; --str: #9fd39f; --num: #f2b073; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1724; --fg: #e4e8ef; --muted: #9aa4b5; --navy: #8fb4e3; --maize: #ffcb05;
+  --panel: #172234; --line: #2a3850; --head: #ffcb05; --code-bg: #121c2c; --kw: #d7a6f0; --str: #9fd39f; --num: #f2b073; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 1.08rem; line-height: 1.6; }
+main { max-width: 44rem; margin: 0 auto; padding-inline: 16px; padding-block: 2rem 4rem; }
+header { border-bottom: 3px solid var(--maize); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.eyebrow { font-family: var(--font-display); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1, h2, h3 { font-family: var(--font-display); color: var(--head); text-wrap: balance; line-height: 1.25; }
+h1 { font-size: 1.7rem; margin: .3rem 0 .4rem; font-weight: 650; }
+h2 { font-size: 1.3rem; margin: 2.6rem 0 .6rem; font-weight: 650; padding-top: .4rem; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 1.6rem 0 .4rem; font-weight: 650; }
+p, li { max-width: 65ch; }
+.lede { color: var(--muted); margin: 0; }
+code { font-family: var(--font-mono); font-size: .82em; background: var(--panel); padding: .05em .3em; border-radius: 3px; overflow-wrap: anywhere; }
+.rules { display: flex; flex-wrap: wrap; gap: .4rem 2rem; justify-content: center; align-items: flex-end; margin: .8rem 0 1rem; }
+.rules > div { min-width: 0; max-width: 100%; overflow-x: auto; }
+.display { overflow-x: auto; max-width: 100%; margin: .8rem 0; }
+mjx-container[display="true"] { margin: .4em 0 !important; }
+.thm { background: var(--panel); border-left: 3px solid var(--navy); padding: .7rem 1rem; margin: 1rem 0; }
+.thm p { margin: .3rem 0; }
+.thm .name { font-family: var(--font-display); font-weight: 650; color: var(--navy); }
+.proof { margin: .4rem 0 1rem; }
+.proof em:first-child { font-style: italic; }
+.route-note { background: var(--panel); border-left: 3px solid var(--navy); padding: .7rem 1rem; margin: 1rem 0 1.4rem; }
+.route-note.extension { border-left-color: var(--maize); }
+.route-note strong { font-family: var(--font-display); color: var(--head); }
+blockquote { margin: 1rem 0; padding: .2rem 1rem; border-left: 3px solid var(--line); color: var(--muted); }
+table.ref { width: 100%; border-collapse: collapse; margin: .8rem 0 1.2rem; }
+table.ref th, table.ref td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: .35rem .65rem .35rem 0; }
+ul { padding-left: 1.2rem; }
+li { margin: .25rem 0; }
+pre { background: var(--code-bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: .75rem .9rem; margin: .9rem 0 1.2rem; overflow-x: auto; max-width: 100%; font-family: var(--font-mono); font-size: .76rem; line-height: 1.5; }
+pre code { background: none; padding: 0; font-size: inherit; overflow-wrap: normal; white-space: pre; }
+.topbar { max-width: 44rem; margin: 0 auto; padding: .8rem 16px 0; display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+.switches { display: flex; gap: .5rem; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { font-family: var(--font-display); font-size: .8rem; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .35rem .8rem; cursor: pointer; }
+button:hover { border-color: var(--navy); }
+button.primary { background: var(--navy); color: var(--bg); border-color: var(--navy); }
+button:disabled { opacity: .55; cursor: wait; }
+#lambda-lab { border: 1px solid var(--line); border-top: 4px solid var(--maize); border-radius: 8px; padding: 1rem; margin: 1.5rem 0 2.5rem; background: var(--panel); }
+#lambda-lab h2 { margin: .15rem 0 0; padding: 0; border: 0; }
+.lab-heading, .lab-row, .lab-actions { display: flex; gap: .7rem; align-items: end; }
+.lab-heading { justify-content: space-between; align-items: start; }
+.lab-status { margin: 0; font-family: var(--font-display); font-size: .8rem; color: var(--muted); }
+.lab-status[data-kind="error"] { color: #a3262a; }
+.lab-status[data-kind="done"] { color: #1c6b3c; }
+#lambda-lab label { display: block; font-family: var(--font-display); font-size: .78rem; color: var(--muted); }
+#definitions, #expression, #strategy, #limit { display: block; box-sizing: border-box; width: 100%; margin-top: .25rem; background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; color: var(--fg); }
+#definitions { min-height: 12rem; resize: vertical; padding: .65rem; font-family: var(--font-mono); font-size: .72rem; line-height: 1.45; }
+#expression { padding: .55rem .65rem; font-family: var(--font-mono); }
+.expression-label { flex: 1 1 20rem; }
+#strategy { padding: .52rem; min-width: 10rem; }
+#limit { padding: .52rem; width: 6rem; }
+.lab-row { margin-top: .8rem; flex-wrap: wrap; }
+.lab-actions { margin: .8rem 0; }
+#current-term { display: block; min-height: 3.2rem; box-sizing: border-box; width: 100%; padding: .7rem; overflow-x: auto; white-space: pre; background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; font-family: var(--font-mono); font-size: .84rem; }
+#lambda-lab details { margin-top: .7rem; }
+#history { max-height: 20rem; overflow: auto; padding-left: 3.5rem; }
+#history li { padding: .2rem 0; font-family: var(--font-mono); font-size: .74rem; }
+#history .rule { display: inline-block; min-width: 5.5rem; color: var(--muted); font-family: var(--font-display); }
+#history code { background: transparent; }
+#slide-nav { position: fixed; left: 16px; bottom: 14px; z-index: 20; display: none; align-items: center; gap: .4rem; padding: .35rem .55rem; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-family: var(--font-display); }
+body.presenting { overflow: hidden; }
+body.presenting main { height: calc(100vh - 5rem); overflow: auto; box-sizing: border-box; font-size: 1.38rem; padding-top: 1rem; }
+body.presenting main > .off-slide { display: none !important; }
+body.presenting main > .off-step { visibility: hidden; }
+body.presenting #slide-nav { display: flex; }
+body.presenting #lambda-lab { font-size: .8em; }
+body.presenting #definitions { min-height: 8rem; max-height: 22vh; }
+@media (max-width: 650px) { .topbar { align-items: flex-start; } .switches { flex-wrap: wrap; justify-content: flex-end; } .lab-row { display: grid; grid-template-columns: 1fr 1fr; } .expression-label { grid-column: 1 / -1; } }
+@media print { .topbar, #slide-nav, .lab-actions { display: none !important; } main { max-width: none; } #lambda-lab { break-inside: avoid; } }
+.hljs-keyword, .hljs-built_in { color: var(--kw); font-weight: 600; }
+.hljs-comment { color: var(--muted); font-style: italic; }
+.hljs-string { color: var(--str); }
+.hljs-number, .hljs-literal { color: var(--num); }
+.hljs-type, .hljs-title { color: var(--navy); }
+</style>
+
+</head>
+<body>
+<div class="topbar">
+  <p class="eyebrow">Runs entirely in your browser · capture-avoiding substitution</p>
+  <div class="switches"><button id="present-toggle" type="button">▶ Present</button><button id="theme-toggle" type="button"></button></div>
+</div>
+<main>
+<header>
+  <p class="eyebrow">CSE 590 · Fall 2026 · Discussion 2</p>
+  <h1>Programming in the untyped lambda calculus</h1>
+  <p class="lede">Reduce terms, compare evaluation strategies, and program with Church and Scott encodings.</p>
+</header>
+<aside class="route-note"><strong>Source.</strong> No Discussion 2 recording is available. The source is the discussion handout and its Lambda Explorer exercises.</aside>
+<section id="lambda-lab" aria-labelledby="lab-title">
+  <div class="lab-heading">
+    <div><p class="eyebrow">Interactive evaluator</p><h2 id="lab-title">Lambda Explorer</h2></div>
+    <p class="lab-status" id="lab-status">Ready</p>
+  </div>
+  <label for="definitions">Definitions</label>
+  <textarea id="definitions" spellcheck="false"></textarea>
+  <div class="lab-row">
+    <label class="expression-label" for="expression">Expression
+      <input id="expression" value="ADD TWO THREE" spellcheck="false">
+    </label>
+    <label for="strategy">Strategy
+      <select id="strategy">
+        <option value="normal">Normal order</option>
+        <option value="applicative">Applicative order</option>
+        <option value="cbn">Call by name</option>
+        <option value="cbv">Call by value</option>
+      </select>
+    </label>
+    <label for="limit">Step limit
+      <input id="limit" type="number" min="1" max="5000" value="500">
+    </label>
+  </div>
+  <div class="lab-actions">
+    <button id="reset-term" type="button">Reset</button>
+    <button id="step-term" type="button">One step</button>
+    <button id="run-term" class="primary" type="button">Normalize</button>
+  </div>
+  <output id="current-term" aria-live="polite"></output>
+  <details><summary>Reduction history</summary><ol id="history"></ol></details>
+</section>
+<p>Note: All definitions are at the bottom of the file. You can just copy/page them all at once into lambda explorer instead of writing them manually.</p>
+<h2>1. Core combinators and fixed points</h2>
+<pre class="lang"><code>ID := λx.x
+
+Y := λf.(λx.f(xx))(λx.f(xx))
+
+OMEGA := Y ID</code></pre>
+<h2>2. Church booleans</h2>
+<pre class="lang"><code>TRUE := λx.λy.x
+FALSE := λx.λy.y
+
+ITE := λb.λt.λf.btf
+
+NOT := λm.m FALSE TRUE
+OR := λm.λn.m TRUE n
+AND := λm.λn.mn FALSE
+
+NOR := λa.λb.NOT (OR a b)
+NAND := λa.λb.NOT (AND a b)
+XOR := λm.λn.AND (OR m n) (NAND m n)</code></pre>
+<h2>3. Church numerals</h2>
+<p>Let us start by writing the first few numerals directly.</p>
+<pre class="lang"><code>ZERO := λf.λx.x
+ONE := λf.λx.fx
+TWO := λf.λx.f(fx)</code></pre>
+<p>A Church numeral represents a natural number by <strong>iteration</strong>:</p>
+<pre class="lang"><code>ZERO f x --&gt; x
+ONE  f x --&gt; fx
+TWO  f x --&gt; f(fx)</code></pre>
+<p>So rather than thinking “where is the integer 2 stored?”, think:</p>
+<blockquote><p><code>TWO</code> is a program that knows how to apply a step function twice.</p></blockquote>
+<p>At this point, though, writing numerals by hand is already getting annoying. To write <code>THREE</code>, we would add one more <code>f</code>; for <code>FOUR</code>, one more again; and so on.</p>
+<p>Instead,</p>
+<pre class="lang"><code>SUCC := λn.λf.λx.f(nfx)</code></pre>
+<p>Read this from the inside out. <code>n f x</code> applies <code>f</code> exactly <code>n</code> times, and then the outer <code>f</code> applies it <strong>one more time</strong>. So if <code>n</code> represents a number, <code>SUCC n</code> represents its successor.</p>
+<p>For example:</p>
+<pre class="lang"><code>SUCC TWO f x
+--&gt; f(TWO f x)
+--&gt; f(f(fx))</code></pre>
+<p>Now we no longer need to manually write larger numerals:</p>
+<pre class="lang"><code>THREE := SUCC TWO
+FOUR := SUCC THREE
+FIVE := SUCC FOUR</code></pre>
+<h2>4. Arithmetic on Church numerals</h2>
+<p>Now that <code>SUCC</code> is available, we can use a Church numeral's iteration behavior to build arithmetic almost mechanically.</p>
+<pre class="lang"><code>ADD := λn.λm.n SUCC m
+MULT := λa.λb.b (ADD a) ZERO
+EXP := λa.λb.b (MULT a) ONE</code></pre>
+<p>The key is to read these definitions in terms of iteration.</p>
+<p><code>ADD n m</code> means:</p>
+<blockquote><p>start at <code>m</code>, and apply <code>SUCC</code> exactly <code>n</code> times.</p></blockquote>
+<p>So:</p>
+<pre class="lang"><code>ADD TWO THREE</code></pre>
+<p>means “start at three and take two successor steps.”</p>
+<p><code>MULT a b</code> means:</p>
+<blockquote><p>start at zero and add <code>a</code>, <code>b</code> times.</p></blockquote>
+<p><code>EXP a b</code> means:</p>
+<blockquote><p>start at one and multiply by <code>a</code>, <code>b</code> times.</p></blockquote>
+<p>This is a nice example of building a tower of abstractions: once we have iteration and successor, addition becomes easy; once we have addition, multiplication becomes easy; once we have multiplication, exponentiation becomes easy.</p>
+<h2>5. Pairs</h2>
+<pre class="lang"><code>PAIR := λa.λb.λf.fab
+FIRST := λp.p TRUE
+SECOND := λp.p FALSE</code></pre>
+<p>A pair is represented by what you can do with its two components.</p>
+<pre class="lang"><code>PAIR A B f --&gt; f A B</code></pre>
+<p>The pair waits for a consumer <code>f</code>, then hands both components to it.</p>
+<p>The projections are just carefully chosen consumers:</p>
+<ul>
+<li><code>TRUE</code> chooses the first argument.</li>
+<li><code>FALSE</code> chooses the second argument.</li>
+</ul>
+<p>So:</p>
+<pre class="lang"><code>FIRST  (PAIR A B) --&gt; A
+SECOND (PAIR A B) --&gt; B</code></pre>
+<h2>6. Predicates and predecessor</h2>
+<pre class="lang"><code>ISZERO := λn.n (λx.FALSE) TRUE
+
+PRED := λn.FIRST (n (λp.PAIR (SECOND p) (SUCC (SECOND p))) (PAIR ZERO ZERO))
+
+LT := λm.λn.NOT (ISZERO (m PRED n))
+
+EQ := λm.λn.AND (ISZERO (m PRED n)) (ISZERO (n PRED m))</code></pre>
+<p><code>ISZERO</code> uses the fact that a Church numeral tells us how many iterations happened.</p>
+<p>Start from <code>TRUE</code>. Every iteration replaces the current result with <code>FALSE</code>.</p>
+<p>So:</p>
+<pre class="lang"><code>ISZERO ZERO --&gt; TRUE</code></pre>
+<p>because no iteration happens, while any nonzero numeral performs at least one step and produces <code>FALSE</code>.</p>
+<p><code>PRED</code> is more interesting. A Church numeral only gives us the final result of an iteration; it does not directly expose “the previous iteration.” So we carry extra state in a pair.</p>
+<p>The pair evolves so that it remembers two neighboring values. After enough iterations, the first component is the predecessor we want.</p>
+<p>This is a good example of a more general programming trick:</p>
+<blockquote><p>if an iteration does not expose enough information, enrich the accumulator with extra state.</p></blockquote>
+<h2>7. Recursive numeric examples</h2>
+<h3>Factorial</h3>
+<pre class="lang"><code>FACTSTEP := λf.λn.ITE (ISZERO n) ONE (MULT n (f (PRED n)))
+FACT := Y FACTSTEP</code></pre>
+<p><code>FACTSTEP</code> is deliberately <strong>not recursive by itself</strong>. It receives a parameter <code>f</code> that stands for “the recursive call.”</p>
+<p>If someone handed us the correct recursive factorial function as <code>f</code>, then <code>FACTSTEP f</code> would know how to compute one layer:</p>
+<ul>
+<li>at zero, return <code>ONE</code>;</li>
+<li>otherwise multiply <code>n</code> by <code>f (PRED n)</code>.</li>
+</ul>
+<p><code>Y</code> ties the knot by supplying the self-reference.</p>
+<p>Example:</p>
+<pre class="lang"><code>FACT TWO</code></pre>
+<p>reduces to <code>TWO</code>.</p>
+<h2>8. Scott-encoded lists</h2>
+<p>Start from the ordinary inductive datatype:</p>
+<pre class="lang"><code>List A ::= Nil | Cons A (List A)</code></pre>
+<h3>How to derive the Scott encoding</h3>
+<p>A list has exactly <strong>two constructors</strong>, so a Scott-encoded list takes exactly <strong>two arguments describing what to do in each case</strong>:</p>
+<ol>
+<li>what to do in the <code>Nil</code> case;</li>
+<li>what to do in the <code>Cons h t</code> case.</li>
+</ol>
+<p>Call these two case arguments <code>n</code> and <code>c</code>.</p>
+<p>Now encode each constructor by choosing the corresponding case.</p>
+<p><code>Nil</code> has no fields, so it simply chooses the <code>Nil</code> case:</p>
+<pre class="lang"><code>NIL := λn.λc.n</code></pre>
+<p><code>Cons</code> has two fields, the head <code>h</code> and tail <code>t</code>, so it chooses the <code>Cons</code> case and supplies those two fields:</p>
+<pre class="lang"><code>CONS := λh.λt.λn.λc.cht</code></pre>
+<p>That means a Scott list is already a one-step pattern match.</p>
+<p>For an arbitrary encoded list <code>l</code>:</p>
+<pre class="lang"><code>l nilCase consCase</code></pre>
+<p>behaves like:</p>
+<pre class="lang"><code>match l with
+| Nil      -&gt; nilCase
+| Cons h t -&gt; consCase h t</code></pre>
+<p>The crucial Scott-encoding idea is:</p>
+<blockquote><p><strong>the stored value chooses the constructor case, and exposes that constructor's fields.</strong></p></blockquote>
+<p>This is different from the Church-list viewpoint. Scott encoding makes <strong>pattern matching</strong> easy; recursion still has to be supplied separately.</p>
+<h3>Destructors</h3>
+<p>Because a Scott list exposes the head and tail immediately in the <code>Cons</code> case, <code>HEAD</code> and <code>TAIL</code> are short:</p>
+<pre class="lang"><code>HEAD := λl.l ID (λh.λt.h)
+TAIL := λl.l NIL (λh.λt.t)</code></pre>
+<p>The important thing to remember is that a Scott list acts like a tiny case distinction. If we write</p>
+<pre class="lang"><code>l nilCase consCase</code></pre>
+<p>then <code>l</code> decides whether it is <code>NIL</code> or <code>CONS</code>. A <code>NIL</code> returns the first argument. A <code>CONS h t</code> calls the second argument and gives it the stored head <code>h</code> and tail <code>t</code>.</p>
+<h4>How <code>HEAD</code> works</h4>
+<p>Read</p>
+<pre class="lang"><code>HEAD := λl.l ID (λh.λt.h)</code></pre>
+<p>as:</p>
+<ul>
+<li>if the list is <code>NIL</code>, return <code>ID</code>;</li>
+<li>if the list is <code>CONS h t</code>, return <code>h</code>.</li>
+</ul>
+<p>The <code>Cons</code> case is the function</p>
+<pre class="lang"><code>λh.λt.h</code></pre>
+<p>which receives both pieces stored in the list and simply selects the first one.</p>
+<p>For example, suppose the list is <code>CONS a r</code>. Then:</p>
+<pre class="lang"><code>HEAD (CONS a r)
+--&gt; (CONS a r) ID (λh.λt.h)
+--&gt; (λh.λt.h) a r
+--&gt; a</code></pre>
+<p>Expanding <code>CONS</code> one more step makes the mechanism completely explicit:</p>
+<pre class="lang"><code>CONS a r
+= (λh.λt.λn.λc.c h t) a r
+--&gt; λn.λc.c a r</code></pre>
+<p>so applying this encoded list to the two cases gives</p>
+<pre class="lang"><code>(λn.λc.c a r) ID (λh.λt.h)
+--&gt; (λh.λt.h) a r
+--&gt; a</code></pre>
+<p>For the empty list:</p>
+<pre class="lang"><code>HEAD NIL
+--&gt; NIL ID (λh.λt.h)
+--&gt; ID</code></pre>
+<p>There is no genuine head of an empty list. <code>ID</code> is just the arbitrary default value we chose for that case.</p>
+<h4>How <code>TAIL</code> works</h4>
+<p>Similarly,</p>
+<pre class="lang"><code>TAIL := λl.l NIL (λh.λt.t)</code></pre>
+<p>means:</p>
+<ul>
+<li>if the list is <code>NIL</code>, return <code>NIL</code>;</li>
+<li>if the list is <code>CONS h t</code>, return <code>t</code>.</li>
+</ul>
+<p>Now the <code>Cons</code> case is</p>
+<pre class="lang"><code>λh.λt.t</code></pre>
+<p>which receives both stored pieces and selects the second one. Therefore:</p>
+<pre class="lang"><code>TAIL (CONS a r)
+--&gt; (CONS a r) NIL (λh.λt.t)
+--&gt; (λh.λt.t) a r
+--&gt; r</code></pre>
+<p>and</p>
+<pre class="lang"><code>TAIL NIL
+--&gt; NIL NIL (λh.λt.t)
+--&gt; NIL</code></pre>
+<p>So <code>HEAD</code> and <code>TAIL</code> have exactly the same overall shape. The difference is just which component the <code>Cons</code> case selects:</p>
+<pre class="lang"><code>λh.λt.h    # choose the head
+λh.λt.t    # choose the tail</code></pre>
+<h3>Recursive fold</h3>
+<p>To traverse the whole Scott list, we add recursion explicitly:</p>
+<pre class="lang"><code>FOLD := Y (λg.λf.λz.λx.x z (λh.λt.f h (g f z t)))</code></pre>
+<p>The intended equations are:</p>
+<pre class="lang"><code>FOLD f z NIL        --&gt; z
+FOLD f z (CONS h t) --&gt; f h (FOLD f z t)</code></pre>
+<p>This is a useful distinction to emphasize:</p>
+<ul>
+<li>Scott encoding gives us one layer of <strong>case analysis</strong> for free.</li>
+<li><code>Y</code> gives us <strong>recursive traversal</strong>.</li>
+</ul>
+<h3>Example list</h3>
+<pre class="lang"><code>X := CONS TWO (CONS THREE (CONS ONE NIL))</code></pre>
+<p>This is the list <code>[2,3,1]</code>.</p>
+<h3>Indexing into a Scott list</h3>
+<p>We will use environments later, so define:</p>
+<pre class="lang"><code>NTH := λn.λr.HEAD (n TAIL r)</code></pre>
+<p>A Church numeral <code>n</code> iterates <code>TAIL</code> <code>n</code> times, then <code>HEAD</code> takes the first remaining element.</p>
+<p>So:</p>
+<pre class="lang"><code>NTH ZERO r</code></pre>
+<p>returns the first element of <code>r</code>, while:</p>
+<pre class="lang"><code>NTH ONE r</code></pre>
+<p>returns the second.</p>
+<h2>9. Scott-encoded binary search trees</h2>
+<p>Start with:</p>
+<pre class="lang"><code>Tree ::= Empty | Node Nat Tree Tree</code></pre>
+<p>Again there are exactly <strong>two constructors</strong>, so a Scott-encoded tree takes two arguments describing the two cases:</p>
+<ul>
+<li>what to do for <code>Empty</code>;</li>
+<li>what to do for <code>Node</code>.</li>
+</ul>
+<p><code>Empty</code> has no fields, so it chooses the first case:</p>
+<pre class="lang"><code>EMPTY := λe.λn.e</code></pre>
+<p><code>Node</code> has three fields — key, left subtree, and right subtree — so it chooses the second case and supplies all three:</p>
+<pre class="lang"><code>NODE := λk.λl.λr.λe.λn.nklr</code></pre>
+<p>For any encoded tree <code>t</code>:</p>
+<pre class="lang"><code>t emptyCase nodeCase</code></pre>
+<p>acts like:</p>
+<pre class="lang"><code>match t with
+| Empty          -&gt; emptyCase
+| Node k left right -&gt; nodeCase k left right</code></pre>
+<p>This is exactly the same Scott recipe as lists. Only the number of fields in the nonempty constructor changed.</p>
+<p><code>LEAF</code> is an alias for <code>EMPTY</code> in this representation:</p>
+<pre class="lang"><code>LEAF := EMPTY</code></pre>
+<p>Example BST:</p>
+<pre class="lang"><code>TREE := NODE TWO (NODE ONE EMPTY EMPTY) (NODE THREE EMPTY EMPTY)</code></pre>
+<h3>Binary search</h3>
+<pre class="lang"><code>SEARCH :=
+  Y (λs.λx.λt.
+    t
+      FALSE
+      (λk.λl.λr.
+        ITE (EQ x k)
+            TRUE
+            (ITE (LT x k)
+                 (s x l)
+                 (s x r))))</code></pre>
+<p>Read the body structurally:</p>
+<ul>
+<li>pattern match on <code>t</code>;</li>
+<li><code>Empty</code> means failure, so return <code>FALSE</code>;</li>
+<li><code>Node k l r</code> exposes the three fields;</li>
+<li>if <code>x = k</code>, return <code>TRUE</code>;</li>
+<li>if <code>x &lt; k</code>, recursively search <code>l</code>;</li>
+<li>otherwise recursively search <code>r</code>.</li>
+</ul>
+<p>Call it as:</p>
+<pre class="lang"><code>SEARCH TWO TREE
+SEARCH FOUR TREE</code></pre>
+<p>The first reduces to <code>TRUE</code>; the second reduces to <code>FALSE</code>.</p>
+<p>Question: What is the complexity of this algorithm?</p>
+<h2>10. A minimal UTLC interpreter written in UTLC</h2>
+<p>Now we do something more self-referential: use UTLC to represent the <strong>syntax of UTLC itself</strong> as data, and then write an evaluator for that representation.</p>
+<p>The object language is:</p>
+<pre class="lang"><code>t ::= Var n | Lam t | App t t</code></pre>
+<p>We use de Bruijn indices for variables:</p>
+<ul>
+<li><code>ZERO</code> means “the variable bound by the nearest enclosing lambda”;</li>
+<li><code>ONE</code> means “skip one binder and use the next one”;</li>
+<li>and so on.</li>
+</ul>
+<h3>Step 1: Scott-encode the syntax tree</h3>
+<p>There are exactly <strong>three constructors</strong>, so every encoded syntax tree takes exactly <strong>three functions telling it what to do in each constructor case</strong>:</p>
+<ol>
+<li>what to do for <code>Var</code>;</li>
+<li>what to do for <code>Lam</code>;</li>
+<li>what to do for <code>App</code>.</li>
+</ol>
+<p>Call these three case functions <code>v</code>, <code>l</code>, and <code>a</code>.</p>
+<p>Now follow the Scott recipe locally.</p>
+<p><code>Var i</code> chooses the <code>Var</code> case and supplies its index:</p>
+<pre class="lang"><code>UVAR := λi.λv.λl.λa.vi</code></pre>
+<p><code>Lam b</code> chooses the <code>Lam</code> case and supplies its body:</p>
+<pre class="lang"><code>ULAM := λb.λv.λl.λa.lb</code></pre>
+<p><code>App f x</code> chooses the <code>App</code> case and supplies both subterms:</p>
+<pre class="lang"><code>UAPP := λf.λx.λv.λl.λa.afx</code></pre>
+<p>So the following are the pattern-matching equations:</p>
+<pre class="lang"><code>UVAR i  v l a --&gt; v i
+ULAM b   v l a --&gt; l b
+UAPP f x v l a --&gt; a f x</code></pre>
+<p>This is the key thing to understand before looking at the evaluator:</p>
+<blockquote><p>An encoded UTLC term is a syntax tree that waits for us to tell it what <code>Var</code>, <code>Lam</code>, and <code>App</code> mean.</p></blockquote>
+<p>The evaluator will provide those three meanings.</p>
+<h3>Step 2: Use an environment for variables</h3>
+<p>Instead of implementing substitution directly, evaluate terms relative to an environment <code>r</code>.</p>
+<p>The environment is a Scott list of values.</p>
+<p>Because we moved <code>NTH</code> into the list section, we already have:</p>
+<pre class="lang"><code>NTH := λn.λr.HEAD (n TAIL r)</code></pre>
+<p>So a de Bruijn variable is interpreted by indexing into the environment:</p>
+<pre class="lang"><code>Var i  ==&gt;  NTH i r</code></pre>
+<p>This is the bridge between de Bruijn syntax and runtime values.</p>
+<h3>Step 3: Give meanings to the three constructors</h3>
+<p>The evaluator is:</p>
+<pre class="lang"><code>UEVAL :=
+  Y (λe.λt.λr.
+    t
+      (λi.NTH i r)
+      (λb.λx.e b (CONS x r))
+      (λf.λx.(e f r)(e x r)))</code></pre>
+<p>There are three nested ideas here.</p>
+<h4>The outer parameters</h4>
+<pre class="lang"><code>λe.λt.λr. ...</code></pre>
+<ul>
+<li><code>e</code> is the recursive evaluator;</li>
+<li><code>t</code> is the encoded syntax tree being evaluated;</li>
+<li><code>r</code> is the current environment.</li>
+</ul>
+<p>Then we write:</p>
+<pre class="lang"><code>t varCase lamCase appCase</code></pre>
+<p>because <code>t</code> is Scott-encoded syntax.</p>
+<h4>Variable case</h4>
+<pre class="lang"><code>λi.NTH i r</code></pre>
+<p>If the syntax is <code>Var i</code>, look up the <code>i</code>th value in the current environment.</p>
+<h4>Lambda case</h4>
+<pre class="lang"><code>λb.λx.e b (CONS x r)</code></pre>
+<p>If the syntax is <code>Lam b</code>, evaluating it should produce an actual function.</p>
+<p>So we return:</p>
+<pre class="lang"><code>λx. ...</code></pre>
+<p>When that function eventually receives an argument <code>x</code>, we evaluate the body <code>b</code> in an environment where <code>x</code> has been added to the front.</p>
+<p>This is exactly what de Bruijn index <code>ZERO</code> expects: the newest binder lives at the head of the environment.</p>
+<h4>Application case</h4>
+<pre class="lang"><code>λf.λx.(e f r)(e x r)</code></pre>
+<p>If the syntax is <code>App f x</code>, recursively evaluate the function part and the argument part, then apply the resulting function to the resulting argument.</p>
+<p>The reduction strategy of the <em>outer</em> UTLC reducer still determines the precise order in which those computations are reduced; conceptually, this clause gives the semantic meaning of application.</p>
+<h3>Two levels of λ-calculus</h3>
+<p>This example has two conceptual levels, even though both are represented using the same underlying UTLC syntax.</p>
+<p><strong>Object level:</strong> the encoded program:</p>
+<pre class="lang"><code>UVAR ...
+ULAM ...
+UAPP ...</code></pre>
+<p>These are data.</p>
+<p><strong>Interpreter level:</strong> <code>UEVAL</code> and the λ-terms implementing it.</p>
+<p>These are the program manipulating that data.</p>
+<p>Keeping those levels separate is the main conceptual challenge.</p>
+<h3>Encoded identity</h3>
+<p>The object-language term</p>
+<pre class="lang"><code>λx.x</code></pre>
+<p>has body <code>Var 0</code>, so:</p>
+<pre class="lang"><code>OID := ULAM (UVAR ZERO)</code></pre>
+<p>Run:</p>
+<pre class="lang"><code>UEVAL OID NIL</code></pre>
+<p>and the result is:</p>
+<pre class="lang"><code>ID</code></pre>
+<h3>Encoded application</h3>
+<p>Represent the object-language term:</p>
+<pre class="lang"><code>(λx.x) (λx.x)</code></pre>
+<p>as:</p>
+<pre class="lang"><code>OTEST := UAPP (ULAM (UVAR ZERO)) (ULAM (UVAR ZERO))</code></pre>
+<p>Then:</p>
+<pre class="lang"><code>UEVAL OTEST NIL</code></pre>
+<p>evaluates to <code>ID</code>.</p>
+<h3>Encoded diverging term</h3>
+<p>We can even represent the usual self-application loop as data:</p>
+<pre class="lang"><code>OOMEGA :=
+  UAPP
+    (ULAM (UAPP (UVAR ZERO) (UVAR ZERO)))
+    (ULAM (UAPP (UVAR ZERO) (UVAR ZERO)))</code></pre>
+<p>Then:</p>
+<pre class="lang"><code>UEVAL OOMEGA NIL</code></pre>
+<p>diverges, as the represented object program should.</p>
+<h2>11. Evaluating Church numerals and addition with UEVAL</h2>
+<p><code>UEVAL</code> takes an <strong>encoded syntax tree</strong> and an environment. To evaluate a Church numeral, first represent its lambda expression using <code>ULAM</code>, <code>UAPP</code>, and <code>UVAR</code>.</p>
+<p>All the programs below are closed, so we evaluate them with the empty environment <code>NIL</code>.</p>
+<p>Recall the ordinary Church numerals:</p>
+<pre class="lang"><code>ZERO := λf.λx.x
+ONE := λf.λx.fx
+TWO := λf.λx.f(fx)</code></pre>
+<p>Their encoded syntax trees are:</p>
+<pre class="lang"><code>OZERO := ULAM (ULAM (UVAR ZERO))
+OONE := ULAM (ULAM (UAPP (UVAR ONE) (UVAR ZERO)))
+OTWO := ULAM (ULAM (UAPP (UVAR ONE) (UAPP (UVAR ONE) (UVAR ZERO))))</code></pre>
+<p>Notice the two uses of numerals: <code>ZERO</code> inside <code>UVAR ZERO</code> is a <strong>variable index</strong>, while <code>OZERO</code> is the <strong>syntax tree of the entire Church numeral zero</strong>.</p>
+<p>Run these examples. Here <code>--&gt;*</code> means several beta-reduction steps; bound-variable names may differ.</p>
+<pre class="lang"><code>UEVAL OZERO NIL --&gt;* λf.λx.x          # ZERO
+UEVAL OONE NIL  --&gt;* λf.λx.fx         # ONE
+UEVAL OTWO NIL  --&gt;* λf.λx.f(fx)      # TWO</code></pre>
+<h3>Encode successor and construct three</h3>
+<p>The successor function from earlier is:</p>
+<pre class="lang"><code>SUCC := λn.λf.λx.f(nfx)</code></pre>
+<p>Inside its body, <code>x</code> has index <code>ZERO</code>, <code>f</code> has index <code>ONE</code>, and <code>n</code> has index <code>TWO</code>. Therefore:</p>
+<pre class="lang"><code>OSUCC := ULAM (ULAM (ULAM (UAPP (UVAR ONE) (UAPP (UAPP (UVAR TWO) (UVAR ONE)) (UVAR ZERO)))))
+OTHREE := UAPP OSUCC OTWO</code></pre>
+<p><code>OTHREE</code> represents the program <code>SUCC TWO</code>. Evaluating that program computes three:</p>
+<pre class="lang"><code>UEVAL OTHREE NIL --&gt;* λf.λx.f(f(fx))  # THREE</code></pre>
+<p>We use <code>UAPP OSUCC OTWO</code> to <strong>build the syntax of an application</strong>. The interpreter then performs that application.</p>
+<h3>Encode addition</h3>
+<p>Use exactly the addition algorithm defined earlier:</p>
+<pre class="lang"><code>ADD := λn.λm.n SUCC m</code></pre>
+<p>In this body, <code>m</code> has index <code>ZERO</code> and <code>n</code> has index <code>ONE</code>. We insert the closed syntax tree <code>OSUCC</code> directly as a subexpression:</p>
+<pre class="lang"><code>OADD := ULAM (ULAM (UAPP (UAPP (UVAR ONE) OSUCC) (UVAR ZERO)))</code></pre>
+<p>Because <code>OSUCC</code> is closed, its variable indices still refer to its own three binders; embedding it under the two lambdas in <code>OADD</code> requires no index changes.</p>
+<p>Now build programs for one plus two and two plus three:</p>
+<pre class="lang"><code>OADD12 := UAPP (UAPP OADD OONE) OTWO
+OADD23 := UAPP (UAPP OADD OTWO) OTHREE</code></pre>
+<p>Each program uses two <code>UAPP</code> constructors because addition receives its arguments one at a time.</p>
+<pre class="lang"><code>UEVAL OADD12 NIL --&gt;* λf.λx.f(f(fx))        # THREE
+UEVAL OADD23 NIL --&gt;* λf.λx.f(f(f(f(fx))))  # FIVE</code></pre>
+<p>You can also build a program directly in the call to <code>UEVAL</code>:</p>
+<pre class="lang"><code>UEVAL (UAPP (UAPP OADD OZERO) OTWO) NIL --&gt;* λf.λx.f(fx)  # TWO</code></pre>
+<p>Finally, use the earlier equality predicate to check the computed results:</p>
+<pre class="lang"><code>EQ (UEVAL OADD12 NIL) THREE --&gt;* TRUE
+EQ (UEVAL OADD23 NIL) FIVE  --&gt;* TRUE</code></pre>
+<p>In these last two calls, <code>UEVAL</code> evaluates the encoded addition program, and <code>EQ</code> compares the resulting ordinary Church numeral with the expected answer.</p>
+<h2>12. All definitions</h2>
+<pre class="lang"><code>ID := λx.x
+Y := λf.(λx.f(xx))(λx.f(xx))
+OMEGA := Y ID
+TRUE := λx.λy.x
+FALSE := λx.λy.y
+ITE := λb.λt.λf.btf
+NOT := λm.m FALSE TRUE
+OR := λm.λn.m TRUE n
+AND := λm.λn.mn FALSE
+NOR := λa.λb.NOT (OR a b)
+NAND := λa.λb.NOT (AND a b)
+XOR := λm.λn.AND (OR m n) (NAND m n)
+ZERO := λf.λx.x
+ONE := λf.λx.fx
+TWO := λf.λx.f(fx)
+SUCC := λn.λf.λx.f(nfx)
+THREE := SUCC TWO
+FOUR := SUCC THREE
+FIVE := SUCC FOUR
+ADD := λn.λm.n SUCC m
+MULT := λa.λb.b (ADD a) ZERO
+EXP := λa.λb.b (MULT a) ONE
+PAIR := λa.λb.λf.fab
+FIRST := λp.p TRUE
+SECOND := λp.p FALSE
+ISZERO := λn.n (λx.FALSE) TRUE
+PRED := λn.FIRST (n (λp.PAIR (SECOND p) (SUCC (SECOND p))) (PAIR ZERO ZERO))
+LT := λm.λn.NOT (ISZERO (m PRED n))
+EQ := λm.λn.AND (ISZERO (m PRED n)) (ISZERO (n PRED m))
+FACTSTEP := λf.λn.ITE (ISZERO n) ONE (MULT n (f (PRED n)))
+FACT := Y FACTSTEP
+NIL := λn.λc.n
+CONS := λh.λt.λn.λc.cht
+HEAD := λl.l ID (λh.λt.h)
+TAIL := λl.l NIL (λh.λt.t)
+FOLD := Y (λg.λf.λz.λx.x z (λh.λt.f h (g f z t)))
+X := CONS TWO (CONS THREE (CONS ONE NIL))
+NTH := λn.λr.HEAD (n TAIL r)
+EMPTY := λe.λn.e
+NODE := λk.λl.λr.λe.λn.nklr
+LEAF := EMPTY
+TREE := NODE TWO (NODE ONE EMPTY EMPTY) (NODE THREE EMPTY EMPTY)
+SEARCH := Y (λs.λx.λt. t FALSE (λk.λl.λr. ITE (EQ x k) TRUE (ITE (LT x k) (s x l) (s x r))))
+UVAR := λi.λv.λl.λa.vi
+ULAM := λb.λv.λl.λa.lb
+UAPP := λf.λx.λv.λl.λa.afx
+UEVAL := Y (λe.λt.λr. t (λi.NTH i r) (λb.λx.e b (CONS x r)) (λf.λx.(e f r)(e x r)))
+OID := ULAM (UVAR ZERO)
+OTEST := UAPP (ULAM (UVAR ZERO)) (ULAM (UVAR ZERO))
+OOMEGA := UAPP (ULAM (UAPP (UVAR ZERO) (UVAR ZERO))) (ULAM (UAPP (UVAR ZERO) (UVAR ZERO)))
+OZERO := ULAM (ULAM (UVAR ZERO))
+OONE := ULAM (ULAM (UAPP (UVAR ONE) (UVAR ZERO)))
+OTWO := ULAM (ULAM (UAPP (UVAR ONE) (UAPP (UVAR ONE) (UVAR ZERO))))
+OSUCC := ULAM (ULAM (ULAM (UAPP (UVAR ONE) (UAPP (UAPP (UVAR TWO) (UVAR ONE)) (UVAR ZERO)))))
+OTHREE := UAPP OSUCC OTWO
+OADD := ULAM (ULAM (UAPP (UAPP (UVAR ONE) OSUCC) (UVAR ZERO)))
+OADD12 := UAPP (UAPP OADD OONE) OTWO
+OADD23 := UAPP (UAPP OADD OTWO) OTHREE</code></pre>
+</main>
+
+<div id="slide-nav"><button class="prev" type="button">◀</button><span class="count"></span><button class="next" type="button">▶</button></div>
+<script>(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.LambdaCore = api;
+})(typeof globalThis === 'object' ? globalThis : this, function () {
+  const V = name => ({ kind: 'var', name });
+  const L = (param, body) => ({ kind: 'lam', param, body });
+  const A = (fn, arg) => ({ kind: 'app', fn, arg });
+  const copy = t => t.kind === 'var' ? V(t.name) : t.kind === 'lam' ? L(t.param, copy(t.body)) : A(copy(t.fn), copy(t.arg));
+
+  function tokenize(source) {
+    const out = [];
+    let i = 0;
+    while (i < source.length) {
+      const c = source[i];
+      if (/\s/.test(c)) { i++; continue; }
+      if (c === '#' ) { while (i < source.length && source[i] !== '\n') i++; continue; }
+      if ('λ\\().'.includes(c)) { out.push(c === '\\' ? 'λ' : c); i++; continue; }
+      if (/[A-Z_]/.test(c)) {
+        let j = i + 1;
+        while (j < source.length && /[A-Z0-9_]/.test(source[j])) j++;
+        out.push(source.slice(i, j)); i = j; continue;
+      }
+      if (/[a-z]/.test(c)) { out.push(c); i++; continue; }
+      if (/[0-9]/.test(c)) {
+        let j = i + 1;
+        while (j < source.length && /[0-9]/.test(source[j])) j++;
+        out.push(source.slice(i, j)); i = j; continue;
+      }
+      throw new SyntaxError(`unexpected character ${JSON.stringify(c)} at column ${i + 1}`);
+    }
+    return out;
+  }
+
+  function parse(source) {
+    const ts = tokenize(source);
+    let p = 0;
+    const atomStarts = x => x === '(' || x === 'λ' || (x && /^[A-Za-z_0-9]/.test(x));
+    function term() {
+      if (ts[p] === 'λ') {
+        p++;
+        const x = ts[p++];
+        if (!x || !/^[a-z]$/.test(x)) throw new SyntaxError('a lambda must bind one lowercase variable');
+        if (ts[p++] !== '.') throw new SyntaxError(`expected . after λ${x}`);
+        return L(x, term());
+      }
+      let t = atom();
+      while (atomStarts(ts[p]) && ts[p] !== 'λ') t = A(t, atom());
+      return t;
+    }
+    function atom() {
+      const x = ts[p++];
+      if (x === '(') {
+        const t = term();
+        if (ts[p++] !== ')') throw new SyntaxError('expected )');
+        return t;
+      }
+      if (!x || x === ')' || x === '.' || x === 'λ') throw new SyntaxError(`expected a term, found ${x || 'end of input'}`);
+      return V(x);
+    }
+    if (!ts.length) throw new SyntaxError('enter an expression');
+    const result = term();
+    if (p !== ts.length) throw new SyntaxError(`unexpected token ${ts[p]}`);
+    return result;
+  }
+
+  function parseDefinitions(source) {
+    const env = new Map();
+    let pending = '';
+    for (const raw of source.split('\n')) {
+      const line = raw.replace(/#.*/, '').trim();
+      if (!line) continue;
+      pending += (pending ? ' ' : '') + line;
+      const m = pending.match(/^([A-Z][A-Z0-9_]*)\s*:=\s*([\s\S]+)$/);
+      if (!m) continue;
+      let depth = 0;
+      for (const c of m[2]) depth += c === '(' ? 1 : c === ')' ? -1 : 0;
+      if (depth > 0) continue;
+      if (depth < 0) throw new SyntaxError(`${m[1]} has an unmatched )`);
+      env.set(m[1], parse(m[2]));
+      pending = '';
+    }
+    if (pending) throw new SyntaxError(`incomplete definition: ${pending}`);
+    return env;
+  }
+
+  function free(t, into = new Set()) {
+    if (t.kind === 'var') into.add(t.name);
+    else if (t.kind === 'app') { free(t.fn, into); free(t.arg, into); }
+    else {
+      const body = free(t.body, new Set());
+      body.delete(t.param);
+      for (const x of body) into.add(x);
+    }
+    return into;
+  }
+  function allNames(t, into = new Set()) {
+    if (t.kind === 'var') into.add(t.name);
+    else if (t.kind === 'app') { allNames(t.fn, into); allNames(t.arg, into); }
+    else { into.add(t.param); allNames(t.body, into); }
+    return into;
+  }
+  function fresh(base, avoid) {
+    let x = base + "'";
+    while (avoid.has(x)) x += "'";
+    return x;
+  }
+  function subst(t, x, value) {
+    if (t.kind === 'var') return t.name === x ? copy(value) : copy(t);
+    if (t.kind === 'app') return A(subst(t.fn, x, value), subst(t.arg, x, value));
+    if (t.param === x) return copy(t);
+    const fv = free(value);
+    if (!fv.has(t.param)) return L(t.param, subst(t.body, x, value));
+    const avoid = allNames(t.body, allNames(value, new Set([x])));
+    const y = fresh(t.param, avoid);
+    const renamed = subst(t.body, t.param, V(y));
+    return L(y, subst(renamed, x, value));
+  }
+
+  const prec = t => t.kind === 'var' ? 3 : t.kind === 'app' ? 2 : 1;
+  function print(t, outer = 0) {
+    let s;
+    if (t.kind === 'var') s = t.name;
+    else if (t.kind === 'lam') s = `λ${t.param}.${print(t.body, 1)}`;
+    else s = `${print(t.fn, 2)} ${print(t.arg, 3)}`;
+    return prec(t) < outer ? `(${s})` : s;
+  }
+
+  function expandVar(t, env) {
+    return t.kind === 'var' && env.has(t.name) ? { term: copy(env.get(t.name)), rule: `unfold ${t.name}` } : null;
+  }
+  const value = (t, env) => t.kind === 'lam' || (t.kind === 'var' && !env.has(t.name));
+
+  function normal(t, env) {
+    const ex = expandVar(t, env); if (ex) return ex;
+    if (t.kind === 'app') {
+      if (t.fn.kind === 'lam') return { term: subst(t.fn.body, t.fn.param, t.arg), rule: 'β' };
+      const f = normal(t.fn, env); if (f) return { term: A(f.term, copy(t.arg)), rule: f.rule };
+      const a = normal(t.arg, env); if (a) return { term: A(copy(t.fn), a.term), rule: a.rule };
+    }
+    if (t.kind === 'lam') {
+      const b = normal(t.body, env); if (b) return { term: L(t.param, b.term), rule: b.rule };
+    }
+    return null;
+  }
+  function applicative(t, env) {
+    const ex = expandVar(t, env); if (ex) return ex;
+    if (t.kind === 'lam') {
+      const b = applicative(t.body, env); if (b) return { term: L(t.param, b.term), rule: b.rule };
+      return null;
+    }
+    if (t.kind === 'app') {
+      const f = applicative(t.fn, env); if (f) return { term: A(f.term, copy(t.arg)), rule: f.rule };
+      const a = applicative(t.arg, env); if (a) return { term: A(copy(t.fn), a.term), rule: a.rule };
+      if (t.fn.kind === 'lam') return { term: subst(t.fn.body, t.fn.param, t.arg), rule: 'β' };
+    }
+    return null;
+  }
+  function cbn(t, env) {
+    const ex = expandVar(t, env); if (ex) return ex;
+    if (t.kind === 'app') {
+      if (t.fn.kind === 'lam') return { term: subst(t.fn.body, t.fn.param, t.arg), rule: 'β' };
+      const f = cbn(t.fn, env); if (f) return { term: A(f.term, copy(t.arg)), rule: f.rule };
+    }
+    return null;
+  }
+  function cbv(t, env) {
+    const ex = expandVar(t, env); if (ex) return ex;
+    if (t.kind === 'app') {
+      if (!value(t.fn, env)) {
+        const f = cbv(t.fn, env); if (f) return { term: A(f.term, copy(t.arg)), rule: f.rule };
+      }
+      if (!value(t.arg, env)) {
+        const a = cbv(t.arg, env); if (a) return { term: A(copy(t.fn), a.term), rule: a.rule };
+      }
+      if (t.fn.kind === 'lam' && value(t.arg, env)) return { term: subst(t.fn.body, t.fn.param, t.arg), rule: 'βv' };
+    }
+    return null;
+  }
+  function step(t, env, strategy = 'normal') {
+    return ({ normal, applicative, cbn, cbv }[strategy] || normal)(t, env);
+  }
+  function reduce(t, env, strategy = 'normal', limit = 500) {
+    const history = [{ term: copy(t), rule: 'start' }];
+    let current = copy(t);
+    for (let n = 0; n < limit; n++) {
+      const next = step(current, env, strategy);
+      if (!next) return { term: current, history, complete: true, steps: n };
+      current = next.term; history.push({ term: copy(current), rule: next.rule });
+    }
+    return { term: current, history, complete: false, steps: limit };
+  }
+  return { parse, parseDefinitions, print, free, subst, step, reduce };
+});
+</script>
+<script>(function () {
+  const DEFAULTS = `ID := λx.x
+Y := λf.(λx.f(xx))(λx.f(xx))
+OMEGA := Y ID
+TRUE := λx.λy.x
+FALSE := λx.λy.y
+ITE := λb.λt.λf.btf
+NOT := λm.m FALSE TRUE
+OR := λm.λn.m TRUE n
+AND := λm.λn.mn FALSE
+NOR := λa.λb.NOT (OR a b)
+NAND := λa.λb.NOT (AND a b)
+XOR := λm.λn.AND (OR m n) (NAND m n)
+ZERO := λf.λx.x
+ONE := λf.λx.fx
+TWO := λf.λx.f(fx)
+SUCC := λn.λf.λx.f(nfx)
+THREE := SUCC TWO
+FOUR := SUCC THREE
+FIVE := SUCC FOUR
+ADD := λn.λm.n SUCC m
+MULT := λa.λb.b (ADD a) ZERO
+EXP := λa.λb.b (MULT a) ONE
+PAIR := λa.λb.λf.fab
+FIRST := λp.p TRUE
+SECOND := λp.p FALSE
+ISZERO := λn.n (λx.FALSE) TRUE
+PRED := λn.FIRST (n (λp.PAIR (SECOND p) (SUCC (SECOND p))) (PAIR ZERO ZERO))
+LT := λm.λn.NOT (ISZERO (m PRED n))
+EQ := λm.λn.AND (ISZERO (m PRED n)) (ISZERO (n PRED m))
+FACTSTEP := λf.λn.ITE (ISZERO n) ONE (MULT n (f (PRED n)))
+FACT := Y FACTSTEP
+NIL := λn.λc.n
+CONS := λh.λt.λn.λc.cht
+HEAD := λl.l ID (λh.λt.h)
+TAIL := λl.l NIL (λh.λt.t)
+FOLD := Y (λg.λf.λz.λx.x z (λh.λt.f h (g f z t)))
+X := CONS TWO (CONS THREE (CONS ONE NIL))
+NTH := λn.λr.HEAD (n TAIL r)
+EMPTY := λe.λn.e
+NODE := λk.λl.λr.λe.λn.nklr
+LEAF := EMPTY
+TREE := NODE TWO (NODE ONE EMPTY EMPTY) (NODE THREE EMPTY EMPTY)
+SEARCH := Y (λs.λx.λt.t FALSE (λk.λl.λr.ITE (EQ x k) TRUE (ITE (LT x k) (s x l) (s x r))))
+UVAR := λi.λv.λl.λa.vi
+ULAM := λb.λv.λl.λa.lb
+UAPP := λf.λx.λv.λl.λa.afx
+UEVAL := Y (λe.λt.λr.t (λi.NTH i r) (λb.λx.e b (CONS x r)) (λf.λx.(e f r)(e x r)))
+OID := ULAM (UVAR ZERO)
+OTEST := UAPP (ULAM (UVAR ZERO)) (ULAM (UVAR ZERO))
+OOMEGA := UAPP (ULAM (UAPP (UVAR ZERO) (UVAR ZERO))) (ULAM (UAPP (UVAR ZERO) (UVAR ZERO)))
+OZERO := ULAM (ULAM (UVAR ZERO))
+OONE := ULAM (ULAM (UAPP (UVAR ONE) (UVAR ZERO)))
+OTWO := ULAM (ULAM (UAPP (UVAR ONE) (UAPP (UVAR ONE) (UVAR ZERO))))
+OSUCC := ULAM (ULAM (ULAM (UAPP (UVAR ONE) (UAPP (UAPP (UVAR TWO) (UVAR ONE)) (UVAR ZERO)))))
+OTHREE := UAPP OSUCC OTWO
+OADD := ULAM (ULAM (UAPP (UAPP (UVAR ONE) OSUCC) (UVAR ZERO)))
+OADD12 := UAPP (UAPP OADD OONE) OTWO
+OADD23 := UAPP (UAPP OADD OTWO) OTHREE`;
+
+  const core = window.LambdaCore;
+  const definitions = document.getElementById('definitions');
+  const expression = document.getElementById('expression');
+  const strategy = document.getElementById('strategy');
+  const limit = document.getElementById('limit');
+  const status = document.getElementById('lab-status');
+  const currentOut = document.getElementById('current-term');
+  const history = document.getElementById('history');
+  const buttons = ['reset-term', 'step-term', 'run-term'].map(id => document.getElementById(id));
+  let env, current, count = 0, running = false;
+
+  definitions.value = DEFAULTS;
+  function setStatus(message, kind = '') {
+    status.textContent = message;
+    status.dataset.kind = kind;
+  }
+  function renderCurrent() { currentOut.textContent = core.print(current); }
+  function addHistory(rule, term = current) {
+    const li = document.createElement('li');
+    const tag = document.createElement('span');
+    tag.className = 'rule'; tag.textContent = rule;
+    const code = document.createElement('code');
+    code.textContent = core.print(term);
+    li.append(tag, code); history.append(li);
+    if (history.children.length > 300) history.firstElementChild.remove();
+  }
+  function reset() {
+    try {
+      env = core.parseDefinitions(definitions.value);
+      current = core.parse(expression.value);
+      count = 0; history.replaceChildren();
+      addHistory('start'); renderCurrent();
+      setStatus(`${env.size} definitions loaded`);
+    } catch (error) { setStatus(error.message, 'error'); currentOut.textContent = ''; }
+  }
+  function oneStep() {
+    if (!current) return reset();
+    try {
+      env = core.parseDefinitions(definitions.value);
+      const next = core.step(current, env, strategy.value);
+      if (!next) { setStatus(`normal form after ${count} steps`, 'done'); return false; }
+      current = next.term; count++; addHistory(next.rule); renderCurrent();
+      setStatus(`${count} step${count === 1 ? '' : 's'}`);
+      return true;
+    } catch (error) { setStatus(error.message, 'error'); return false; }
+  }
+  function normalize() {
+    if (running) return;
+    if (!current) reset();
+    if (!current) return;
+    running = true; buttons.forEach(b => b.disabled = true);
+    const max = Math.max(1, Math.min(5000, Number(limit.value) || 500));
+    const start = count;
+    function batch() {
+      let n = 0;
+      try {
+        env = core.parseDefinitions(definitions.value);
+        while (n++ < 25 && count - start < max) {
+          const next = core.step(current, env, strategy.value);
+          if (!next) {
+            running = false; buttons.forEach(b => b.disabled = false);
+            renderCurrent(); setStatus(`normal form after ${count} steps`, 'done'); return;
+          }
+          current = next.term; count++; addHistory(next.rule);
+        }
+        renderCurrent(); setStatus(`${count} steps…`);
+        if (count - start >= max) {
+          running = false; buttons.forEach(b => b.disabled = false);
+          setStatus(`stopped at the ${max}-step limit`, 'limit'); return;
+        }
+        requestAnimationFrame(batch);
+      } catch (error) {
+        running = false; buttons.forEach(b => b.disabled = false); setStatus(error.message, 'error');
+      }
+    }
+    requestAnimationFrame(batch);
+  }
+  document.getElementById('reset-term').addEventListener('click', reset);
+  document.getElementById('step-term').addEventListener('click', oneStep);
+  document.getElementById('run-term').addEventListener('click', normalize);
+  expression.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); reset(); normalize(); } });
+  reset();
+})();
+</script>
+<script>
+(function(){
+  const theme = document.getElementById('theme-toggle');
+  const themeLabel = () => theme.textContent = document.documentElement.dataset.theme === 'dark' ? '☀ Light mode' : '☾ Dark mode';
+  themeLabel();
+  theme.addEventListener('click', () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme=t; try{localStorage.setItem('d2-theme',t)}catch(e){} themeLabel(); });
+  const main = document.querySelector('main');
+  const present = document.getElementById('present-toggle');
+  const nav = document.getElementById('slide-nav');
+  const slides=[]; let current=[];
+  const close=()=>{if(current.length) slides.push(current);current=[]};
+  for(const el of main.children){
+    const boundary = el.tagName==='HEADER' || el.id==='lambda-lab' || el.tagName==='H2' || el.tagName==='H3';
+    if(boundary) close();
+    if(current.length>=6 && !['UL','OL','TABLE'].includes(el.tagName)) close();
+    current.push(el);
+  }
+  close();
+  let index=0, step=0;
+  function show(){
+    main.querySelectorAll(':scope > *').forEach(el=>el.classList.add('off-slide'));
+    slides[index].forEach((el,n)=>{el.classList.remove('off-slide');el.classList.toggle('off-step',n>step)});
+    nav.querySelector('.count').textContent=(index+1)+' / '+slides.length;
+    main.scrollTop=0; location.hash='slide-'+(index+1);
+  }
+  function enter(){ document.body.classList.add('presenting'); present.textContent='■ Reading view'; const m=location.hash.match(/slide-(\d+)/); index=m?Math.min(slides.length-1,Math.max(0,Number(m[1])-1)):0;step=0;show(); }
+  function leave(){ document.body.classList.remove('presenting'); present.textContent='▶ Present'; main.querySelectorAll(':scope > *').forEach(el=>el.classList.remove('off-slide','off-step')); history.replaceState(null,'',location.pathname+location.search); }
+  function next(){ if(step<slides[index].length-1){step++;show()}else if(index<slides.length-1){index++;step=0;show()} }
+  function prev(){ if(step>0){step--;show()}else if(index>0){index--;step=slides[index].length-1;show()} }
+  present.addEventListener('click',()=>document.body.classList.contains('presenting')?leave():enter());
+  nav.querySelector('.next').addEventListener('click',next); nav.querySelector('.prev').addEventListener('click',prev);
+  addEventListener('keydown',e=>{if(!document.body.classList.contains('presenting')||/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();next()}else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();prev()}else if(e.key==='Escape')leave()});
+})();
+</script>
+</body></html>

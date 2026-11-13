@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<script>
+/* Pick the theme before anything paints: the saved choice, else the OS setting. */
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('jscoq-page-theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark')
+    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<title>Discussion 5: Denotational semantics of IMP</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jscoq@0.17.1/dist/frontend/index.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;650&amp;family=Spectral:ital,wght@0,400;0,600;1,400&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+/* Layout: one reading column, course-handout style; each inference rule is its own block that wraps on phones. */
+:root {
+  --bg: #fbfbf8;
+  --fg: #1d2330;
+  --muted: #5a6273;
+  --navy: #00274c;
+  --maize: #e0a800;
+  --panel: #eef1f6;
+  --line: #d6dbe4;
+  --head: var(--navy);
+  --code-bg: #f3f5f9;
+  --kw: #7a2e8c;
+  --str: #2f6b2f;
+  --num: #a14a00;
+  --font-display: "Commissioner", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Spectral", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+:root[data-theme="dark"] {
+  --bg: #0f1724; --fg: #e4e8ef; --muted: #9aa4b5; --navy: #8fb4e3; --maize: #ffcb05;
+  --panel: #172234; --line: #2a3850; --head: #ffcb05; --code-bg: #121c2c; --kw: #d7a6f0; --str: #9fd39f; --num: #f2b073; color-scheme: dark;
+}
+#document { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 1.05rem; line-height: 1.6; padding-inline: 16px; padding-block: 1.5rem 4rem; }
+#document .CodeMirror { font-size: .8rem; height: auto; }
+#document textarea.coq { width: 100%; }
+header { border-bottom: 3px solid var(--maize); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.eyebrow { font-family: var(--font-display); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1, h2, h3 { font-family: var(--font-display); color: var(--head); text-wrap: balance; line-height: 1.25; }
+h1 { font-size: 1.7rem; margin: .3rem 0 .4rem; font-weight: 650; }
+h2 { font-size: 1.3rem; margin: 2.6rem 0 .6rem; font-weight: 650; padding-top: .4rem; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 1.6rem 0 .4rem; font-weight: 650; }
+p, li { max-width: 65ch; }
+.lede { color: var(--muted); margin: 0; }
+code { font-family: var(--font-mono); font-size: .82em; background: var(--panel); padding: .05em .3em; border-radius: 3px; overflow-wrap: anywhere; }
+.rules { display: flex; flex-wrap: wrap; gap: .4rem 2rem; justify-content: center; align-items: flex-end; margin: .8rem 0 1rem; }
+.rules > div { min-width: 0; max-width: 100%; overflow-x: auto; }
+.display { overflow-x: auto; max-width: 100%; margin: .8rem 0; }
+mjx-container[display="true"] { margin: .4em 0 !important; }
+.thm { background: var(--panel); border-left: 3px solid var(--navy); padding: .7rem 1rem; margin: 1rem 0; }
+.thm p { margin: .3rem 0; }
+.thm .name { font-family: var(--font-display); font-weight: 650; color: var(--navy); }
+.proof { margin: .4rem 0 1rem; }
+.proof em:first-child { font-style: italic; }
+.route-note { background: var(--panel); border-left: 3px solid var(--navy); padding: .7rem 1rem; margin: 1rem 0 1.4rem; }
+.route-note.extension { border-left-color: var(--maize); }
+.route-note strong { font-family: var(--font-display); color: var(--head); }
+blockquote { margin: 1rem 0; padding: .2rem 1rem; border-left: 3px solid var(--line); color: var(--muted); }
+table.ref { width: 100%; border-collapse: collapse; margin: .8rem 0 1.2rem; }
+table.ref th, table.ref td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: .35rem .65rem .35rem 0; }
+ul { padding-left: 1.2rem; }
+li { margin: .25rem 0; }
+
+#document code { color: var(--fg); }
+/* jsCoq's own stylesheet paints the document white; use the page tokens instead */
+body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #document { background: var(--bg) !important; color: var(--fg) !important; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+#theme-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+#theme-toggle:hover, #fold-toggle:hover, #present-toggle:hover, #panel-toggle:hover { border-color: var(--navy); }
+#fold-toggle, #present-toggle, #panel-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+.topbar .switches { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+/* displayed math scrolls sideways if it must, never up and down */
+.display, .rules > div { overflow-y: hidden; }
+#document .iso-diagram { color: var(--fg); margin: .6rem auto; max-width: 30rem; }
+#document p.aside { font-size: .85em; color: var(--muted); }
+/* math marked with \\class{hl-blue}{\\bbox[...]{...}}: the step note's soft blue behind it */
+mjx-container .hl-blue { color: var(--fg); }
+mjx-container .hl-blue rect { fill: var(--panel) !important; stroke: var(--line) !important; stroke-width: 20 !important; }
+#document:not(.presenting) mjx-container .hl-blue rect { fill: none !important; stroke: none !important; }
+#document pre.lang { background: var(--code-bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: .6rem .9rem; margin: .6rem 0 .9rem; overflow-x: auto; font-family: var(--font-mono); font-size: .78rem; line-height: 1.45; }
+#document pre.lang code { background: none; padding: 0; font-size: inherit; white-space: pre; }
+#document .iso-diagram svg { display: block; width: 100%; height: auto; }
+/* a program, one line per piece, left aligned */
+#document .display.prog { margin: .15rem 0; padding-left: 1.5rem; }
+#document .display.prog + :not(.display.prog) { margin-top: .9rem; }
+#document .display.prog mjx-container[display="true"] { text-align: left !important; margin: .3em 0 !important; }
+.rules.ch { margin: .2rem 0; align-items: center; }
+/* a tree built in stages: the page shows the last stage; slides show one at a time, in one place */
+#document .frames > .frame:not(.keep) { display: none; }
+#document.presenting .frames { display: grid; }
+#document.presenting .frames > .frame { display: block; grid-area: 1 / 1; align-self: end; }
+/* what each stage did, in one sentence: only in slide mode */
+#document .step-note { display: none; }
+#document.presenting .step-note { display: block; text-align: left; font-size: .8em; line-height: 1.4; min-height: 4.2em;
+  margin: .6rem auto 0; max-width: 34em; padding: .5rem .8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+/* opacity, not visibility: a stage's own visible parts must not show through */
+#document.presenting .frames > .frame.off-frame, #document.presenting .frames > .frame.off-step { opacity: 0; }
+.rules.ch > .ch-name { margin-left: -1.2rem; font-size: .9em; overflow: visible; }
+/* the rule correspondence as a table: typing rule | logic rule | name, labeled on top */
+#document .ch-table { display: grid; grid-template-columns: max-content max-content max-content; justify-content: safe center; align-items: center; column-gap: 1.2rem; row-gap: .3rem; margin: .8rem 0 1rem; overflow-x: auto; }
+#document .ch-table .piece { min-width: auto; max-width: none; overflow: visible; }
+#document .ch-table > .rules.ch { display: contents; }
+#document .ch-table .ch-name { margin-left: 0; justify-self: start; }
+#document .ch-table .ch-label { order: -1; text-align: center; font-family: var(--font-display); font-weight: 650; color: var(--head); padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
+#document .ch-table .ch-label span { display: block; font-family: var(--font-body); font-weight: 400; font-size: .8em; color: var(--muted); }
+#document .ch-table .ch-label.ipl { grid-column: 2 / span 2; }
+/* folded code cells: the first two lines show, faded out, until opened */
+.cell { margin: .8rem 0 1.2rem; }
+.cell.is-collapsed .CodeMirror { max-height: 3.3em !important; overflow: hidden; cursor: pointer; }
+.cell.is-collapsed .CodeMirror::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2.2em; background: linear-gradient(to bottom, transparent, var(--code-bg)); pointer-events: none; z-index: 10; }
+.cell-bar { display: flex; align-items: center; gap: 1rem; margin-top: .25rem; }
+.cell-run { font-family: var(--font-display); font-size: .78rem; font-weight: 650; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .15rem .7rem; cursor: pointer; }
+.cell-run:hover { border-color: var(--navy); }
+.cell-run:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+.cell-toggle { display: block; font-family: var(--font-display); font-size: .78rem; color: var(--navy); background: none; border: 0; padding: .15rem 0; cursor: pointer; }
+.cell-toggle:hover { text-decoration: underline; }
+.cell-toggle:focus-visible, #fold-toggle:focus-visible, #present-toggle:focus-visible, #panel-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+#theme-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+
+/* ---- jsCoq in the page's colors ------------------------------------
+   Three hues only, taken from the page: blue for the language (commands
+   bold, keywords plain, tactics a second, greener blue), amber for
+   literals and bullets, gray for comments.  Everything else is plain
+   text.  All at least about 5:1 on the code background, for projectors. */
+:root {
+  --syn-cmd: #0b4f9c; --syn-tactic: #0b6378; --syn-amber: #8a5a00; --syn-comment: #5c6370;
+  --ok-bg: #e7ecf4; --pending-bg: #fbefc4; --failed-bg: #f5d3d3;
+}
+:root[data-theme="dark"] {
+  --syn-cmd: #8cb4ff; --syn-tactic: #6cc4d6; --syn-amber: #f2c14e; --syn-comment: #9aa3b3;
+  --ok-bg: #19273b; --pending-bg: #3b3313; --failed-bg: #4a1f26;
+}
+/* editors */
+/* a question with its answer folded underneath */
+#document details.question { border: 1px solid var(--line); border-radius: 8px; padding: .6rem 1rem; margin: 1rem 0; background: var(--bg); }
+#document details.question > summary { cursor: pointer; font-family: var(--font-display); font-weight: 650; color: var(--head); }
+#document details.question[open] > summary { margin-bottom: .4rem; }
+/* nested-sets diagram */
+.venn { margin: 1rem 0; }
+.venn svg { display: block; width: 100%; max-width: 600px; height: auto; margin: 0 auto; }
+.venn .v-all { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+.venn .v-safe { fill: var(--ok-bg); stroke: var(--navy); stroke-width: 1.5; }
+.venn .v-typed { fill: var(--pending-bg); stroke: var(--maize); stroke-width: 2; }
+.venn .v-label { fill: var(--fg); font-family: var(--font-display); font-weight: 650; font-size: 20px; }
+.venn .v-ex { fill: var(--fg); font-family: var(--font-body); font-style: italic; font-size: 18px; }
+#document .cite { font-size: .85rem; color: var(--muted); }
+#document ul.refs { font-size: .88rem; color: var(--muted); padding-left: 1.1rem; }
+#document ul.refs li { margin: .3rem 0; }
+#document table.ref { border-collapse: collapse; margin: .8rem 0 1rem; font-size: .95rem; }
+#document table.ref th, #document table.ref td { border-bottom: 1px solid var(--line); padding: .3rem .9rem .3rem 0; text-align: left; }
+#document table.ref th { font-family: var(--font-display); font-weight: 650; color: var(--head); }
+/* step rules that do the real work */
+.rules > div.work { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 6px; padding: 0 .7rem; }
+.work-key { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 4px; padding: 0 .3rem; }
+/* math marked new with \\class{hl-new}{...}: maize marker behind the text */
+mjx-container .hl-new { color: var(--fg); }
+mjx-container .hl-new rect { fill: var(--pending-bg) !important; stroke: var(--maize) !important; stroke-width: 20 !important; }
+.cm-s-d6.CodeMirror { background: var(--code-bg) !important; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; }
+.cm-s-d6 .CodeMirror-gutters { background: var(--code-bg) !important; border-right: 1px solid var(--line) !important; }
+.cm-s-d6 .CodeMirror-linenumber { color: var(--muted) !important; }
+.cm-s-d6 .CodeMirror-cursor { border-left-color: var(--fg) !important; }
+.cm-s-d6 .CodeMirror-selected, .cm-s-d6.CodeMirror-focused .CodeMirror-selected { background: var(--line) !important; }
+.cm-s-d6 span[class*="cm-"] { color: var(--fg) !important; font-weight: 400; font-style: normal; }
+.cm-s-d6 span.cm-builtin { color: var(--syn-cmd) !important; font-weight: 700; }
+.cm-s-d6 span.cm-keyword { color: var(--syn-cmd) !important; }
+.cm-s-d6 span.cm-tactic { color: var(--syn-tactic) !important; font-weight: 600; }
+.cm-s-d6 span.cm-terminator { color: var(--syn-tactic) !important; font-weight: 700; }
+.cm-s-d6 span.cm-comment { color: var(--syn-comment) !important; font-style: italic; }
+.cm-s-d6 span.cm-string, .cm-s-d6 span.cm-number { color: var(--syn-amber) !important; }
+.cm-s-d6 span.cm-coq-bullet { color: var(--syn-amber) !important; font-weight: 700; }
+.cm-s-d6 span.cm-coq-focus { color: var(--muted) !important; }
+.cm-s-d6 span.CodeMirror-matchingbracket { color: var(--fg) !important; outline: 1px solid var(--maize); text-shadow: none; }
+/* how far Coq has checked */
+.cm-s-d6 .coq-eval-ok { background-color: var(--ok-bg) !important; }
+.cm-s-d6 .coq-eval-ok.coq-highlight { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-pending { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-failed { background-color: var(--failed-bg) !important; }
+/* the goals / messages panel */
+body.jscoq-main #panel-wrapper { background: var(--bg) !important; color: var(--fg) !important; border-left: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel { border-top: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel > .caption { background: var(--panel) !important; color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper #toolbar { border-bottom: 1px solid var(--line) !important; }
+body.jscoq-main #vsep, body.jscoq-main #hsep { background: var(--line) !important; }
+body.jscoq-main #panel-wrapper a, body.jscoq-main #panel-wrapper a:visited { color: var(--navy) !important; }
+body.jscoq-main #panel-wrapper #goal-panel p.system { color: var(--muted) !important; }
+body.jscoq-main #panel-wrapper [class*="constr."], body.jscoq-main #panel-wrapper [class*="module."],
+body.jscoq-main #panel-wrapper [class*="tactic."] { color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper .constr\.keyword, body.jscoq-main #panel-wrapper .module\.keyword,
+body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !important; }
+
+/* slide mode: one slide of the page at a time, at projector size */
+#document hr.slide-break { display: none; }
+#document.presenting .off-step { visibility: hidden; }
+/* collapsed table borders ignore visibility */
+#document.presenting tr.off-step > td, #document.presenting tr.off-step > th { border-color: transparent; }
+#document .slide-only { display: none; }
+#document.presenting .off-slide { display: none !important; }
+#document.presenting { font-size: 1.4rem; line-height: 1.5; padding-block: 1rem 5rem; }
+#document.presenting .CodeMirror { font-size: 1.05rem; }
+#document.presenting .topbar .eyebrow { display: none; }
+#document.presenting h1 { font-size: 1.8em; }
+#document.presenting h2 { font-size: 1.5em; margin-top: .4rem; border-top: 0; }
+#document.presenting h3 { font-size: 1.2em; margin-top: .4rem; }
+#document.presenting .topbar button { font-size: .8rem; }
+#document.presenting table.ref { font-size: .85em; }
+#document.presenting details:not(.unfold) .display, #document.presenting details:not(.unfold) .rules { font-size: .72em; }
+#document.presenting details.unfold { border: 0; padding: 0; margin: 0; background: none; }
+#document.presenting details.unfold > summary { display: none; }
+#document.presenting .slide-only { display: block; }
+#document.presenting #slide-context { font-family: var(--font-display); font-weight: 650; font-size: .8rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 .4rem; }
+#document.presenting #slide-context:empty { display: none; }
+#slide-nav { position: fixed; left: 16px; bottom: 14px; z-index: 50; display: none; gap: .4rem; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .3rem .5rem; font-family: var(--font-display); font-size: .9rem; color: var(--fg); }
+#document.presenting ~ #slide-nav, #slide-nav.on { display: flex; }
+#slide-nav button { font: inherit; }
+#slide-nav .count { min-width: 4.5em; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body class="jscoq-main">
+<div id="ide-wrapper" class="toggled">
+<div id="code-wrapper">
+<div id="document">
+<div class="topbar">
+<p class="eyebrow" style="margin-top:0">Runs in your browser: click into a code block and press Alt+↓ (Option+↓ on a Mac) to step, or Alt+Enter to run to the cursor. Goals show in the panel on the right.</p>
+<div class="switches">
+<button id="present-toggle" type="button">▶ Present</button>
+<button id="fold-toggle" type="button" aria-pressed="false">Show all code</button>
+<button id="panel-toggle" type="button" title="Collapse or open the goals and messages panel"></button>
+<button id="theme-toggle" type="button"></button>
+</div>
+</div>
+<p id="slide-context" class="slide-only"></p>
+
+<header>
+  <p class="eyebrow">CSE 590 · Fall 2026 · Discussion 5</p>
+  <h1>Denotational semantics of IMP</h1>
+  <p class="lede">Interpret IMP programs as functions, model divergence with partiality, and derive while from finite approximations.</p>
+</header>
+<p>IMP and its big-step semantics, followed by the denotational semantics from §3 of Kozen's CS 6110 Lecture 18 notes.</p>
+<p>The runnable blocks form one continuous Rocq document.</p>
+<ul>
+<li><strong>Part 1</strong> \(\mathcal{A}[\![a]\!]\) and \(\mathcal{B}[\![b]\!]\): functions instead of relations.</li>
+<li><strong>Part 2</strong> Partiality with <code>option</code>.</li>
+<li><strong>Part 3</strong> \(\mathcal{C}[\![c]\!] : \mathit{Env} \to \mathsf{option}\ \mathit{Env}\), and the base cases skip, :=, if.</li>
+<li><strong>Part 4</strong> Sequencing: putting partial maps together, with the Kleisli lift. Then while, as a limit of approximations \(\mathcal{W}_n\).</li>
+<li><strong>Part 5</strong> Equational reasoning: expressions, commands, loops.</li>
+<li>Denotations forget running time: two programs, one meaning.</li>
+</ul>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-1">From Coq Require Import ZArith Bool String List.
+Import ListNotations.
+Open Scope Z_scope.
+Open Scope string_scope.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
+<h2>Syntax</h2>
+<p>\[ \begin{aligned} a &::= n \mid x \mid a_0 + a_1 \mid a_0 * a_1 \mid a_0 - a_1 \\ b &::= \mathsf{true} \mid \mathsf{false} \mid a_0 = a_1 \mid a_0 \le a_1 \mid b_0 \lor b_1 \mid b_0 \land b_1 \mid \lnot b \\ c &::= \mathsf{skip} \mid x := a \mid c_0 ; c_1 \mid \mathsf{if}\ b\ \mathsf{then}\ c_0\ \mathsf{else}\ c_1 \mid \mathsf{while}\ b\ \mathsf{do}\ c \end{aligned} \]</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-2">Definition name := string.
+
+Inductive aexp : Type :=
+| ANum (n : Z)
+| AId (x : name)
+| APlus (a0 a1 : aexp)
+| AMult (a0 a1 : aexp)
+| AMinus (a0 a1 : aexp).
+
+Inductive bexp : Type :=
+| BTrue
+| BFalse
+| BEq (a0 a1 : aexp)
+| BLe (a0 a1 : aexp)
+| BOr (b0 b1 : bexp)
+| BAnd (b0 b1 : bexp)
+| BNot (b : bexp).
+
+Inductive com : Type :=
+| CSkip
+| CAsgn (x : name) (a : aexp)
+| CSeq (c0 c1 : com)
+| CIf (b : bexp) (c0 c1 : com)
+| CWhile (b : bexp) (c : com).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 24 lines">Show code · 24 lines</button></div></div>
+<p>Concrete syntax. <code>const n</code> is the number \(n\) and <code>var x</code> is the variable \(x\), as expressions. <code>⊕</code>, <code>⊗</code> and <code>⊖</code> are \(+\), \(*\) and \(-\) in the language, so they can't be confused with <code>+</code>, <code>*</code> and <code>-</code> on integers. In the same way, <code>TRUE</code> and <code>FALSE</code> are the Boolean expressions, and <code>true</code> and <code>false</code> are Rocq's Boolean values.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-3">Notation "'const' n" := (ANum n) (at level 1, n at level 0).
+Notation "'var' x" := (AId x) (at level 1, x at level 0).
+Notation "a0 ⊕ a1" := (APlus a0 a1) (at level 50, no associativity).
+Notation "a0 ⊗ a1" := (AMult a0 a1) (at level 50, no associativity).
+Notation "a0 ⊖ a1" := (AMinus a0 a1) (at level 50, no associativity).
+
+Notation "'TRUE'" := BTrue.
+Notation "'FALSE'" := BFalse.
+Notation "a0 == a1" := (BEq a0 a1) (at level 55, no associativity).
+Notation "a0 ≤ a1" := (BLe a0 a1) (at level 55, no associativity).
+Notation "¬ b" := (BNot b) (at level 56, right associativity).
+Notation "b0 ∧ b1" := (BAnd b0 b1) (at level 57, left associativity).
+Notation "b0 ∨ b1" := (BOr b0 b1) (at level 58, left associativity).
+
+Notation "'skip'" := CSkip.
+Notation "x ::= a" := (CAsgn x a) (at level 60).
+Notation "c0 ;; c1" := (CSeq c0 c1) (at level 80, right associativity).
+Notation "'IF' b 'THEN' c0 'ELSE' c1 'FI'" := (CIf b c0 c1) (at level 80).
+Notation "'WHILE' b 'DO' c 'END'" := (CWhile b c) (at level 80).
+
+Reserved Notation "⟨ a , σ ⟩ '⇓a' n"
+  (at level 70, a at level 99, σ at level 99, n at level 69).
+Reserved Notation "⟨ b , σ ⟩ '⇓b' t"
+  (at level 70, b at level 99, σ at level 99, t at level 69).
+Reserved Notation "⟨ c , σ ⟩ '⇓' τ"
+  (at level 70, c at level 99, σ at level 99, τ at level 69).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 26 lines">Show code · 26 lines</button></div></div>
+<h2>Environments</h2>
+<p>\(\sigma : \mathit{Var} \to \mathbb{Z}\), total. \(\sigma[x \mapsto n]\) is \(\sigma\), except that \(x\) now holds \(n\):</p>
+<p>\[ \sigma[x \mapsto n](y) = \begin{cases} n & y = x \\ \sigma(y) & \text{otherwise} \end{cases} \]</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-4">Definition Env := name -&gt; Z.
+
+Definition upd (σ : Env) (x : name) (n : Z) : Env :=
+  fun y =&gt; if String.eqb y x then n else σ y.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
+<h2>Part 1: \(\mathcal{A}[\![a]\!]\) and \(\mathcal{B}[\![b]\!]\)</h2>
+<p>\[ \mathcal{A}[\![a]\!] : \mathit{Env} \to \mathbb{Z} \qquad\qquad \mathcal{B}[\![b]\!] : \mathit{Env} \to \mathbf{2} \]</p>
+<p>In the \(\oplus\) line, \(\oplus\) on the left is \(+\) in the language, and \(+\) on the right is addition of integers. The notes write \(+\) for both.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-5">Reserved Notation "𝒜⟦ a ⟧" (at level 0, a at level 200).
+Reserved Notation "ℬ⟦ b ⟧" (at level 0, b at level 200).
+Reserved Notation "𝒞⟦ c ⟧" (at level 0, c at level 200).
+
+Fixpoint Asem (a : aexp) : Env -&gt; Z :=
+  fun σ =&gt;
+    match a with
+    | const n =&gt; n
+    | var x =&gt; σ x
+    | a0 ⊕ a1 =&gt; 𝒜⟦a0⟧ σ + 𝒜⟦a1⟧ σ
+    | a0 ⊗ a1 =&gt; 𝒜⟦a0⟧ σ * 𝒜⟦a1⟧ σ
+    | a0 ⊖ a1 =&gt; 𝒜⟦a0⟧ σ - 𝒜⟦a1⟧ σ
+    end
+where "𝒜⟦ a ⟧" := (Asem a).
+
+Fixpoint Bsem (b : bexp) : Env -&gt; bool :=
+  fun σ =&gt;
+    match b with
+    | TRUE =&gt; true
+    | FALSE =&gt; false
+    | a0 == a1 =&gt; Z.eqb (𝒜⟦a0⟧ σ) (𝒜⟦a1⟧ σ)
+    | a0 ≤ a1 =&gt; Z.leb (𝒜⟦a0⟧ σ) (𝒜⟦a1⟧ σ)
+    | b0 ∨ b1 =&gt; ℬ⟦b0⟧ σ || ℬ⟦b1⟧ σ
+    | b0 ∧ b1 =&gt; ℬ⟦b0⟧ σ &amp;&amp; ℬ⟦b1⟧ σ
+    | ¬ b0 =&gt; if ℬ⟦b0⟧ σ then false else true
+    end
+where "ℬ⟦ b ⟧" := (Bsem b).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 27 lines">Show code · 27 lines</button></div></div>
+<h3>Examples</h3>
+<p>With \(\sigma_0 = \{X \mapsto 3, Y \mapsto 2\}\): \(\mathcal{A}[\![(X + Y) * X]\!]\sigma_0 = 15\) and \(\mathcal{B}[\![\lnot(X = 0)]\!]\sigma_0 = \mathsf{true}\).</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-6">Definition X : name := "X".
+Definition Y : name := "Y".
+
+Definition σ0 : Env :=
+  fun x =&gt; if String.eqb x X then 3 else if String.eqb x Y then 2 else 0.
+
+Example Asem_ex : 𝒜⟦(var X ⊕ var Y) ⊗ var X⟧ σ0 = 15.
+Proof. reflexivity. Qed.
+
+Example Bsem_ex : ℬ⟦¬ (var X == const 0)⟧ σ0 = true.
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 11 lines">Show code · 11 lines</button></div></div>
+<h2>Part 2: Partiality with option</h2>
+<p>A <strong>partial</strong> function from \(D\) to \(E\) has no answer for some inputs. A Rocq function must always return an answer, so we make "no answer" one of the possible answers. The type <code>option E</code> has two kinds of values:</p>
+<table class="ref"><thead><tr><th>value</th><th>meaning</th></tr></thead><tbody><tr><td>\(\mathsf{Some}\ e\)</td><td>an answer, \(e : E\)</td></tr>
+<tr><td>\(\mathsf{None}\)</td><td>no answer</td></tr></tbody></table>
+<p>A partial function from \(D\) to \(E\) is then a total function \(D \to \mathsf{option}\ E\). (The notes write \(E_\bot\) for \(\mathsf{option}\ E\), and \(\bot\) for \(\mathsf{None}\).) For example, dividing by 0 has no answer:</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-7">Definition div (n m : Z) : option Z :=
+  if Z.eqb m 0 then None else Some (n / m).
+
+Example div_7_2 : div 7 2 = Some 3.
+Proof. reflexivity. Qed.
+
+Example div_7_0 : div 7 0 = None.
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
+<h2>Part 3: \(\mathcal{C}[\![c]\!]\) and the base cases</h2>
+<p>Run a command \(c\) from \(\sigma\). Either it stops, in some environment \(\sigma'\), or it runs forever (like <code>WHILE TRUE DO skip END</code>). So the meaning of \(c\) is a partial map from \(\mathit{Env}\) to \(\mathit{Env}\):</p>
+<p>\[ \mathcal{C}[\![c]\!] : \mathit{Env} \to \mathsf{option}\ \mathit{Env} \qquad \begin{aligned} \mathcal{C}[\![c]\!]\sigma &= \mathsf{Some}\ \sigma' && c \text{, run from } \sigma \text{, stops in } \sigma' \\ \mathcal{C}[\![c]\!]\sigma &= \mathsf{None} && c \text{, run from } \sigma \text{, runs forever} \end{aligned} \]</p>
+<p>The base cases:</p>
+<p>\[ \begin{aligned} \mathcal{C}[\![\mathsf{skip}]\!]\sigma &= \mathsf{Some}\ \sigma \\ \mathcal{C}[\![x := a]\!]\sigma &= \mathsf{Some}\ \sigma[x \mapsto \mathcal{A}[\![a]\!]\sigma] \\ \mathcal{C}[\![\mathsf{if}\ b\ \mathsf{then}\ c_0\ \mathsf{else}\ c_1]\!]\sigma &= \text{if } \mathcal{B}[\![b]\!]\sigma \text{ then } \mathcal{C}[\![c_0]\!]\sigma \text{ else } \mathcal{C}[\![c_1]\!]\sigma \end{aligned} \]</p>
+<p>skip and := always stop, so they always give \(\mathsf{Some}\). if picks a branch and then does whatever that branch does: if the branch runs forever, so does the if.</p>
+<p>So none of these ever gives \(\mathsf{None}\). Only loops can run forever. But loops are coming, and sequencing has to be ready for them.</p>
+<h2>Part 4: Sequencing</h2>
+<p>Take \(c_1 ; c_2 ; c_3\). Each piece has a meaning</p>
+<p>\[ \mathcal{C}[\![c_1]\!],\ \mathcal{C}[\![c_2]\!],\ \mathcal{C}[\![c_3]\!] : \mathit{Env} \to \mathsf{option}\ \mathit{Env} \]</p>
+<p>and we want to put them together. For ordinary functions we would just compose them: \(\mathcal{C}[\![c_2]\!](\mathcal{C}[\![c_1]\!]\sigma)\). But that doesn't type-check: \(\mathcal{C}[\![c_1]\!]\sigma\) is an \(\mathsf{option}\ \mathit{Env}\), and \(\mathcal{C}[\![c_2]\!]\) wants an \(\mathit{Env}\).</p>
+<p>So look at the two cases for \(\mathcal{C}[\![c_1]\!]\sigma\):</p>
+<ul>
+<li>\(\mathsf{None}\): \(c_1\) runs forever. There is no environment to run \(c_2\) on, so the whole program runs forever. The answer is \(\mathsf{None}\).</li>
+<li>\(\mathsf{Some}\ \sigma_1\): \(c_1\) stopped in \(\sigma_1\), so run \(c_2\) from there: \(\mathcal{C}[\![c_2]\!]\sigma_1\).</li>
+</ul>
+<p>How do we define composition then? If</p>
+<p>\[ \mathcal{C}[\![c_1]\!] : \mathit{Env} \to \mathsf{option}\ \mathit{Env} \qquad\text{and}\qquad \mathcal{C}[\![c_2]\!] : \mathit{Env} \to \mathsf{option}\ \mathit{Env}, \]</p>
+<p>we can run \(\mathcal{C}[\![c_1]\!]\), and \(\mathcal{C}[\![c_2]\!]\) needs to take the output of this. So we define \(\mathcal{C}[\![c_2]\!]^\dagger\), the lift operation.</p>
+<p>This case analysis is the Kleisli lift from lecture:</p>
+<p>\[ f^\dagger : (D \to E_\bot) \to (D_\bot \to E_\bot) \qquad\qquad f^\dagger\,\mathsf{None} = \mathsf{None} \qquad f^\dagger\,(\mathsf{Some}\ x) = f\,x \]</p>
+<p>\(f\) only accepts an environment; \(f^\dagger\) also accepts \(\mathsf{None}\), and passes it on. Sequencing, as in the notes:</p>
+<p>\[ \mathcal{C}[\![c_1 ; c_2]\!]\sigma = \mathcal{C}[\![c_2]\!]^\dagger(\mathcal{C}[\![c_1]\!]\sigma) \]</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-8">Definition lift {D E : Type} (f : D -&gt; option E) : option D -&gt; option E :=
+  fun x =&gt;
+    match x with
+    | None =&gt; None
+    | Some y =&gt; f y
+    end.
+
+Notation "f †" := (lift f) (at level 5, format "f †").</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
+<p>For longer programs this nests inside out: \(c_1 ; c_2 ; c_3\) is \(\mathcal{C}[\![c_3]\!]^\dagger(\mathcal{C}[\![c_2]\!]^\dagger(\mathcal{C}[\![c_1]\!]\sigma))\), where \(c_3\) is written first but runs last. So we give the environment in the middle a name. Writing \(\mathcal{C}[\![c_2]\!]\) as \(\lambda\sigma'.\ \mathcal{C}[\![c_2]\!]\sigma'\) changes nothing:</p>
+<p>\[ \mathcal{C}[\![c_2]\!]^\dagger(\mathcal{C}[\![c_1]\!]\sigma) \;=\; (\lambda\sigma'.\ \mathcal{C}[\![c_2]\!]\sigma')^\dagger(\mathcal{C}[\![c_1]\!]\sigma) \;=:\; \sigma' \leftarrow \mathcal{C}[\![c_1]\!]\sigma\ ;\ \mathcal{C}[\![c_2]\!]\sigma' \]</p>
+<p>In general,</p>
+<p>\[ \sigma' \leftarrow m\ ;\ \mathit{rest} \quad\text{means}\quad (\lambda\sigma'.\ \mathit{rest})^\dagger\ m. \]</p>
+<p>Read it as: "run \(m\). If it stops, call the result \(\sigma'\) and go on with \(\mathit{rest}\). If it doesn't, neither does the whole thing." The two equations for \(\dagger\) become the two rules for computing with it:</p>
+<p>\[ (\sigma' \leftarrow \mathsf{Some}\ \tau\ ;\ \mathit{rest}) = \mathit{rest}[\tau/\sigma'] \qquad\qquad (\sigma' \leftarrow \mathsf{None}\ ;\ \mathit{rest}) = \mathsf{None} \]</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-9">Notation "x ← m ; rest" := ((fun x =&gt; rest)† m)
+  (at level 100, m at level 99, right associativity).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
+<p><strong>Example.</strong> The two-command program \(X := 1 ;\ Y := X + 1\), run from any \(\sigma\). Each step uses one line of \(\mathcal{C}[\![\cdot]\!]\) or one rule for the arrow:</p>
+<p>\[ \begin{aligned} &\mathcal{C}[\![X := 1 ;\ Y := X + 1]\!]\sigma \\ &= \mathcal{C}[\![Y := X + 1]\!]^\dagger(\mathcal{C}[\![X := 1]\!]\sigma) && \text{sequencing, as in the notes} \\ &= \sigma' \leftarrow \mathcal{C}[\![X := 1]\!]\sigma\ ;\ \mathcal{C}[\![Y := X + 1]\!]\sigma' && \text{the same, with the arrow} \\ &= \sigma' \leftarrow \mathsf{Some}\ \sigma[X \mapsto 1]\ ;\ \mathcal{C}[\![Y := X + 1]\!]\sigma' && := \text{ line} \\ &= \mathcal{C}[\![Y := X + 1]\!](\sigma[X \mapsto 1]) && \text{arrow on } \mathsf{Some} \\ &= \mathsf{Some}\ \sigma[X \mapsto 1][Y \mapsto 2] && := \text{ line, since } \mathcal{A}[\![X + 1]\!](\sigma[X \mapsto 1]) = 2 \end{aligned} \]</p>
+<p><strong>Surprise.</strong> We have secretly just met one of the fundamental concepts of programming languages: a <strong>monad</strong>. The type former \(\mathsf{option}\), the map \(\mathsf{Some}\) (which is \(\mathcal{C}[\![\mathsf{skip}]\!]\)), and the lift \(\dagger\) are exactly the data of one, and the arrow syntax is the standard way to program with any monad. The definition is at the end of this note.</p>
+<p>Here is all of \(\mathcal{C}[\![\cdot]\!]\). The \(;\) line is the notes' \(\mathcal{C}[\![c_1]\!]^\dagger(\mathcal{C}[\![c_0]\!]\sigma)\), written with the arrow. The while line is a placeholder: for now every loop means \(\mathsf{None}\), which is the notes' first approximation \(W_0 = \lambda\sigma.\ \bot\). It gets replaced when we do while.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-10">Fixpoint Csem (c : com) : Env -&gt; option Env :=
+  fun σ =&gt;
+    match c with
+    | skip =&gt; Some σ
+    | x ::= a =&gt; Some (upd σ x (𝒜⟦a⟧ σ))
+    | IF b THEN c0 ELSE c1 FI =&gt; if ℬ⟦b⟧ σ then 𝒞⟦c0⟧ σ else 𝒞⟦c1⟧ σ
+    | c0 ;; c1 =&gt; σ' ← 𝒞⟦c0⟧ σ ; 𝒞⟦c1⟧ σ'
+    | WHILE b DO c0 END =&gt; None
+    end
+where "𝒞⟦ c ⟧" := (Csem c).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 10 lines">Show code · 10 lines</button></div></div>
+<h3>A three-command program</h3>
+<p>\(\mathsf{Max}(x, y, r)\) compares \(x\) and \(y\), and stores the larger one in \(r\). Its denotation, by the if and := lines of \(\mathcal{C}[\![\cdot]\!]\):</p>
+<p>\[ \mathcal{C}[\![\mathsf{Max}(x, y, r)]\!]\sigma = \begin{cases} \mathsf{Some}\ \sigma[r \mapsto \sigma(y)] & \sigma(x) \le \sigma(y) \\ \mathsf{Some}\ \sigma[r \mapsto \sigma(x)] & \text{otherwise} \end{cases} \]</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-11">Definition Max (x y r : name) : com :=
+  IF var x ≤ var y THEN r ::= var y ELSE r ::= var x FI.
+
+Example Max_den x y r σ :
+  𝒞⟦Max x y r⟧ σ
+  = if Z.leb (σ x) (σ y) then Some (upd σ r (σ y)) else Some (upd σ r (σ x)).
+Proof. reflexivity. Qed.
+
+Definition R : name := "R".
+
+Definition c1 : com := X ::= const 3.
+Definition c2 : com := Y ::= const 4.
+Definition c3 : com := Max X Y R.
+
+Definition σ_start : Env := fun _ =&gt; 0.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 15 lines">Show code · 15 lines</button></div></div>
+<p>Using the sequencing line twice, the meaning of \(c_1 ; c_2 ; c_3\) is</p>
+<p>\[ \begin{aligned} &\sigma_1 \leftarrow \mathcal{C}[\![c_1]\!]\sigma_{\mathit{start}}\ ; \\ &\sigma_2 \leftarrow \mathcal{C}[\![c_2]\!]\sigma_1\ ; \\ &\sigma_3 \leftarrow \mathcal{C}[\![c_3]\!]\sigma_2\ ; \\ &\mathsf{Some}\ \sigma_3 \end{aligned} \]</p>
+<p>(The last two lines could just be \(\mathcal{C}[\![c_3]\!]\sigma_2\): running \(c_3\) and then stopping where it stopped is the same as running \(c_3\).)</p>
+<p>To compute it, we only need the two rules for the arrow:</p>
+<p>\[ (\sigma' \leftarrow \mathsf{Some}\ \tau\ ;\ \mathit{rest}) = \mathit{rest}[\tau/\sigma'] \qquad\qquad (\sigma' \leftarrow \mathsf{None}\ ;\ \mathit{rest}) = \mathsf{None} \]</p>
+<p>Write \(\tau_1 = \sigma_{\mathit{start}}[X \mapsto 3]\), \(\tau_2 = \tau_1[Y \mapsto 4]\), \(\tau_3 = \tau_2[R \mapsto 4]\).</p>
+<p>\[ \begin{aligned} &\mathcal{C}[\![c_1 ; c_2 ; c_3]\!]\sigma_{\mathit{start}} \\ &= \sigma_1 \leftarrow \mathcal{C}[\![X := 3]\!]\sigma_{\mathit{start}} ;\ \sigma_2 \leftarrow \mathcal{C}[\![Y := 4]\!]\sigma_1 ;\ \sigma_3 \leftarrow \mathcal{C}[\![\mathsf{Max}(X,Y,R)]\!]\sigma_2 ;\ \mathsf{Some}\ \sigma_3 && \text{sequencing twice, fill in } c_1, c_2, c_3 \\ &= \sigma_1 \leftarrow \mathsf{Some}\ \tau_1 ;\ \sigma_2 \leftarrow \mathcal{C}[\![Y := 4]\!]\sigma_1 ;\ \sigma_3 \leftarrow \mathcal{C}[\![\mathsf{Max}(X,Y,R)]\!]\sigma_2 ;\ \mathsf{Some}\ \sigma_3 && := \text{ line} \\ &= \sigma_2 \leftarrow \mathcal{C}[\![Y := 4]\!]\tau_1 ;\ \sigma_3 \leftarrow \mathcal{C}[\![\mathsf{Max}(X,Y,R)]\!]\sigma_2 ;\ \mathsf{Some}\ \sigma_3 && \text{arrow on } \mathsf{Some}\ \tau_1 \\ &= \sigma_2 \leftarrow \mathsf{Some}\ \tau_2 ;\ \sigma_3 \leftarrow \mathcal{C}[\![\mathsf{Max}(X,Y,R)]\!]\sigma_2 ;\ \mathsf{Some}\ \sigma_3 && := \text{ line} \\ &= \sigma_3 \leftarrow \mathcal{C}[\![\mathsf{Max}(X,Y,R)]\!]\tau_2 ;\ \mathsf{Some}\ \sigma_3 && \text{arrow on } \mathsf{Some}\ \tau_2 \\ &= \sigma_3 \leftarrow \mathsf{Some}\ \tau_3 ;\ \mathsf{Some}\ \sigma_3 && \mathsf{Max}\text{: } \tau_2(X) = 3 \le 4 = \tau_2(Y) \\ &= \mathsf{Some}\ \tau_3 && \text{arrow on } \mathsf{Some}\ \tau_3 \end{aligned} \]</p>
+<p>The environments:</p>
+<table class="ref"><thead><tr><th></th><th>\(X\)</th><th>\(Y\)</th><th>\(R\)</th></tr></thead><tbody><tr><td>\(\sigma_{\mathit{start}}\)</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>\(\tau_1 = \sigma_{\mathit{start}}[X \mapsto 3]\)</td><td>3</td><td>0</td><td>0</td></tr>
+<tr><td>\(\tau_2 = \tau_1[Y \mapsto 4]\)</td><td>3</td><td>4</td><td>0</td></tr>
+<tr><td>\(\tau_3 = \tau_2[R \mapsto 4]\) (\(3 \le 4\), so \(R\) gets \(Y\))</td><td>3</td><td>4</td><td>4</td></tr></tbody></table>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-12">Example seq3 :
+  𝒞⟦c1 ;; c2 ;; c3⟧ σ_start
+  = (σ1 ← 𝒞⟦c1⟧ σ_start ;
+     σ2 ← 𝒞⟦c2⟧ σ1 ;
+     σ3 ← 𝒞⟦c3⟧ σ2 ;
+     Some σ3).
+Proof. reflexivity. Qed.
+
+Example seq3_value :
+  𝒞⟦c1 ;; c2 ;; c3⟧ σ_start
+  = Some (upd (upd (upd σ_start X 3) Y 4) R 4).
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 12 lines">Show code · 12 lines</button></div></div>
+<p>Now make \(c_2\) a loop that never stops. \(\mathcal{C}[\![c_2^{\mathit{loop}}]\!]\sigma_1\) is \(\mathsf{None}\), so the arrow stops right there, and Max never runs:</p>
+<p>\[ \begin{aligned} &\sigma_1 \leftarrow \mathcal{C}[\![c_1]\!]\sigma_{\mathit{start}}\ ; && \mathsf{Some}\ \sigma_1 \\ &\sigma_2 \leftarrow \mathcal{C}[\![c_2^{\mathit{loop}}]\!]\sigma_1\ ; && \mathsf{None}\text{: stop} \\ &\sigma_3 \leftarrow \mathcal{C}[\![c_3]\!]\sigma_2\ ; && \text{(never reached)} \\ &\mathsf{Some}\ \sigma_3 \end{aligned} \]</p>
+<p>(\(\mathcal{C}[\![c_2^{\mathit{loop}}]\!]\) is \(\mathsf{None}\) for every \(\sigma\). That stays true once while has its real meaning.)</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-13">Definition c2_loop : com := WHILE TRUE DO Y ::= const 4 END.
+
+Example seq3_loop : 𝒞⟦c1 ;; c2_loop ;; c3⟧ σ_start = None.
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
+<h3>while: the approximations \(\mathcal{W}_n\)</h3>
+<p>For a loop \(\mathsf{while}\ b\ \mathsf{do}\ c\), the notes define approximations \(\mathcal{W}_n(b, c, \sigma)\):</p>
+<p>\[ \begin{aligned} \mathcal{W}_0(b, c, \sigma) &= \mathsf{None} \\ \mathcal{W}_{n+1}(b, c, \sigma) &= \text{if } \mathcal{B}[\![b]\!]\sigma \text{ then } (\sigma' \leftarrow \mathcal{C}[\![c]\!]\sigma\ ;\ \mathcal{W}_n(b, c, \sigma')) \text{ else } \mathsf{Some}\ \sigma \end{aligned} \]</p>
+<p>Think of \(\mathcal{W}_n\) as the loop with a timeout. It gives the loop's answer if the loop stops within \(n\) tests of \(b\) (so at most \(n - 1\) trips through the body), and \(\mathsf{None}\) otherwise. (The notes write \(\mathcal{W}_{n+1} = F\,\mathcal{W}_n\).)</p>
+<p>The meaning of the loop is the limit of \(\mathcal{W}_0, \mathcal{W}_1, \mathcal{W}_2, \dots\) For each starting \(\sigma\), exactly one of two things happens:</p>
+<ul>
+<li>\(\exists n.\ \mathcal{W}_n(b, c, \sigma) = \mathsf{Some}\ \tau\). Then \(\mathcal{W}_m(b, c, \sigma) = \mathsf{Some}\ \tau\) for every \(m \ge n\) (a longer timeout replays the same run), and</li>
+<p>\[\mathcal{C}[\![\mathsf{while}\ b\ \mathsf{do}\ c]\!]\sigma = \mathsf{Some}\ \tau.\]</p>
+<li>\(\forall n.\ \mathcal{W}_n(b, c, \sigma) = \mathsf{None}\). No timeout is long enough: the loop runs forever, and</li>
+<p>\[\mathcal{C}[\![\mathsf{while}\ b\ \mathsf{do}\ c]\!]\sigma = \mathsf{None}.\]</p>
+</ul>
+<p>Since an answer never changes once it appears, this limit is well defined; the notes call it the least upper bound of the \(\mathcal{W}_n\).</p>
+<p><strong>The ordering behind this.</strong> On answers, \(\mathit{Env}_\bot = \mathsf{option}\ \mathit{Env}\), the notes use the flat order ("knows at most as much as"):</p>
+<p>\[ \mathsf{None} \sqsubseteq v \ \text{ for every } v \qquad\qquad \mathsf{Some}\ \tau \sqsubseteq \mathsf{Some}\ \tau' \iff \tau = \tau' \]</p>
+<p>so \(\mathsf{None}\) is below everything, and two different answers are unrelated. On meanings, \(\mathit{Env} \to \mathsf{option}\ \mathit{Env}\), the order is pointwise:</p>
+<p>\[ f \sqsubseteq g \;:\!\iff\; \forall \sigma.\ f\,\sigma \sqsubseteq g\,\sigma \;\iff\; \forall \sigma\,\tau.\ f\,\sigma = \mathsf{Some}\ \tau \implies g\,\sigma = \mathsf{Some}\ \tau \]</p>
+<p>i.e. \(g\) answers wherever \(f\) does, with the same answer. (Seen as sets of pairs \((\sigma, \tau)\), this is just \(\subseteq\); compare §4 of the notes.) Then:</p>
+<ul>
+<li>\(\mathcal{W}_0 = \lambda\sigma.\ \mathsf{None}\) is the least element: \(\mathcal{W}_0 \sqsubseteq f\) for every \(f\).</li>
+<li>With \(F\,w = \lambda\sigma.\ \text{if } \mathcal{B}[\![b]\!]\sigma \text{ then } (\sigma' \leftarrow \mathcal{C}[\![c]\!]\sigma\ ;\ w\,\sigma') \text{ else } \mathsf{Some}\ \sigma\), we have \(\mathcal{W}_{n+1} = F\,\mathcal{W}_n\), and \(F\) is monotone (\(f \sqsubseteq g \implies F\,f \sqsubseteq F\,g\)), so</li>
+<p>\[\mathcal{W}_0 \sqsubseteq \mathcal{W}_1 \sqsubseteq \mathcal{W}_2 \sqsubseteq \cdots \quad\text{(a chain).}\]</p>
+<li>Least upper bounds of chains are taken pointwise:</li>
+<p>\[\Big(\textstyle\bigsqcup_n \mathcal{W}_n\Big)\sigma = \begin{cases} \mathsf{Some}\ \tau & \text{if } \exists n.\ \mathcal{W}_n\,\sigma = \mathsf{Some}\ \tau \\ \mathsf{None} & \text{if } \forall n.\ \mathcal{W}_n\,\sigma = \mathsf{None} \end{cases}\] which is exactly the two cases above.</p>
+<li>Every chain in \(\mathit{Env} \to \mathsf{option}\ \mathit{Env}\) has a least upper bound (it is a chain-complete partial order, a CPO), and \(F\) is continuous: \(F(\bigsqcup_n w_n) = \bigsqcup_n F\,w_n\). These are the two facts the notes need to extend their fixed-point theorem from \(\subseteq\) to CPOs. It gives</li>
+<p>\[\mathcal{C}[\![\mathsf{while}\ b\ \mathsf{do}\ c]\!] = \textstyle\bigsqcup_n \mathcal{W}_n = \mathsf{fix}\ F,\] the <strong>least</strong> solution of \(W = F\,W\).</p>
+</ul>
+<p>In Rocq, <code>W</code> takes the <strong>meanings</strong> <code>bb</code> \(= \mathcal{B}[\![b]\!]\) and <code>cc</code> \(= \mathcal{C}[\![c]\!]\) instead of \(b\) and \(c\), so that the while line of \(\mathcal{C}[\![\cdot]\!]\) can use it later. We write <code>𝒲 n (b, c, σ)</code> for <code>W ℬ⟦b⟧ 𝒞⟦c⟧ n σ</code>.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-14">Fixpoint W (bb : Env -&gt; bool) (cc : Env -&gt; option Env) (n : nat)
+  : Env -&gt; option Env :=
+  match n with
+  | O =&gt; fun σ =&gt; None
+  | S n' =&gt; fun σ =&gt; if bb σ then (σ' ← cc σ ; W bb cc n' σ') else Some σ
+  end.
+
+Notation "'𝒲' n ( b , c , σ )" := (W (ℬ⟦b⟧) (𝒞⟦c⟧) n σ)
+  (at level 10, n at level 0, b at level 99, c at level 99, σ at level 99).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 9 lines">Show code · 9 lines</button></div></div>
+<h3>\(\mathcal{W}_n\) on an example</h3>
+<p>The loop \(\mathsf{while}\ \lnot(X = 2)\ \mathsf{do}\ X := X + 1\) counts \(X\) up until it hits 2.</p>
+<p>Write \(\rho_k\) for \(\sigma_{X0}\) with \(X\) set to \(k\), so the body takes \(\rho_k\) to \(\rho_{k+1}\): \(\mathcal{C}[\![X := X + 1]\!]\rho_k = \mathsf{Some}\ \rho_{k+1}\). Unfolding \(\mathcal{W}_3\) from \(\rho_0\):</p>
+<p>\[ \begin{aligned} \mathcal{W}_3(b, c, \rho_0) &= \text{if } \mathcal{B}[\![b]\!]\rho_0 \text{ then } (\sigma' \leftarrow \mathcal{C}[\![c]\!]\rho_0\ ;\ \mathcal{W}_2(b, c, \sigma')) \text{ else } \mathsf{Some}\ \rho_0 \\ &= \sigma' \leftarrow \mathsf{Some}\ \rho_1\ ;\ \mathcal{W}_2(b, c, \sigma') && X = 0 \ne 2\text{: test true, run } c \\ &= \mathcal{W}_2(b, c, \rho_1) && \text{arrow on } \mathsf{Some}\ \rho_1 \\ &= \mathcal{W}_1(b, c, \rho_2) && X = 1 \ne 2\text{: the same two steps} \\ &= \mathsf{Some}\ \rho_2 && X = 2\text{: test false, stop} \end{aligned} \]</p>
+<p>One step less runs out of time just before the last test:</p>
+<p>\[ \mathcal{W}_2(b, c, \rho_0) = \mathcal{W}_1(b, c, \rho_1) = \mathcal{W}_0(b, c, \rho_2) = \mathsf{None} \]</p>
+<p>Started with \(X = 0\), it tests \(X = 2\) three times (\(X = 0, 1, 2\)) and goes through the body twice. So the answer first appears at \(\mathcal{W}_3\), and after that it never changes. Started with \(X = 5\), it counts \(5, 6, 7, \dots\) and never hits 2. Every \(\mathcal{W}_n\) gives \(\mathsf{None}\): no timeout is long enough.</p>
+<table class="ref"><thead><tr><th>\(n\)</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr></thead><tbody><tr><td>final \(X\), from \(X = 0\)</td><td>None</td><td>None</td><td>None</td><td>Some 2</td><td>Some 2</td><td>Some 2</td><td>Some 2</td></tr>
+<tr><td>final \(X\), from \(X = 5\)</td><td>None</td><td>None</td><td>None</td><td>None</td><td>None</td><td>None</td><td>None</td></tr></tbody></table>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-15">Definition loop_b : bexp := ¬ (var X == const 2).
+Definition loop_c : com := X ::= var X ⊕ const 1.
+
+Definition σ_X0 : Env := fun _ =&gt; 0.
+Definition σ_X5 : Env := fun x =&gt; if String.eqb x X then 5 else 0.
+
+Definition final (x : name) (r : option Env) : option Z :=
+  match r with
+  | None =&gt; None
+  | Some σ =&gt; Some (σ x)
+  end.
+
+Example W3_step :
+  𝒲 3 (loop_b, loop_c, σ_X0) = 𝒲 2 (loop_b, loop_c, upd σ_X0 X 1).
+Proof. reflexivity. Qed.
+
+Example W2_none : 𝒲 2 (loop_b, loop_c, σ_X0) = None.
+Proof. reflexivity. Qed.
+
+Example from_0 :
+  map (fun n =&gt; final X (𝒲 n (loop_b, loop_c, σ_X0))) [0; 1; 2; 3; 4; 5; 6]%nat
+  = [None; None; None; Some 2; Some 2; Some 2; Some 2].
+Proof. reflexivity. Qed.
+
+Example from_5 :
+  map (fun n =&gt; final X (𝒲 n (loop_b, loop_c, σ_X5))) [0; 1; 2; 3; 4; 5; 6]%nat
+  = [None; None; None; None; None; None; None].
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 28 lines">Show code · 28 lines</button></div></div>
+<h2>Part 5: Equational reasoning</h2>
+<p>Meanings are functions, so "same meaning" is an equation, and we can reason about programs by calculation, as in algebra. There are three layers: expressions, commands without loops, and loops.</p>
+<h3>Expressions: plain algebra</h3>
+<p>\[ a \equiv_a a' \;:\!\iff\; \forall\sigma.\ \mathcal{A}[\![a]\!]\sigma = \mathcal{A}[\![a']\!]\sigma \qquad\qquad b \equiv_b b' \;:\!\iff\; \forall\sigma.\ \mathcal{B}[\![b]\!]\sigma = \mathcal{B}[\![b']\!]\sigma \]</p>
+<p>\(\mathcal{A}\) and \(\mathcal{B}\) are total, so we get the usual laws of \(\mathbb{Z}\) and of booleans:</p>
+<p>\[ a + 0 \equiv_a a \qquad a_0 + a_1 \equiv_a a_1 + a_0 \qquad a * 1 \equiv_a a \qquad \lnot\lnot b \equiv_b b \qquad \lnot(b_0 \land b_1) \equiv_b \lnot b_0 \lor \lnot b_1 \qquad (a = a) \equiv_b \mathsf{true} \]</p>
+<p>Constant folding lives here: \(\mathsf{cfold} : \mathit{AExp} \to \mathit{AExp}\), \(\mathsf{cfold}(Y + (2 * 3)) = Y + 6\), and \(\forall a.\ \mathsf{cfold}\ a \equiv_a a\) (induction on \(a\)).</p>
+<h3>Commands without loops: algebra with partiality</h3>
+<p>\[ c \equiv c' \;:\!\iff\; \forall\sigma.\ \mathcal{C}[\![c]\!]\sigma = \mathcal{C}[\![c']\!]\sigma \qquad \text{(both run forever, or both stop in the same environment)} \]</p>
+<p>Expression laws carry over:</p>
+<p>\[ a \equiv_a a' \implies x := a \;\equiv\; x := a' \quad (\text{e.g. } x := a \equiv x := \mathsf{cfold}\ a) \qquad\qquad b \equiv_b b' \implies \mathsf{if}\ b\ \mathsf{then}\ c_0\ \mathsf{else}\ c_1 \;\equiv\; \mathsf{if}\ b'\ \mathsf{then}\ c_0\ \mathsf{else}\ c_1 \]</p>
+<p>Laws (unfold \(\mathcal{C}[\![\cdot]\!]\), case on \(\mathcal{B}[\![b]\!]\sigma\) or on whether \(\mathcal{C}[\![c_0]\!]\sigma\) is \(\mathsf{Some}\) or \(\mathsf{None}\)):</p>
+<p>\[ \begin{aligned} \mathsf{if}\ \mathsf{true}\ \mathsf{then}\ c_0\ \mathsf{else}\ c_1 &\equiv c_0 \\ \mathsf{skip} ; c &\equiv c \\ c ; \mathsf{skip} &\equiv c \\ (c_0 ; c_1) ; c_2 &\equiv c_0 ; (c_1 ; c_2) \\ \mathsf{if}\ b\ \mathsf{then}\ c\ \mathsf{else}\ c &\equiv c \\ \mathsf{if}\ \lnot b\ \mathsf{then}\ c_0\ \mathsf{else}\ c_1 &\equiv \mathsf{if}\ b\ \mathsf{then}\ c_1\ \mathsf{else}\ c_0 \\ \mathsf{if}\ b\ \mathsf{then}\ (c_0 ; c)\ \mathsf{else}\ (c_1 ; c) &\equiv (\mathsf{if}\ b\ \mathsf{then}\ c_0\ \mathsf{else}\ c_1) ; c \end{aligned} \]</p>
+<p>Congruence (\(\mathcal{C}[\![c_0 ; c_1]\!]\) and \(\mathcal{C}[\![\mathsf{if}\ b\ \mathsf{then}\ c_0\ \mathsf{else}\ c_1]\!]\) only use \(\mathcal{B}[\![b]\!]\), \(\mathcal{C}[\![c_0]\!]\), \(\mathcal{C}[\![c_1]\!]\)):</p>
+<p>\[ \frac{c_0 \equiv c_0'}{c_0 ; c_1 \equiv c_0' ; c_1} \qquad \frac{c_1 \equiv c_1'}{c_0 ; c_1 \equiv c_0 ; c_1'} \qquad \frac{c_0 \equiv c_0' \quad c_1 \equiv c_1'}{\mathsf{if}\ b\ \mathsf{then}\ c_0\ \mathsf{else}\ c_1 \equiv \mathsf{if}\ b\ \mathsf{then}\ c_0'\ \mathsf{else}\ c_1'} \]</p>
+<p>So we can calculate, and each step is a rewrite a compiler may use:</p>
+<p>\[ \begin{aligned} &X := 3 ;\ \mathsf{if}\ \mathsf{true}\ \mathsf{then}\ (\mathsf{skip} ; Y := 4)\ \mathsf{else}\ \mathsf{skip} \\ \equiv\ &X := 3 ;\ (\mathsf{skip} ; Y := 4) && \text{if-true law, inside } ; \\ \equiv\ &X := 3 ;\ Y := 4 && \mathsf{skip} ; c \equiv c\text{, inside } ; \end{aligned} \]</p>
+<h3>Loops: equations plus induction</h3>
+<p>With \(\mathcal{C}[\![\mathsf{while}\ b\ \mathsf{do}\ c]\!]\sigma\) the limit of \(\mathcal{W}_n(b, c, \sigma)\), some equations still hold:</p>
+<p>\[ \begin{aligned} \mathsf{while}\ b\ \mathsf{do}\ c &\equiv \mathsf{if}\ b\ \mathsf{then}\ (c ; \mathsf{while}\ b\ \mathsf{do}\ c)\ \mathsf{else}\ \mathsf{skip} && \text{(the limit is a fixed point)} \\ \mathsf{while}\ \mathsf{false}\ \mathsf{do}\ c &\equiv \mathsf{skip} \\ c \equiv c' &\implies \mathsf{while}\ b\ \mathsf{do}\ c \equiv \mathsf{while}\ b\ \mathsf{do}\ c' && (\mathcal{W}_n \text{ only uses } \mathcal{C}[\![c]\!]) \end{aligned} \]</p>
+<p>But equations alone cannot pin a loop down. For \(\mathsf{while}\ \mathsf{true}\ \mathsf{do}\ \mathsf{skip}\) the unrolling equation says \(W\sigma = W\sigma\), which every \(W\) satisfies. To show what a loop does, we need induction: on \(n\) (the \(\mathcal{W}_n\)), or on the data (\(P_1 \equiv P_2\) below needs induction on \(\sigma(X)\)).</p>
+<h3>What \(\equiv\) does not tell us</h3>
+<ol>
+<li><strong>Too strict.</strong> \(R := (X + Y) * (X + Y) \;\not\equiv\; T := X + Y ;\ R := T * T\), although both give the same \(R\); they differ at \(T\).</li>
+<li><strong>A fact about the model.</strong> It says something about runs only if \(\langle c, \sigma\rangle \Downarrow \tau \iff \mathcal{C}[\![c]\!]\sigma = \mathsf{Some}\ \tau\) (Theorem 1 in the notes; not proved here), and cfold is correct in \(\mathbb{Z}\), not in 64-bit arithmetic.</li>
+<li><strong>Language-specific.</strong> \(\mathsf{if}\ b\ \mathsf{then}\ c\ \mathsf{else}\ c \equiv c\) needs \(\mathcal{B}[\![b]\!]\sigma\) to always finish and to leave \(\sigma\) alone.</li>
+<li><strong>No running time.</strong> See below.</li>
+</ol>
+<h2>Denotations forget running time</h2>
+<p>\[ \begin{aligned} P_1 &= \mathsf{if}\ 1 \le X\ \mathsf{then}\ X := 0\ \mathsf{else}\ \mathsf{skip} \\ P_2 &= \mathsf{while}\ 1 \le X\ \mathsf{do}\ X := X - 1 \\ \mathcal{C}[\![P_1]\!] = \mathcal{C}[\![P_2]\!] &= \lambda\sigma.\ \text{if } 1 \le \sigma(X) \text{ then } \mathsf{Some}\ \sigma[X \mapsto 0] \text{ else } \mathsf{Some}\ \sigma \end{aligned} \]</p>
+<p>So \(P_1 \equiv P_2\), but \(P_1\) takes one step and \(P_2\) takes \(\sigma(X)\) trips through its loop.</p>
+<h2>Appendix on monads</h2>
+<p>A <strong>monad</strong>, presented as an <em>extension system</em> (also called a <em>Kleisli triple</em>), is</p>
+<p>\[ T : \mathsf{Type} \to \mathsf{Type} \qquad\qquad \eta_A : A \to T\,A \qquad\qquad (-)^\dagger : (A \to T\,B) \to (T\,A \to T\,B) \]</p>
+<p>satisfying three equations, for all \(f : A \to T\,B\) and \(g : B \to T\,C\):</p>
+<p>\[ \begin{aligned} \eta_A^\dagger &= \mathrm{id}_{T A} \\ f^\dagger \circ \eta_A &= f \\ (g^\dagger \circ f)^\dagger &= g^\dagger \circ f^\dagger \end{aligned} \]</p>
+<p>Read \(T\,A\) as "computations that produce an \(A\)", \(\eta\) as "produce this value and do nothing else", and \(f^\dagger\) as "run a computation, then continue with \(f\)". Often one writes \(\mathsf{bind}\ m\ f = f^\dagger\,m\) instead; it is the same data.</p>
+<p><strong>The syntax works for every monad.</strong> Define, exactly as for option,</p>
+<p>\[ x \leftarrow m\ ;\ \mathit{rest} \;:=\; (\lambda x.\ \mathit{rest})^\dagger\ m \]</p>
+<p>Then the three equations say:</p>
+<p>\[ \begin{aligned} (x \leftarrow m\ ;\ \eta\,x) &= m \\ (x \leftarrow \eta\,a\ ;\ \mathit{rest}) &= \mathit{rest}[a/x] \\ (y \leftarrow (x \leftarrow m\ ;\ f\,x)\ ;\ g\,y) &= (x \leftarrow m\ ;\ y \leftarrow f\,x\ ;\ g\,y) \end{aligned} \]</p>
+<h3>Option is a monad</h3>
+<p>\[ T\,A = \mathsf{option}\ A \qquad \eta_A = \mathsf{Some} \qquad f^\dagger\,\mathsf{None} = \mathsf{None},\quad f^\dagger\,(\mathsf{Some}\ x) = f\,x \]</p>
+<p>Each equation is checked by cases on whether the input is \(\mathsf{None}\) or \(\mathsf{Some}\ x\):</p>
+<ul>
+<li>\(\eta^\dagger\) sends \(\mathsf{None} \mapsto \mathsf{None}\) and \(\mathsf{Some}\ x \mapsto \mathsf{Some}\ x\), so it is the identity.</li>
+<li>\(f^\dagger(\mathsf{Some}\ x) = f\,x\) is the definition of \(\dagger\).</li>
+<li>Both sides of the third equation send \(\mathsf{None}\) to \(\mathsf{None}\), and both send \(\mathsf{Some}\ x\) to \(g^\dagger(f\,x)\).</li>
+</ul>
+<p>With \(\eta = \mathcal{C}[\![\mathsf{skip}]\!]\) and \(\mathcal{C}[\![c_0 ; c_1]\!] = \mathcal{C}[\![c_1]\!]^\dagger \circ \mathcal{C}[\![c_0]\!]\), the three equations are three program equivalences from Part 5:</p>
+<p>\[ c ; \mathsf{skip} \equiv c \qquad\qquad \mathsf{skip} ; c \equiv c \qquad\qquad (c_0 ; c_1) ; c_2 \equiv c_0 ; (c_1 ; c_2) \]</p>
+<h3>Other monads</h3>
+<table class="ref"><thead><tr><th>monad</th><th>\(T\,A\)</th><th>\(\eta\,a\)</th><th>\(f^\dagger\,m\)</th></tr></thead><tbody><tr><td>option (partiality)</td><td>\(\mathsf{option}\ A\)</td><td>\(\mathsf{Some}\ a\)</td><td>\(\mathsf{None}\) if \(m = \mathsf{None}\), else \(f\,x\) for \(m = \mathsf{Some}\ x\)</td></tr>
+<tr><td>exceptions</td><td>\(A + E\)</td><td>\(\mathsf{inl}\ a\)</td><td>\(f\,x\) if \(m = \mathsf{inl}\ x\); \(m\) if \(m = \mathsf{inr}\ e\)</td></tr>
+<tr><td>state</td><td>\(S \to A \times S\)</td><td>\(\lambda s.\ (a, s)\)</td><td>\(\lambda s.\ \text{let } (x, s') = m\,s \text{ in } f\,x\,s'\)</td></tr>
+<tr><td>reader (environment)</td><td>\(R \to A\)</td><td>\(\lambda r.\ a\)</td><td>\(\lambda r.\ f\,(m\,r)\,r\)</td></tr>
+<tr><td>writer (output)</td><td>\(A \times W\), \(W\) a monoid</td><td>\((a, \varepsilon)\)</td><td>\(\text{let } (x, w) = m,\ (y, w') = f\,x \text{ in } (y, w \cdot w')\)</td></tr>
+<tr><td>nondeterminism</td><td>\(\mathcal{P}(A)\)</td><td>\(\{a\}\)</td><td>\(\bigcup_{x \in m} f\,x\)</td></tr>
+<tr><td>probability</td><td>distributions on \(A\)</td><td>point mass at \(a\)</td><td>\(\sum_x m(x) \cdot f\,x\)</td></tr>
+<tr><td>continuations</td><td>\((A \to R) \to R\)</td><td>\(\lambda k.\ k\,a\)</td><td>\(\lambda k.\ m\,(\lambda x.\ f\,x\,k)\)</td></tr></tbody></table>
+<p>Because the arrow syntax only uses \(\eta\) and \(\dagger\), the sequencing clause</p>
+<p>\[ \mathcal{C}[\![c_0 ; c_1]\!]\sigma = \sigma' \leftarrow \mathcal{C}[\![c_0]\!]\sigma\ ;\ \mathcal{C}[\![c_1]\!]\sigma' \]</p>
+<p>reads the same for every monad, and so do skip (\(\eta\,\sigma\)), assignment (\(\eta\,\sigma[x \mapsto \mathcal{A}[\![a]\!]\sigma]\)) and if. Changing \(T\) changes what kind of effect commands may have. For example, with \(T = \mathcal{P}\) a command may have several final environments; that is §4 of the notes, where \(\mathcal{C}[\![c]\!] : \mathit{Env} \to \mathcal{P}(\mathit{Env})\) is the same thing as a relation \([\![c]\!] \subseteq \mathit{Env} \times \mathit{Env}\), and \(\dagger\) becomes relational composition. (while needs more than a monad: an order on \(T\,\mathit{Env}\) in which the approximations \(\mathcal{W}_n\) have a least upper bound.)</p>
+<p>The idea of structuring denotational semantics with monads is due to Moggi, <em>Notions of computation and monads</em> (1991).</p>
+<h3>Moggi's monadic metalanguage</h3>
+<p>Moggi's metalanguage is the simply typed λ-calculus extended with one type former \(T\) and two term formers, return and bind:</p>
+<p>\[ \begin{aligned} A, B &::= \iota \mid 1 \mid A \times B \mid A \to B \mid T\,A \\ e &::= x \mid \langle\rangle \mid \langle e_1, e_2 \rangle \mid \pi_i\,e \mid \lambda x{:}A.\ e \mid e_1\,e_2 \mid \mathsf{ret}\ e \mid \mathsf{let}\ x \Leftarrow e_1\ \mathsf{in}\ e_2 \end{aligned} \]</p>
+<p>\[ \frac{\Gamma \vdash e : A}{\Gamma \vdash \mathsf{ret}\ e : T\,A} \qquad\qquad \frac{\Gamma \vdash e_1 : T\,A \qquad \Gamma, x{:}A \vdash e_2 : T\,B}{\Gamma \vdash \mathsf{let}\ x \Leftarrow e_1\ \mathsf{in}\ e_2 : T\,B} \]</p>
+<p>Besides the usual \(\beta\eta\) for \(\to\) and \(\times\), there are three equations, the monad laws again:</p>
+<p>\[ \begin{aligned} \mathsf{let}\ x \Leftarrow \mathsf{ret}\ e\ \mathsf{in}\ e_2 &= e_2[e/x] \\ \mathsf{let}\ x \Leftarrow e\ \mathsf{in}\ \mathsf{ret}\ x &= e \\ \mathsf{let}\ y \Leftarrow (\mathsf{let}\ x \Leftarrow e_1\ \mathsf{in}\ e_2)\ \mathsf{in}\ e_3 &= \mathsf{let}\ x \Leftarrow e_1\ \mathsf{in}\ \mathsf{let}\ y \Leftarrow e_2\ \mathsf{in}\ e_3 \qquad (x \notin \mathrm{FV}(e_3)) \end{aligned} \]</p>
+<p>Our arrow syntax is exactly this: \(x \leftarrow e_1\ ;\ e_2\) is \(\mathsf{let}\ x \Leftarrow e_1\ \mathsf{in}\ e_2\), and \(\mathsf{ret}\) is \(\eta\). Only \(T\,A\) types can be sequenced; a plain \(A\) is a value, with no effect.</p>
+<p><strong>Semantics.</strong> Interpret \(T\) as a monad: \([\![T\,A]\!] = T\,[\![A]\!]\), \([\![\mathsf{ret}\ e]\!] = \eta \circ [\![e]\!]\), and, in sets,</p>
+<p>\[ [\![\mathsf{let}\ x \Leftarrow e_1\ \mathsf{in}\ e_2]\!]\,\gamma \;=\; (\lambda a.\ [\![e_2]\!](\gamma, a))^\dagger\,([\![e_1]\!]\,\gamma). \]</p>
+<p>\(e_2\) may use the variables in \(\Gamma\) as well as \(x\). In a general category this needs a <em>strong</em> monad, i.e. a map \(\Gamma \times T\,A \to T(\Gamma \times A)\); in sets every monad has one.</p>
+<p>So this whole note is a program in the metalanguage with \(T = \mathsf{option}\): \(\mathcal{C}[\![c]\!] : \mathit{Env} \to T\,\mathit{Env}\), and</p>
+<p>\[ \mathcal{C}[\![c_0 ; c_1]\!] = \lambda\sigma.\ \mathsf{let}\ \sigma' \Leftarrow \mathcal{C}[\![c_0]\!]\sigma\ \mathsf{in}\ \mathcal{C}[\![c_1]\!]\sigma' \qquad\qquad \mathcal{C}[\![\mathsf{skip}]\!] = \lambda\sigma.\ \mathsf{ret}\ \sigma. \]</p>
+<p>Reading a function type \(A \to B\) of a call-by-value language as \(A \to T\,B\) is how Moggi uses the metalanguage to give semantics to effectful languages uniformly. References: Moggi, <em>Computational lambda-calculus and monads</em> (LICS 1989), and <em>Notions of computation and monads</em> (Information and Computation, 1991).</p>
+<h3>State and IO in the metalanguage</h3>
+<p>To use the metalanguage for a particular effect, pick the monad and add the <strong>operations</strong> of that effect as constants of \(T\) type.</p>
+<p><strong>State.</strong> For a set of states \(S\):</p>
+<p>\[ T\,A = S \to A \times S \qquad \eta\,a = \lambda s.\ (a, s) \qquad f^\dagger\,m = \lambda s.\ \text{let } (x, s') = m\,s \text{ in } f\,x\,s' \]</p>
+<p>with two operations, read the state and overwrite it:</p>
+<p>\[ \mathsf{get} : T\,S, \quad \mathsf{get} = \lambda s.\ (s, s) \qquad\qquad \mathsf{put} : S \to T\,1, \quad \mathsf{put}\ s' = \lambda s.\ (\langle\rangle, s') \]</p>
+<p>\(\dagger\) threads the state through: the second computation starts in the state the first one left behind. With \(S = \mathit{Env}\), IMP can be written so that the environment never appears in the sequencing clause. Use \(T\,A = \mathit{Env} \to \mathsf{option}(A \times \mathit{Env})\) (state <em>and</em> partiality; \(\mathsf{get}\) and \(\mathsf{put}\) as above, with their results wrapped in \(\mathsf{Some}\)) and give commands type \(T\,1\):</p>
+<p>\[ \begin{aligned} \mathcal{C}[\![\mathsf{skip}]\!] &= \mathsf{ret}\ \langle\rangle \\ \mathcal{C}[\![x := a]\!] &= \mathsf{let}\ \sigma \Leftarrow \mathsf{get}\ \mathsf{in}\ \mathsf{put}\ \sigma[x \mapsto \mathcal{A}[\![a]\!]\sigma] \\ \mathcal{C}[\![c_0 ; c_1]\!] &= \mathsf{let}\ \_ \Leftarrow \mathcal{C}[\![c_0]\!]\ \mathsf{in}\ \mathcal{C}[\![c_1]\!] \\ \mathcal{C}[\![\mathsf{if}\ b\ \mathsf{then}\ c_0\ \mathsf{else}\ c_1]\!] &= \mathsf{let}\ \sigma \Leftarrow \mathsf{get}\ \mathsf{in}\ \text{if } \mathcal{B}[\![b]\!]\sigma \text{ then } \mathcal{C}[\![c_0]\!] \text{ else } \mathcal{C}[\![c_1]\!] \end{aligned} \]</p>
+<p>Sequencing is now just "do \(c_0\), then \(c_1\)"; passing the environment along is the monad's job. Running \(\mathcal{C}[\![c]\!]\) from \(\sigma\) means applying it to \(\sigma\), which gives back \(\mathsf{Some}(\langle\rangle, \sigma')\) or \(\mathsf{None}\), the same information as before.</p>
+<p><strong>IO.</strong> For a language with \(\mathsf{print}\), use the writer monad with lists of strings, \(W = \mathsf{String}^*\):</p>
+<p>\[ T\,A = A \times W \qquad \eta\,a = (a, [\,]) \qquad f^\dagger\,(x, w) = \text{let } (y, w') = f\,x \text{ in } (y, w \mathbin{+\!\!+} w') \qquad \mathsf{print} : \mathsf{String} \to T\,1,\quad \mathsf{print}\ s = (\langle\rangle, [s]) \]</p>
+<p>\(\dagger\) appends the outputs in the order the program produced them.</p>
+<p>In each case the arrow syntax, and the sequencing clause written with it, is unchanged: only \(T\), \(\eta\), \(\dagger\) and the operations change.</p>
+
+
+</div>
+<div id="slide-nav"><button class="prev" type="button" title="Previous slide (←)">◀</button><span class="count"></span><button class="next" type="button" title="Next slide (→)">▶</button></div>
+</div>
+</div>
+<script>
+window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, svg: { fontCache: 'global' } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.js"></script>
+<script>
+/* Slide mode.  The page is cut into slides at every h2 and h3 and at every
+   slide break (an <hr class="slide-break">).  Nothing moves: the elements
+   of the other slides are just hidden, so the Rocq blocks stay one
+   document and running a block still checks everything before it.
+   Within a slide, each element after the first appears on its own key
+   press, so a slide is revealed one piece at a time.  A folded block
+   marked "unfold" (<details class="unfold">) opens in slide mode, and
+   each .piece inside it counts as an element of its own, as do the
+   .piece parts of an element with class "pieces".  A section whose
+   h2 has class "one-slide" is a single long slide that scrolls, except
+   that an h3 with class "own-slide" still starts a slide of its own.
+   Keys: right arrow or Page Down for the next step or slide, left arrow
+   or Page Up to go back (what a presentation clicker sends), Escape to
+   leave.  The address ends in #slide-N, so a reload stays on the slide. */
+(function () {
+  const doc = document.getElementById('document');
+  const scroller = document.getElementById('code-wrapper');
+  const nav = document.getElementById('slide-nav');
+  const count = nav.querySelector('.count');
+  const context = document.getElementById('slide-context');
+  const button = document.getElementById('present-toggle');
+  const slides = [];
+  let cur = [], section = '', whole = false;
+  const close = () => { cur.steps = cur.length - 1; slides.push(cur); cur = []; };
+  const unfolds = [...doc.querySelectorAll(':scope > details.unfold')];
+  const rows = [...doc.querySelectorAll(':scope > .pieces')];
+  /* the boxes around pieces: shown on a slide when one of their pieces is */
+  const holders = [...unfolds, ...rows].flatMap(d => [d, ...d.querySelectorAll('.rules')]);
+  const units = [...doc.children].flatMap(el =>
+    el.matches('details.unfold, .pieces') ? [...el.querySelectorAll('.piece, hr.slide-break')] : [el]);
+  for (const el of units) {
+    if (el.classList.contains('topbar') || el.id === 'slide-context') continue;
+    /* a section whose h2 is marked "one-slide" stays one long slide */
+    if (el.tagName === 'H2') whole = el.classList.contains('one-slide');
+    const breaks = el.tagName === 'H2' || el.classList.contains('own-slide') ||
+      (!whole && (el.tagName === 'H3' || el.classList.contains('slide-break')));
+    if (breaks && cur.length) close();
+    if (el.tagName === 'H2') section = el.textContent;
+    if (!cur.length) cur.section = el.tagName === 'H2' ? '' : section;
+    if (el.classList.contains('slide-break')) continue;
+    el.dataset.step = cur.length;
+    cur.push(el);
+  }
+  if (cur.length) close();
+  let at = 0, shown = 0;
+  function label() {
+    const m = slides[at].steps;
+    const steps = m > 12 ? 'step ' + shown + ' of ' + m : '●'.repeat(shown) + '○'.repeat(m - shown);
+    count.textContent = (at + 1) + ' / ' + slides.length + (m ? '  ·  ' + steps : '');
+  }
+  /* frames (pieces of an element with class "frames") replace each other:
+     only the latest one revealed shows, in the same place */
+  const frameSets = [...doc.querySelectorAll(':scope > .frames')];
+  function reveal() {
+    for (const el of slides[at]) el.classList.toggle('off-step', Number(el.dataset.step) > shown);
+    for (const g of frameSets) {
+      const fs = [...g.children];
+      const last = fs.filter(f => !f.classList.contains('off-step') && !f.classList.contains('off-slide')).at(-1);
+      for (const f of fs) f.classList.toggle('off-frame', f !== last);
+    }
+    label();
+  }
+  /* show slide i with its first k steps revealed (all of them if k is 'all') */
+  function show(i, k) {
+    at = Math.max(0, Math.min(slides.length - 1, i));
+    shown = k === 'all' ? slides[at].steps : 0;
+    slides.forEach((els, n) => els.forEach(el => el.classList.toggle('off-slide', n !== at)));
+    for (const h of holders) h.classList.toggle('off-slide', !h.querySelector('.piece:not(.off-slide)'));
+    context.textContent = slides[at].section || '';
+    reveal();
+    history.replaceState(null, '', '#slide-' + (at + 1));
+    scroller.scrollTop = k === 'all' ? scroller.scrollHeight : 0;
+    /* editors that were hidden need to measure themselves again */
+    for (const el of slides[at])
+      for (const cm of el.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  /* in a long slide, bring the piece that just appeared or disappeared
+     to the middle of the screen */
+  const piece = k => slides[at].find(el => Number(el.dataset.step) === k);
+  const focusOn = el => { if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+  function next() {
+    if (shown < slides[at].steps) { shown++; reveal(); focusOn(piece(shown)); }
+    else if (at < slides.length - 1) show(at + 1, 0);
+  }
+  function prev() {
+    if (shown > 0) { const gone = piece(shown); shown--; reveal(); focusOn(gone); }
+    else if (at > 0) show(at - 1, 'all');
+  }
+  function start(i) {
+    for (const d of unfolds) { d.dataset.wasOpen = d.open; d.open = true; }
+    doc.classList.add('presenting'); nav.classList.add('on');
+    button.textContent = '✕ Stop presenting';
+    show(i, 0);
+  }
+  function stop() {
+    doc.classList.remove('presenting'); nav.classList.remove('on');
+    button.textContent = '▶ Present';
+    for (const els of slides) for (const el of els) el.classList.remove('off-slide', 'off-step');
+    for (const h of holders) h.classList.remove('off-slide');
+    for (const g of frameSets) for (const f of g.children) f.classList.remove('off-frame');
+    for (const d of unfolds) d.open = d.dataset.wasOpen === 'true';
+    history.replaceState(null, '', location.pathname + location.search);
+    const first = slides[at][0];
+    if (first) first.scrollIntoView();
+    for (const cm of doc.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  const presenting = () => doc.classList.contains('presenting');
+  button.addEventListener('click', () => presenting() ? stop() : start(at));
+  nav.querySelector('.prev').addEventListener('click', prev);
+  nav.querySelector('.next').addEventListener('click', next);
+  document.addEventListener('keydown', e => {
+    if (!presenting() || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest && e.target.closest('.CodeMirror, input, textarea, select')) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Escape') stop();
+  });
+  const m = location.hash.match(/^#slide-(\d+)$/);
+  if (m) start(Number(m[1]) - 1);
+})();
+</script>
+<script>
+/* jsCoq is loaded from the jsDelivr CDN.  Two problems, two fixes:
+   1. Browsers refuse to start a Worker from another domain, so wrap the
+      worker script in a same-origin blob that imports it.
+   2. The WebAssembly backend finds its runtime (OCaml, zarith, ...) in a
+      node_modules folder next to jsCoq.  The CDN has no such folder, so
+      requests for node_modules/<package>/<file> go to that package's own
+      CDN URL, at a pinned version. */
+function workerPrelude(BASE, PIN) {
+  const nativeFetch = self.fetch.bind(self);
+  function remap(r) {
+    const u = new URL(r, BASE);
+    const m = u.pathname.match(/\/(?:node_modules|undefined)\/(.*)$/);
+    if (m) {
+      const rest = m[1];
+      for (const pkg in PIN)
+        if (rest.startsWith(pkg + '/'))
+          return 'https://cdn.jsdelivr.net/npm/' + pkg + '@' + PIN[pkg] + rest.slice(pkg.length);
+    }
+    return u.href;
+  }
+  self.fetch = (r, o) => nativeFetch(typeof r === 'string' || r instanceof URL ? remap(String(r)) : r, o);
+}
+(function () {
+  const PIN = {
+    'ocaml-wasm': '4.12.0-0',
+    '@ocaml-wasm/4.12--zarith': '1.13.0-0',
+    '@ocaml-wasm/4.12--janestreet-base': '0.16.0-0',
+    '@ocaml-wasm/4.12--num': '1.4.0-0'
+  };
+  const NativeWorker = window.Worker;
+  window.Worker = class extends NativeWorker {
+    constructor(url, opts) {
+      const u = new URL(url, location.href);
+      if (u.origin !== location.origin) {
+        const src = '(' + workerPrelude + ')(' + JSON.stringify(u.href) + ', ' +
+                    JSON.stringify(PIN) + '); importScripts(' + JSON.stringify(u.href) + ');';
+        super(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })), opts);
+      } else {
+        super(url, opts);
+      }
+    }
+  };
+})();
+</script>
+<script type="module">
+  const JSCOQ = 'https://cdn.jsdelivr.net/npm/jscoq@0.17.1/';
+  const { JsCoq } = await import(JSCOQ + 'jscoq.js');
+  const theme0 = document.documentElement.getAttribute('data-theme');
+  const button = document.getElementById('theme-toggle');
+  const label = t => { button.textContent = t === 'dark' ? '☀ Light mode' : '☾ Dark mode'; };
+  label(theme0);
+  const coq = await JsCoq.start(['textarea.coq'], {
+    theme: theme0,
+    base_path: JSCOQ,
+    backend: 'wa',
+    prelude: true,
+    implicit_libs: true,
+    init_pkgs: ['init'],
+    all_pkgs: ['coq'],
+    editor: { mode: { 'company-coq': true }, theme: 'd6' },
+    focus: false
+  });
+  /* The light switch: page colors, jsCoq's panel (and its icons). */
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('jscoq-page-theme', t); } catch (e) {}
+    try { coq.layout.configure({ theme: t }); } catch (e) {}
+    /* jsCoq switches its editors to its own themes here; put ours back.
+       Our editor theme reads the page colors, so it follows data-theme. */
+    try { coq.provider.configure({ theme: 'd6' }); } catch (e) {}
+    label(t);
+  }
+  button.addEventListener('click', () =>
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+  /* Keep the right-hand goals panel under the same explicit control used
+     by the later discussion pages. */
+  const ide = document.getElementById('ide-wrapper');
+  const panelButton = document.getElementById('panel-toggle');
+  const panelOpen = () => !ide.classList.contains('toggled');
+  const panelLabel = () => { panelButton.textContent = panelOpen() ? '◨ Hide goals' : '◧ Show goals'; };
+  const setPanel = open => {
+    ide.classList.toggle('toggled', !open);
+    panelLabel();
+    setTimeout(() => { for (const cm of document.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh(); }, 350);
+  };
+  panelButton.addEventListener('click', () => {
+    const open = !panelOpen();
+    setPanel(open);
+    try { localStorage.setItem('jscoq-panel', open ? 'open' : 'closed'); } catch (e) {}
+  });
+  new MutationObserver(panelLabel).observe(ide, { attributes: true, attributeFilter: ['class'] });
+  let savedPanel = null;
+  try { savedPanel = localStorage.getItem('jscoq-panel'); } catch (e) {}
+  const wantPanel = savedPanel !== 'closed';
+  for (const t of [0, 600, 2000]) setTimeout(() => setPanel(wantPanel), t);
+  panelLabel();
+
+  /* Folded code cells.  A cell opens when you click its button or click
+     into its code, and by itself when Coq reports an error inside it.
+     Stepping into a folded cell leaves it folded; the goals panel still
+     follows along. */
+  const cells = [...document.querySelectorAll('.cell')];
+  function setCell(cell, open) {
+    cell.classList.toggle('is-collapsed', !open);
+    const b = cell.querySelector('.cell-toggle');
+    b.setAttribute('aria-expanded', String(open));
+    b.textContent = open ? 'Hide code' : b.dataset.label;
+    const cm = cell.querySelector('.CodeMirror');
+    if (cm && cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  for (const cell of cells) {
+    cell.querySelector('.cell-toggle').addEventListener('click', () =>
+      setCell(cell, cell.classList.contains('is-collapsed')));
+    /* Run: check everything up to the end of this block, using jsCoq's
+       "run to cursor".  Coq checks in order, so earlier blocks run first.
+       If later blocks were already checked, roll back to the end of this
+       block: "run to cursor" rewinds to just before the sentence at the
+       cursor, so for that the cursor goes to the start of the next block. */
+    cell.querySelector('.cell-run').addEventListener('click', () => {
+      const editorOf = c => c.querySelector('.CodeMirror')?.CodeMirror;
+      /* jsCoq tracks the active editor through focus events, which a
+         scripted focus doesn't always fire, so tell it directly. */
+      const point = (cm, pos) => {
+        cm.focus();
+        cm.setCursor(pos);
+        const sp = coq.provider.snippets.find(s => s.editor === cm);
+        if (sp) coq.provider.currentFocus = sp;
+      };
+      const cm = editorOf(cell);
+      if (!cm) return;
+      const last = cm.lastLine();
+      point(cm, { line: last, ch: cm.getLine(last).length });
+      if (coq.provider.getAtPoint()) {
+        /* the end of this block is already checked */
+        const next = cells[cells.indexOf(cell) + 1];
+        if (!next) return;
+        point(editorOf(next), { line: 0, ch: 0 });
+        if (!coq.provider.getAtPoint()) return;   /* nothing checked after this block */
+      }
+      coq.goCursor();
+      /* moving the cursor scrolls the editor; a folded one should still
+         show its first lines */
+      if (cell.classList.contains('is-collapsed')) {
+        cm.scrollTo(0, 0);
+        const n = cells[cells.indexOf(cell) + 1];
+        if (n && n.classList.contains('is-collapsed')) editorOf(n).scrollTo(0, 0);
+      }
+    });
+    cell.addEventListener('mousedown', e => {
+      if (cell.classList.contains('is-collapsed') && e.target.closest('.CodeMirror')) setCell(cell, true);
+    });
+  }
+  /* A folded editor only draws its first lines, so look at Coq's marks
+     in the editor itself, not at the page, to spot an error. */
+  setInterval(() => {
+    for (const cell of cells) {
+      if (!cell.classList.contains('is-collapsed')) continue;
+      const cm = cell.querySelector('.CodeMirror')?.CodeMirror;
+      if (cm && cm.getAllMarks().some(m => (m.className || '').includes('coq-eval-failed'))) setCell(cell, true);
+    }
+  }, 500);
+  const fold = document.getElementById('fold-toggle');
+  fold.addEventListener('click', () => {
+    const open = fold.getAttribute('aria-pressed') !== 'true';
+    fold.setAttribute('aria-pressed', String(open));
+    fold.textContent = open ? 'Fold all code' : 'Show all code';
+    for (const cell of cells) setCell(cell, open);
+  });
+</script>
+</body>
+</html>

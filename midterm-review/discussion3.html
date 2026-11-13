@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<script>
+/* Pick the theme before anything paints: the saved choice, else the OS setting. */
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('jscoq-page-theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark')
+    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<title>Discussion 3: Induction principles and small-step relations</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jscoq@0.17.1/dist/frontend/index.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;650&amp;family=Spectral:ital,wght@0,400;0,600;1,400&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+/* Layout: one reading column, course-handout style; each inference rule is its own block that wraps on phones. */
+:root {
+  --bg: #fbfbf8;
+  --fg: #1d2330;
+  --muted: #5a6273;
+  --navy: #00274c;
+  --maize: #e0a800;
+  --panel: #eef1f6;
+  --line: #d6dbe4;
+  --head: var(--navy);
+  --code-bg: #f3f5f9;
+  --kw: #7a2e8c;
+  --str: #2f6b2f;
+  --num: #a14a00;
+  --font-display: "Commissioner", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Spectral", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+:root[data-theme="dark"] {
+  --bg: #0f1724; --fg: #e4e8ef; --muted: #9aa4b5; --navy: #8fb4e3; --maize: #ffcb05;
+  --panel: #172234; --line: #2a3850; --head: #ffcb05; --code-bg: #121c2c; --kw: #d7a6f0; --str: #9fd39f; --num: #f2b073; color-scheme: dark;
+}
+#document { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 1.05rem; line-height: 1.6; padding-inline: 16px; padding-block: 1.5rem 4rem; }
+#document .CodeMirror { font-size: .8rem; height: auto; }
+#document textarea.coq { width: 100%; }
+header { border-bottom: 3px solid var(--maize); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.eyebrow { font-family: var(--font-display); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1, h2, h3 { font-family: var(--font-display); color: var(--head); text-wrap: balance; line-height: 1.25; }
+h1 { font-size: 1.7rem; margin: .3rem 0 .4rem; font-weight: 650; }
+h2 { font-size: 1.3rem; margin: 2.6rem 0 .6rem; font-weight: 650; padding-top: .4rem; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 1.6rem 0 .4rem; font-weight: 650; }
+p, li { max-width: 65ch; }
+.lede { color: var(--muted); margin: 0; }
+code { font-family: var(--font-mono); font-size: .82em; background: var(--panel); padding: .05em .3em; border-radius: 3px; overflow-wrap: anywhere; }
+.rules { display: flex; flex-wrap: wrap; gap: .4rem 2rem; justify-content: center; align-items: flex-end; margin: .8rem 0 1rem; }
+.rules > div { min-width: 0; max-width: 100%; overflow-x: auto; }
+.display { overflow-x: auto; max-width: 100%; margin: .8rem 0; }
+mjx-container[display="true"] { margin: .4em 0 !important; }
+.thm { background: var(--panel); border-left: 3px solid var(--navy); padding: .7rem 1rem; margin: 1rem 0; }
+.thm p { margin: .3rem 0; }
+.thm .name { font-family: var(--font-display); font-weight: 650; color: var(--navy); }
+.proof { margin: .4rem 0 1rem; }
+.proof em:first-child { font-style: italic; }
+.route-note { background: var(--panel); border-left: 3px solid var(--navy); padding: .7rem 1rem; margin: 1rem 0 1.4rem; }
+.route-note.extension { border-left-color: var(--maize); }
+.route-note strong { font-family: var(--font-display); color: var(--head); }
+table.ref { width: 100%; border-collapse: collapse; margin: .8rem 0 1.2rem; }
+table.ref th, table.ref td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: .35rem .65rem .35rem 0; }
+ul { padding-left: 1.2rem; }
+li { margin: .25rem 0; }
+
+#document code { color: var(--fg); }
+/* jsCoq's own stylesheet paints the document white; use the page tokens instead */
+body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #document { background: var(--bg) !important; color: var(--fg) !important; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+#theme-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+#theme-toggle:hover, #fold-toggle:hover, #present-toggle:hover, #panel-toggle:hover { border-color: var(--navy); }
+#fold-toggle, #present-toggle, #panel-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+.topbar .switches { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+/* displayed math scrolls sideways if it must, never up and down */
+.display, .rules > div { overflow-y: hidden; }
+#document .iso-diagram { color: var(--fg); margin: .6rem auto; max-width: 30rem; }
+#document p.aside { font-size: .85em; color: var(--muted); }
+/* math marked with \\class{hl-blue}{\\bbox[...]{...}}: the step note's soft blue behind it */
+mjx-container .hl-blue { color: var(--fg); }
+mjx-container .hl-blue rect { fill: var(--panel) !important; stroke: var(--line) !important; stroke-width: 20 !important; }
+#document:not(.presenting) mjx-container .hl-blue rect { fill: none !important; stroke: none !important; }
+#document pre.lang { background: var(--code-bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: .6rem .9rem; margin: .6rem 0 .9rem; overflow-x: auto; font-family: var(--font-mono); font-size: .78rem; line-height: 1.45; }
+#document pre.lang code { background: none; padding: 0; font-size: inherit; white-space: pre; }
+#document .iso-diagram svg { display: block; width: 100%; height: auto; }
+/* a program, one line per piece, left aligned */
+#document .display.prog { margin: .15rem 0; padding-left: 1.5rem; }
+#document .display.prog + :not(.display.prog) { margin-top: .9rem; }
+#document .display.prog mjx-container[display="true"] { text-align: left !important; margin: .3em 0 !important; }
+.rules.ch { margin: .2rem 0; align-items: center; }
+/* a tree built in stages: the page shows the last stage; slides show one at a time, in one place */
+#document .frames > .frame:not(.keep) { display: none; }
+#document.presenting .frames { display: grid; }
+#document.presenting .frames > .frame { display: block; grid-area: 1 / 1; align-self: end; }
+/* what each stage did, in one sentence: only in slide mode */
+#document .step-note { display: none; }
+#document.presenting .step-note { display: block; text-align: left; font-size: .8em; line-height: 1.4; min-height: 4.2em;
+  margin: .6rem auto 0; max-width: 34em; padding: .5rem .8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+/* opacity, not visibility: a stage's own visible parts must not show through */
+#document.presenting .frames > .frame.off-frame, #document.presenting .frames > .frame.off-step { opacity: 0; }
+.rules.ch > .ch-name { margin-left: -1.2rem; font-size: .9em; overflow: visible; }
+/* the rule correspondence as a table: typing rule | logic rule | name, labeled on top */
+#document .ch-table { display: grid; grid-template-columns: max-content max-content max-content; justify-content: safe center; align-items: center; column-gap: 1.2rem; row-gap: .3rem; margin: .8rem 0 1rem; overflow-x: auto; }
+#document .ch-table .piece { min-width: auto; max-width: none; overflow: visible; }
+#document .ch-table > .rules.ch { display: contents; }
+#document .ch-table .ch-name { margin-left: 0; justify-self: start; }
+#document .ch-table .ch-label { order: -1; text-align: center; font-family: var(--font-display); font-weight: 650; color: var(--head); padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
+#document .ch-table .ch-label span { display: block; font-family: var(--font-body); font-weight: 400; font-size: .8em; color: var(--muted); }
+#document .ch-table .ch-label.ipl { grid-column: 2 / span 2; }
+/* folded code cells: the first two lines show, faded out, until opened */
+.cell { margin: .8rem 0 1.2rem; }
+.cell.is-collapsed .CodeMirror { max-height: 3.3em !important; overflow: hidden; cursor: pointer; }
+.cell.is-collapsed .CodeMirror::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2.2em; background: linear-gradient(to bottom, transparent, var(--code-bg)); pointer-events: none; z-index: 10; }
+.cell-bar { display: flex; align-items: center; gap: 1rem; margin-top: .25rem; }
+.cell-run { font-family: var(--font-display); font-size: .78rem; font-weight: 650; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .15rem .7rem; cursor: pointer; }
+.cell-run:hover { border-color: var(--navy); }
+.cell-run:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+.cell-toggle { display: block; font-family: var(--font-display); font-size: .78rem; color: var(--navy); background: none; border: 0; padding: .15rem 0; cursor: pointer; }
+.cell-toggle:hover { text-decoration: underline; }
+.cell-toggle:focus-visible, #fold-toggle:focus-visible, #present-toggle:focus-visible, #panel-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+#theme-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+
+/* ---- jsCoq in the page's colors ------------------------------------
+   Three hues only, taken from the page: blue for the language (commands
+   bold, keywords plain, tactics a second, greener blue), amber for
+   literals and bullets, gray for comments.  Everything else is plain
+   text.  All at least about 5:1 on the code background, for projectors. */
+:root {
+  --syn-cmd: #0b4f9c; --syn-tactic: #0b6378; --syn-amber: #8a5a00; --syn-comment: #5c6370;
+  --ok-bg: #e7ecf4; --pending-bg: #fbefc4; --failed-bg: #f5d3d3;
+}
+:root[data-theme="dark"] {
+  --syn-cmd: #8cb4ff; --syn-tactic: #6cc4d6; --syn-amber: #f2c14e; --syn-comment: #9aa3b3;
+  --ok-bg: #19273b; --pending-bg: #3b3313; --failed-bg: #4a1f26;
+}
+/* editors */
+/* a question with its answer folded underneath */
+#document details.question { border: 1px solid var(--line); border-radius: 8px; padding: .6rem 1rem; margin: 1rem 0; background: var(--bg); }
+#document details.question > summary { cursor: pointer; font-family: var(--font-display); font-weight: 650; color: var(--head); }
+#document details.question[open] > summary { margin-bottom: .4rem; }
+/* nested-sets diagram */
+.venn { margin: 1rem 0; }
+.venn svg { display: block; width: 100%; max-width: 600px; height: auto; margin: 0 auto; }
+.venn .v-all { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+.venn .v-safe { fill: var(--ok-bg); stroke: var(--navy); stroke-width: 1.5; }
+.venn .v-typed { fill: var(--pending-bg); stroke: var(--maize); stroke-width: 2; }
+.venn .v-label { fill: var(--fg); font-family: var(--font-display); font-weight: 650; font-size: 20px; }
+.venn .v-ex { fill: var(--fg); font-family: var(--font-body); font-style: italic; font-size: 18px; }
+#document .cite { font-size: .85rem; color: var(--muted); }
+#document ul.refs { font-size: .88rem; color: var(--muted); padding-left: 1.1rem; }
+#document ul.refs li { margin: .3rem 0; }
+#document table.ref { border-collapse: collapse; margin: .8rem 0 1rem; font-size: .95rem; }
+#document table.ref th, #document table.ref td { border-bottom: 1px solid var(--line); padding: .3rem .9rem .3rem 0; text-align: left; }
+#document table.ref th { font-family: var(--font-display); font-weight: 650; color: var(--head); }
+/* step rules that do the real work */
+.rules > div.work { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 6px; padding: 0 .7rem; }
+.work-key { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 4px; padding: 0 .3rem; }
+/* math marked new with \\class{hl-new}{...}: maize marker behind the text */
+mjx-container .hl-new { color: var(--fg); }
+mjx-container .hl-new rect { fill: var(--pending-bg) !important; stroke: var(--maize) !important; stroke-width: 20 !important; }
+.cm-s-d6.CodeMirror { background: var(--code-bg) !important; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; }
+.cm-s-d6 .CodeMirror-gutters { background: var(--code-bg) !important; border-right: 1px solid var(--line) !important; }
+.cm-s-d6 .CodeMirror-linenumber { color: var(--muted) !important; }
+.cm-s-d6 .CodeMirror-cursor { border-left-color: var(--fg) !important; }
+.cm-s-d6 .CodeMirror-selected, .cm-s-d6.CodeMirror-focused .CodeMirror-selected { background: var(--line) !important; }
+.cm-s-d6 span[class*="cm-"] { color: var(--fg) !important; font-weight: 400; font-style: normal; }
+.cm-s-d6 span.cm-builtin { color: var(--syn-cmd) !important; font-weight: 700; }
+.cm-s-d6 span.cm-keyword { color: var(--syn-cmd) !important; }
+.cm-s-d6 span.cm-tactic { color: var(--syn-tactic) !important; font-weight: 600; }
+.cm-s-d6 span.cm-terminator { color: var(--syn-tactic) !important; font-weight: 700; }
+.cm-s-d6 span.cm-comment { color: var(--syn-comment) !important; font-style: italic; }
+.cm-s-d6 span.cm-string, .cm-s-d6 span.cm-number { color: var(--syn-amber) !important; }
+.cm-s-d6 span.cm-coq-bullet { color: var(--syn-amber) !important; font-weight: 700; }
+.cm-s-d6 span.cm-coq-focus { color: var(--muted) !important; }
+.cm-s-d6 span.CodeMirror-matchingbracket { color: var(--fg) !important; outline: 1px solid var(--maize); text-shadow: none; }
+/* how far Coq has checked */
+.cm-s-d6 .coq-eval-ok { background-color: var(--ok-bg) !important; }
+.cm-s-d6 .coq-eval-ok.coq-highlight { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-pending { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-failed { background-color: var(--failed-bg) !important; }
+/* the goals / messages panel */
+body.jscoq-main #panel-wrapper { background: var(--bg) !important; color: var(--fg) !important; border-left: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel { border-top: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel > .caption { background: var(--panel) !important; color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper #toolbar { border-bottom: 1px solid var(--line) !important; }
+body.jscoq-main #vsep, body.jscoq-main #hsep { background: var(--line) !important; }
+body.jscoq-main #panel-wrapper a, body.jscoq-main #panel-wrapper a:visited { color: var(--navy) !important; }
+body.jscoq-main #panel-wrapper #goal-panel p.system { color: var(--muted) !important; }
+body.jscoq-main #panel-wrapper [class*="constr."], body.jscoq-main #panel-wrapper [class*="module."],
+body.jscoq-main #panel-wrapper [class*="tactic."] { color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper .constr\.keyword, body.jscoq-main #panel-wrapper .module\.keyword,
+body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !important; }
+
+/* slide mode: one slide of the page at a time, at projector size */
+#document hr.slide-break { display: none; }
+#document.presenting .off-step { visibility: hidden; }
+/* collapsed table borders ignore visibility */
+#document.presenting tr.off-step > td, #document.presenting tr.off-step > th { border-color: transparent; }
+#document .slide-only { display: none; }
+#document.presenting .off-slide { display: none !important; }
+#document.presenting { font-size: 1.4rem; line-height: 1.5; padding-block: 1rem 5rem; }
+#document.presenting .CodeMirror { font-size: 1.05rem; }
+#document.presenting .topbar .eyebrow { display: none; }
+#document.presenting h1 { font-size: 1.8em; }
+#document.presenting h2 { font-size: 1.5em; margin-top: .4rem; border-top: 0; }
+#document.presenting h3 { font-size: 1.2em; margin-top: .4rem; }
+#document.presenting .topbar button { font-size: .8rem; }
+#document.presenting table.ref { font-size: .85em; }
+#document.presenting details:not(.unfold) .display, #document.presenting details:not(.unfold) .rules { font-size: .72em; }
+#document.presenting details.unfold { border: 0; padding: 0; margin: 0; background: none; }
+#document.presenting details.unfold > summary { display: none; }
+#document.presenting .slide-only { display: block; }
+#document.presenting #slide-context { font-family: var(--font-display); font-weight: 650; font-size: .8rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 .4rem; }
+#document.presenting #slide-context:empty { display: none; }
+#slide-nav { position: fixed; left: 16px; bottom: 14px; z-index: 50; display: none; gap: .4rem; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .3rem .5rem; font-family: var(--font-display); font-size: .9rem; color: var(--fg); }
+#document.presenting ~ #slide-nav, #slide-nav.on { display: flex; }
+#slide-nav button { font: inherit; }
+#slide-nav .count { min-width: 4.5em; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body class="jscoq-main">
+<div id="ide-wrapper" class="toggled">
+<div id="code-wrapper">
+<div id="document">
+<div class="topbar">
+<p class="eyebrow" style="margin-top:0">Runs in your browser: click into a code block and press Alt+↓ (Option+↓ on a Mac) to step, or Alt+Enter to run to the cursor. Goals show in the panel on the right.</p>
+<div class="switches">
+<button id="present-toggle" type="button">▶ Present</button>
+<button id="fold-toggle" type="button" aria-pressed="false">Show all code</button>
+<button id="panel-toggle" type="button" title="Collapse or open the goals and messages panel"></button>
+<button id="theme-toggle" type="button"></button>
+</div>
+</div>
+<p id="slide-context" class="slide-only"></p>
+
+<header>
+  <p class="eyebrow">CSE 590 · Fall 2026 · Discussion 3</p>
+  <h1>Where induction principles come from</h1>
+  <p class="lede">Read the shape of an inductive definition, predict the induction principle, and then use the same idea to define small-step semantics.</p>
+</header>
+
+<h2>1. One constructor, one proof case</h2>
+<p>For every inductive type <code>T</code>, Rocq generates <code>T_ind</code>. To prove (P(t)) for every (t:T), provide one case for every constructor. Every recursive constructor argument contributes an induction hypothesis.</p>
+
+<h3>Enumeration: induction is case analysis</h3>
+<div class="display">\[
+\frac{P(A) \qquad P(B) \qquad P(C)}{\forall x.\,P(x)}
+\]</div>
+<p><code>MyType</code> has three constructors and none is recursive, so there are three cases and no induction hypotheses. The first property is deliberately trivial; the second states that every value is (A), (B), or (C).</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-1">(* ---------------------------------------------------------------
+   1. Enumerated types: induction ~ case analysis
+   --------------------------------------------------------------- *)
+
+(* Learning objective: read an induction principle and apply it.
+   For a type with no recursive constructors, induction is just
+   checking every constructor, one case each. *)
+
+Inductive MyType : Type := A | B | C.
+
+Check MyType_ind.
+(*
+      P(A)     P(B)     P(C)
+   --------------------------
+           ∀x. P(x)
+*)
+
+Definition alwaysTrue (x : MyType) : Prop := True.
+
+Check MyType_ind alwaysTrue.
+
+Theorem AlwaysTrue : forall x : MyType, alwaysTrue x.
+Proof.
+  apply MyType_ind.
+  (*
+     ------  A     ------  B     ------  C
+      True          True          True
+  *)
+  - unfold alwaysTrue. trivial.
+  - unfold alwaysTrue. trivial.
+  - unfold alwaysTrue. trivial.
+Qed.
+
+Definition xIsABC (x : MyType) : Prop := x = A \/ x = B \/ x = C.
+
+Check MyType_ind xIsABC.
+
+Theorem MyType_cases : forall x : MyType, xIsABC x.
+Proof.
+  unfold xIsABC.
+  apply MyType_ind.
+  (*
+     ---------------------  A
+     A = A ∨ A = B ∨ A = C
+
+     ---------------------  B
+     B = A ∨ B = B ∨ B = C
+
+     ---------------------  C
+     C = A ∨ C = B ∨ C = C
+  *)
+  - left. reflexivity.
+  - right. left. reflexivity.
+  - right. right. reflexivity.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 55 lines">Show code · 55 lines</button></div></div>
+
+<h3>Naturals: the first induction hypothesis</h3>
+<div class="display">\[
+\frac{P(\mathsf{zero}) \qquad \forall n.\,P(n) \Rightarrow P(\mathsf{succ}\ n)}{\forall n.\,P(n)}
+\]</div>
+<p>The <code>succ</code> constructor contains one recursive <code>nat</code>, so its proof case receives one induction hypothesis. That is exactly what the proof of <code>plus n zero = n</code> rewrites with.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-2">(* ---------------------------------------------------------------
+   2. Natural numbers: the first IH
+   --------------------------------------------------------------- *)
+
+(* Learning objective: see where an inductive hypothesis comes from.
+   succ takes a nat, so its case gets an IH, and we use it with
+   rewrite. *)
+
+Module MyNat.
+
+Inductive nat : Type := zero | succ : nat -&gt; nat.
+
+Check nat_ind.
+(*
+      P(zero)     ∀n. P(n) ⇒ P(succ n)
+   ------------------------------------
+                ∀n. P(n)
+*)
+
+Fixpoint plus (n m : nat) : nat :=
+  match n with
+  | zero =&gt; m
+  | succ n' =&gt; succ (plus n' m)
+  end.
+
+Theorem ZeroPlusNIsN : forall (n : nat), plus zero n = n.
+Proof.
+  intros. compute. reflexivity.
+Qed.
+
+Definition nPlusZeroIsN (n : nat) : Prop := plus n zero = n.
+
+Check nat_ind nPlusZeroIsN.
+
+Theorem plus_zero_r : forall n : nat, nPlusZeroIsN n.
+Proof.
+  unfold nPlusZeroIsN.
+  (* intros. compute. Undo. Undo. *)
+  apply nat_ind.
+  (*
+     ---------------------  zero
+     plus zero zero = zero
+
+           plus n zero = n            (IH)
+     ---------------------------  succ
+     plus (succ n) zero = succ n
+  *)
+  - compute. reflexivity.
+  - intros n IH. simpl. rewrite IH. reflexivity.
+Qed.
+
+End MyNat.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 52 lines">Show code · 52 lines</button></div></div>
+
+<h3>Binary trees: one hypothesis per subtree</h3>
+<div class="display">\[
+\frac{P(\mathsf{leaf}) \qquad \forall x\,l\,r.\,P(l)\Rightarrow P(r)\Rightarrow P(\mathsf{node}\ x\ l\ r)}{\forall t.\,P(t)}
+\]</div>
+<p>A node has two recursive arguments. The proof that mirroring twice returns the original tree therefore gets one hypothesis for the left subtree and one for the right.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-3">(* ---------------------------------------------------------------
+   3. Binary trees: two IHs
+   --------------------------------------------------------------- *)
+
+(* Learning objective: every recursive argument gets its own IH.
+   node has two subtrees, so its case has two IHs. *)
+
+Inductive Tree (X : Type) : Type :=
+| leaf
+| node (x : X) (l : Tree X) (r : Tree X).
+
+Check Tree_ind.
+(*
+      P(leaf)     ∀x l r. P(l) ∧ P(r) ⇒ P(node x l r)
+   ---------------------------------------------------
+                      ∀t. P(t)
+*)
+
+Fixpoint mirror {X : Type} (t : Tree X) : Tree X :=
+  match t with
+  | leaf _ =&gt; leaf X
+  | node _ x l r =&gt; node X x (mirror r) (mirror l)
+  end.
+
+Definition tMirrorTwiceIsT {X : Type} (t : Tree X) : Prop :=
+  mirror (mirror t) = t.
+
+Check Tree_ind nat tMirrorTwiceIsT.
+
+Theorem mirror_mirror : forall (X : Type) (t : Tree X), tMirrorTwiceIsT t.
+Proof.
+  unfold tMirrorTwiceIsT.
+  intros X.
+  apply Tree_ind.
+  (*
+     ---------------------------  leaf
+     mirror (mirror leaf) = leaf
+
+     mirror (mirror l) = l     mirror (mirror r) = r      (IHl, IHr)
+     -----------------------------------------------  node
+       mirror (mirror (node x l r)) = node x l r
+  *)
+  - simpl. reflexivity.
+  - intros x l IHl r IHr.
+    change (mirror (node X x (mirror r) (mirror l)) = node X x l r).
+    simpl. rewrite IHl. rewrite IHr. reflexivity.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 47 lines">Show code · 47 lines</button></div></div>
+
+<h3>Syntax trees: structural induction is ordinary induction</h3>
+<table class="ref">
+  <tr><th>constructor</th><th>recursive subterms</th><th>induction hypotheses</th></tr>
+  <tr><td><code>var n</code></td><td>none</td><td>none</td></tr>
+  <tr><td><code>app t1 t2</code></td><td><code>t1</code>, <code>t2</code></td><td>two</td></tr>
+  <tr><td><code>lam x t</code></td><td><code>t</code></td><td>one</td></tr>
+</table>
+<p>The example counts variable occurrences and proves that every untyped lambda term contains at least one variable occurrence. Its proof has exactly the shape predicted by <code>utlc_ind</code>.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-4">(* ---------------------------------------------------------------
+   4. Untyped lambda calculus terms
+   --------------------------------------------------------------- *)
+
+(* Learning objective: the same pattern works for the syntax of a
+   language.  This is the structural induction on terms from
+   lecture 6. *)
+
+Require Import Arith.   (* for Nat.le_trans and Nat.le_add_r *)
+
+Inductive utlc : Type :=
+| var (n : nat)
+| app (t1 t2 : utlc)
+| lam (x : nat) (t : utlc).
+
+Check utlc_ind.
+(*
+      ∀x. P(x)     ∀e1 e2. P(e1) ∧ P(e2) ⇒ P(e1 e2)     ∀x e. P(e) ⇒ P(λx.e)
+   -------------------------------------------------------------------------
+                                  ∀e. P(e)
+*)
+(* var: no IH.  app: two IHs.  lam: one IH (for the body). *)
+
+(* Number of variable occurrences in a term. *)
+Fixpoint numVars (t : utlc) : nat :=
+  match t with
+  | var _ =&gt; 1
+  | app t1 t2 =&gt; numVars t1 + numVars t2
+  | lam _ t =&gt; numVars t
+  end.
+
+Definition tHasAtLeastOneVar (t : utlc) : Prop := 1 &lt;= numVars t.
+
+Check utlc_ind tHasAtLeastOneVar.
+
+Theorem has_var : forall t : utlc, tHasAtLeastOneVar t.
+Proof.
+  unfold tHasAtLeastOneVar.
+  apply utlc_ind.
+  (*
+     ----------------  var
+     1 &lt;= numVars(x)
+
+     1 &lt;= numVars(e1)     1 &lt;= numVars(e2)      (IH1, IH2)
+     -------------------------------------  app
+             1 &lt;= numVars(e1 e2)
+
+       1 &lt;= numVars(e)          (IH)
+     --------------------  lam
+     1 &lt;= numVars(λx.e)
+  *)
+  - intros n. simpl. apply le_n.
+  - intros t1 IH1 t2 IH2. simpl.
+    apply Nat.le_trans with (numVars t1).
+    + exact IH1.
+    + apply Nat.le_add_r.
+  - intros x t IH. simpl. exact IH.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 58 lines">Show code · 58 lines</button></div></div>
+
+<h2>2. Inference rules become constructors</h2>
+<p>A small-step relation is another inductive definition. Each inference rule becomes a constructor; a derivation tree becomes a Rocq proof; and a multi-step execution is the reflexive-transitive closure of the one-step relation.</p>
+
+<h3>Boolean warm-up</h3>
+<p>Use Booleans to establish the pattern: encode the syntax, turn each reduction rule into a constructor of <code>step</code>, prove one step, then chain steps with <code>multi</code>.</p>
+<div class="rules">
+  <div>\[\frac{b_0\to b_2}{b_0\lor b_1\to b_2\lor b_1}\]</div>
+  <div>\[\frac{}{\mathsf{true}\lor b_1\to\mathsf{true}}\]</div>
+  <div>\[\frac{}{\mathsf{false}\lor b_1\to b_1}\]</div>
+</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-5">(* ===============================================================
+   PART II: Small-step operational semantics in Coq
+
+   Each inference rule becomes a constructor.
+   A derivation tree becomes a proof.
+
+     5. Booleans:       what a step relation is.
+     6. Mini-IMP:       configurations &lt;c,σ&gt; (lecture 7).
+     7. CBV lambda:     values and substitution (lecture 6).
+   =============================================================== *)
+
+(* ---------------------------------------------------------------
+   5. Booleans
+   --------------------------------------------------------------- *)
+
+(* Learning objective: what a small-step relation is.  Each rule is
+   a constructor, one step is a derivation tree, and --&gt;* chains
+   steps together. *)
+
+(* Syntax.
+
+   BNF:
+      b ::= true | false | b0 ∨ b1 | b0 ∧ b1 | ¬b
+
+   Inference rules:
+                                    b0 bexp   b1 bexp     b0 bexp   b1 bexp      b bexp
+      ---------     ----------     -----------------     -----------------     -------
+      true bexp     false bexp       b0 ∨ b1 bexp          b0 ∧ b1 bexp        ¬b bexp
+*)
+Inductive bexp : Type :=
+| BTrue
+| BFalse
+| BOr (b0 b1 : bexp)
+| BAnd (b0 b1 : bexp)
+| BNot (b : bexp).
+
+(* Notation so we can write expressions as on paper, inside &lt;{ }&gt;.
+   For example  &lt;{ ¬(true ∧ false) }&gt;  is  BNot (BAnd BTrue BFalse).
+   You can skip this block. *)
+Declare Custom Entry imp.
+Notation "&lt;{ e }&gt;" := e (e custom imp at level 99).
+Notation "( x )" := x (in custom imp, x at level 99).
+Notation "x" := x (in custom imp at level 0, x constr at level 0).
+Notation "'true'" := true (at level 1).
+Notation "'false'" := false (at level 1).
+Notation "'true'" := BTrue (in custom imp at level 0).
+Notation "'false'" := BFalse (in custom imp at level 0).
+Notation "¬ b" := (BNot b) (in custom imp at level 75, right associativity).
+Notation "b0 ∧ b1" := (BAnd b0 b1) (in custom imp at level 80, right associativity).
+Notation "b0 ∨ b1" := (BOr b0 b1) (in custom imp at level 85, right associativity).
+
+(* Lets us write  b1 --&gt; b2  for one step. *)
+Reserved Notation "t '--&gt;' t'" (at level 40).
+
+(* Step rules: step the left operand, then decide.
+
+           b0 --&gt; b2
+      -------------------- (S-Or)      ------------------- (S-OrTrue)
+      b0 ∨ b1 --&gt; b2 ∨ b1              true ∨ b1 --&gt; true
+
+                                       -------------------- (S-OrFalse)
+                                       false ∨ b1 --&gt; b1
+
+           b0 --&gt; b2
+      -------------------- (S-And)     ------------------- (S-AndTrue)
+      b0 ∧ b1 --&gt; b2 ∧ b1              true ∧ b1 --&gt; b1
+
+                                       --------------------- (S-AndFalse)
+                                       false ∧ b1 --&gt; false
+
+          b --&gt; b2
+      -------------- (S-Not)   ---------------- (S-NotTrue)   ---------------- (S-NotFalse)
+      ¬b --&gt; ¬b2               ¬true --&gt; false                ¬false --&gt; true
+*)
+Inductive step : bexp -&gt; bexp -&gt; Prop :=
+| S_Or       : forall b0 b2 b1, b0 --&gt; b2 -&gt; &lt;{ b0 ∨ b1 }&gt; --&gt; &lt;{ b2 ∨ b1 }&gt;
+| S_OrTrue   : forall b1, &lt;{ true ∨ b1 }&gt; --&gt; &lt;{ true }&gt;
+| S_OrFalse  : forall b1, &lt;{ false ∨ b1 }&gt; --&gt; b1
+| S_And      : forall b0 b2 b1, b0 --&gt; b2 -&gt; &lt;{ b0 ∧ b1 }&gt; --&gt; &lt;{ b2 ∧ b1 }&gt;
+| S_AndTrue  : forall b1, &lt;{ true ∧ b1 }&gt; --&gt; b1
+| S_AndFalse : forall b1, &lt;{ false ∧ b1 }&gt; --&gt; &lt;{ false }&gt;
+| S_Not      : forall b b2, b --&gt; b2 -&gt; &lt;{ ¬b }&gt; --&gt; &lt;{ ¬b2 }&gt;
+| S_NotTrue  : &lt;{ ¬true }&gt; --&gt; &lt;{ false }&gt;
+| S_NotFalse : &lt;{ ¬false }&gt; --&gt; &lt;{ true }&gt;
+where "t '--&gt;' t'" := (step t t').
+
+(* One step:
+
+            ---------------------- S-AndTrue
+            true ∧ false --&gt; false
+      ---------------------------------- S-Not
+      ¬(true ∧ false) --&gt; ¬false                                  *)
+Example one_step :
+  &lt;{ ¬(true ∧ false) }&gt; --&gt; &lt;{ ¬false }&gt;.
+Proof. apply S_Not. apply S_AndTrue. Qed.
+
+(* Multi-step:  t1 --&gt;* t3  means t1 reaches t3 in zero or more
+   steps.  Two rules, as in lecture 7:
+
+                              t1 --&gt; t2     t2 --&gt;* t3
+      ---------- ms_refl      ------------------------ ms_step
+      t --&gt;* t                       t1 --&gt;* t3
+
+   [multi R] works for any step relation R, so the sections
+   below reuse it. *)
+Inductive multi {X : Type} (R : X -&gt; X -&gt; Prop) : X -&gt; X -&gt; Prop :=
+| ms_refl : forall x, multi R x x
+| ms_step : forall x y z, R x y -&gt; multi R y z -&gt; multi R x z.
+
+Notation "t '--&gt;*' t'" := (multi step t t') (at level 40).
+
+(* ¬(true ∧ false)  --&gt;  ¬false  --&gt;  true *)
+Example run :
+  &lt;{ ¬(true ∧ false) }&gt; --&gt;* &lt;{ true }&gt;.
+Proof.
+  eapply ms_step. { apply S_Not. apply S_AndTrue. }
+  eapply ms_step. { apply S_NotFalse. }
+  apply ms_refl.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 119 lines">Show code · 119 lines</button></div></div>
+
+<h3>Mini-IMP: the configuration carries a store</h3>
+<p>For commands, a term alone is not enough. A configuration ⟨(c,\sigma)⟩ pairs a command with a state. Assignment changes the state; variables read from it; sequencing and while determine which command comes next.</p>
+<div class="thm"><p class="name">Worked route</p><p>Define Boolean expressions and commands, add the store, encode the step rules, and execute <code>X := true; while X do X := false</code> through its configurations.</p></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-6">(* ---------------------------------------------------------------
+   6. Mini-IMP (lecture 7, with boolean variables)
+
+   A small version of IMP.  In lecture 7, variables hold integers;
+   here they hold booleans, so there are no arithmetic expressions.
+   The command rules are the ones from lecture 7 (slides 11-12),
+   with b in place of a in assignment.
+   --------------------------------------------------------------- *)
+
+(* Learning objective: configurations &lt;c,σ&gt; from lecture 7.  A step
+   now carries a state σ, which assignment changes and variables
+   read. *)
+
+Module Imp.
+
+Definition var := nat.
+
+(* Syntax.
+
+   BNF:
+      b ::= true | false | x | b0 ∨ b1 | b0 ∧ b1 | ¬b        (Section 5, plus x)
+      c ::= skip | x := b | c0; c1 | if b then c0 else c1 | while b do c
+
+   Inference rules: the rules from Section 5 for b, plus
+
+      ------         --------      b bexp          c0 com   c1 com
+      x bexp         skip com    ----------      ----------------
+                                 x := b com         c0; c1 com
+
+      b bexp   c0 com   c1 com           b bexp   c com
+      ------------------------         ----------------
+      if b then c0 else c1 com         while b do c com
+*)
+Inductive bexp : Type :=
+| BLit (v : bool)          (* the literals true and false *)
+| BVar (x : var)
+| BOr (b0 b1 : bexp)
+| BAnd (b0 b1 : bexp)
+| BNot (b : bexp).
+(* A literal holds a Coq bool, just as  n  in lecture holds an integer. *)
+
+Inductive com : Type :=
+| CSkip
+| CAsgn (x : var) (b : bexp)
+| CSeq (c0 c1 : com)
+| CIf (b : bexp) (c0 c1 : com)
+| CWhile (b : bexp) (c : com).
+
+(* Notation so we can write programs as on paper, inside &lt;{ }&gt;.
+   For example  &lt;{ X := true; while X do X := false }&gt;.
+   The two coercions let a Coq bool or a variable be used directly
+   as a bexp.  You can skip this block. *)
+Set Warnings "-notation-overridden".   (* we reuse the notations from Section 5 *)
+Coercion BLit : bool &gt;-&gt; bexp.
+Coercion BVar : var &gt;-&gt; bexp.
+Notation "'true'" := (BLit true) (in custom imp at level 0).
+Notation "'false'" := (BLit false) (in custom imp at level 0).
+Notation "¬ b" := (BNot b) (in custom imp at level 75, right associativity).
+Notation "b0 ∧ b1" := (BAnd b0 b1) (in custom imp at level 80, right associativity).
+Notation "b0 ∨ b1" := (BOr b0 b1) (in custom imp at level 85, right associativity).
+Notation "'skip'" := CSkip (in custom imp at level 0).
+Notation "x := b" := (CAsgn x b)
+  (in custom imp at level 0, x constr at level 0, b at level 85, no associativity).
+Notation "c0 ; c1" := (CSeq c0 c1) (in custom imp at level 90, right associativity).
+Notation "'if' b 'then' c0 'else' c1" := (CIf b c0 c1)
+  (in custom imp at level 88, b at level 85, c0 at level 88, c1 at level 88).
+Notation "'while' b 'do' c" := (CWhile b c)
+  (in custom imp at level 88, b at level 85, c at level 88).
+
+(* States  σ : Var -&gt; {true, false}  (Coq bools),  and the update  σ[x ↦ v].
+   σ0 is the empty state: every variable is false. *)
+Definition state := var -&gt; bool.
+Definition σ0 : state := fun _ =&gt; false.
+Definition update (σ : state) (x : var) (v : bool) : state :=
+  fun y =&gt; if Nat.eqb x y then v else σ y.
+Notation "σ [ x ↦ v ]" := (update σ x v)
+  (at level 2, left associativity, format "σ [ x  ↦  v ]").
+
+(* Configurations  &lt;b,σ&gt;  and  &lt;c,σ&gt;  are pairs. *)
+Reserved Notation "t '--&gt;b' t'" (at level 40).
+
+(* Step rules for b: the rules from Section 5, with σ carried along,
+   plus looking up a variable (like  &lt;x,σ&gt; --&gt;a σ(x)  in lecture):
+
+      ---------------- (S-Var)
+      &lt;x,σ&gt; --&gt;b σ(x)
+*)
+Inductive bstep : bexp * state -&gt; bexp -&gt; Prop :=
+| S_Var      : forall σ x, (BVar x, σ) --&gt;b σ x
+| S_Or       : forall σ b0 b2 b1, (b0, σ) --&gt;b b2 -&gt;
+    (&lt;{ b0 ∨ b1 }&gt;, σ) --&gt;b &lt;{ b2 ∨ b1 }&gt;
+| S_OrTrue   : forall σ b1, (&lt;{ true ∨ b1 }&gt;, σ) --&gt;b &lt;{ true }&gt;
+| S_OrFalse  : forall σ b1, (&lt;{ false ∨ b1 }&gt;, σ) --&gt;b b1
+| S_And      : forall σ b0 b2 b1, (b0, σ) --&gt;b b2 -&gt;
+    (&lt;{ b0 ∧ b1 }&gt;, σ) --&gt;b &lt;{ b2 ∧ b1 }&gt;
+| S_AndTrue  : forall σ b1, (&lt;{ true ∧ b1 }&gt;, σ) --&gt;b b1
+| S_AndFalse : forall σ b1, (&lt;{ false ∧ b1 }&gt;, σ) --&gt;b &lt;{ false }&gt;
+| S_Not      : forall σ b b2, (b, σ) --&gt;b b2 -&gt; (&lt;{ ¬b }&gt;, σ) --&gt;b &lt;{ ¬b2 }&gt;
+| S_NotTrue  : forall σ, (&lt;{ ¬true }&gt;, σ) --&gt;b &lt;{ false }&gt;
+| S_NotFalse : forall σ, (&lt;{ ¬false }&gt;, σ) --&gt;b &lt;{ true }&gt;
+where "t '--&gt;b' t'" := (bstep t t').
+
+(* Step rules for commands (lecture 7, slides 11-12, with b in place of a):
+
+           &lt;b,σ&gt; --&gt;b b2
+      --------------------------- (S-Asgn1)
+      &lt;x := b,σ&gt; --&gt; &lt;x := b2,σ&gt;
+
+      ---------------------------------- (S-Asgn)     (v is true or false)
+      &lt;x := v,σ&gt; --&gt; &lt;skip,σ[x↦v]&gt;
+
+          &lt;c0,σ&gt; --&gt; &lt;c2,σ2&gt;
+      ----------------------------- (S-Seq1)  ------------------------ (S-Seq)
+      &lt;c0; c1,σ&gt; --&gt; &lt;c2; c1,σ2&gt;              &lt;skip; c1,σ&gt; --&gt; &lt;c1,σ&gt;
+
+                         &lt;b,σ&gt; --&gt;b b2
+      --------------------------------------------------------- (S-If1)
+      &lt;if b then c0 else c1,σ&gt; --&gt; &lt;if b2 then c0 else c1,σ&gt;
+
+      -------------------------------------- (S-IfTrue)
+      &lt;if true then c0 else c1,σ&gt; --&gt; &lt;c0,σ&gt;
+
+      --------------------------------------- (S-IfFalse)
+      &lt;if false then c0 else c1,σ&gt; --&gt; &lt;c1,σ&gt;
+
+      -------------------------------------------------------------- (S-While)
+      &lt;while b do c,σ&gt; --&gt; &lt;if b then (c; while b do c) else skip,σ&gt;
+*)
+Inductive cstep : com * state -&gt; com * state -&gt; Prop :=
+| S_Asgn1     : forall σ x b b2, (b, σ) --&gt;b b2 -&gt;
+    (&lt;{ x := b }&gt;, σ) --&gt; (&lt;{ x := b2 }&gt;, σ)
+| S_Asgn      : forall σ x (v : bool),
+    (&lt;{ x := v }&gt;, σ) --&gt; (&lt;{ skip }&gt;, σ[x ↦ v])
+| S_Seq1      : forall σ σ2 c0 c2 c1, (c0, σ) --&gt; (c2, σ2) -&gt;
+    (&lt;{ c0; c1 }&gt;, σ) --&gt; (&lt;{ c2; c1 }&gt;, σ2)
+| S_Seq       : forall σ c1, (&lt;{ skip; c1 }&gt;, σ) --&gt; (c1, σ)
+| S_If1       : forall σ b b2 c0 c1, (b, σ) --&gt;b b2 -&gt;
+    (&lt;{ if b then c0 else c1 }&gt;, σ) --&gt; (&lt;{ if b2 then c0 else c1 }&gt;, σ)
+| S_IfTrue    : forall σ c0 c1, (&lt;{ if true then c0 else c1 }&gt;, σ) --&gt; (c0, σ)
+| S_IfFalse   : forall σ c0 c1, (&lt;{ if false then c0 else c1 }&gt;, σ) --&gt; (c1, σ)
+| S_While     : forall σ b c,
+    (&lt;{ while b do c }&gt;, σ) --&gt; (&lt;{ if b then (c; while b do c) else skip }&gt;, σ)
+where "t '--&gt;' t'" := (cstep t t').
+
+(* --&gt;* for commands. *)
+Notation "t '--&gt;*' t'" := (multi cstep t t') (at level 40).
+
+Definition X : var := 0.
+Definition Y : var := 1.
+
+(* One step, where the state matters (σ(x) = true):
+
+           ----------------- S-Var
+           &lt;x,σ&gt; --&gt;b true
+      --------------------------- S-Not
+      &lt;¬x,σ&gt; --&gt;b ¬true
+   ----------------------------------- S-Asgn1
+   &lt;y := ¬x,σ&gt; --&gt; &lt;y := ¬true,σ&gt;                                  *)
+Example one_step :
+  (&lt;{ Y := ¬X }&gt;, σ0[X ↦ true])
+    --&gt; (&lt;{ Y := ¬true }&gt;, σ0[X ↦ true]).
+Proof.
+  apply S_Asgn1. apply S_Not. apply S_Var.
+Qed.
+
+(* x := true; while x do x := false
+
+   Write  W  for  while x do x := false.  Starting from the empty
+   state σ0 (every variable false):
+
+        &lt;x := true; W, σ0&gt;
+    --&gt; &lt;skip; W, σ1&gt;                                  (S-Seq1, S-Asgn)
+    --&gt; &lt;W, σ1&gt;                                        (S-Seq)
+    --&gt; &lt;if x then (x := false; W) else skip, σ1&gt;      (S-While)
+    --&gt; &lt;if true then (x := false; W) else skip, σ1&gt;   (S-If1, S-Var)
+    --&gt; &lt;x := false; W, σ1&gt;                            (S-IfTrue)
+    --&gt; &lt;skip; W, σ2&gt;                                  (S-Seq1, S-Asgn)
+    --&gt; &lt;W, σ2&gt;                                        (S-Seq)
+    --&gt; &lt;if x then (x := false; W) else skip, σ2&gt;      (S-While)
+    --&gt; &lt;if false then (x := false; W) else skip, σ2&gt;  (S-If1, S-Var)
+    --&gt; &lt;skip, σ2&gt;                                     (S-IfFalse)
+
+   where  σ1 = σ0[x↦true]  and  σ2 = σ1[x↦false]. *)
+Definition prog : com := &lt;{ X := true; while X do X := false }&gt;.
+
+Example prog_runs :
+  (prog, σ0) --&gt;* (&lt;{ skip }&gt;, σ0[X ↦ true][X ↦ false]).
+Proof.
+  unfold prog.
+  eapply ms_step. { apply S_Seq1. apply S_Asgn. }
+  eapply ms_step. { apply S_Seq. }
+  eapply ms_step. { apply S_While. }
+  eapply ms_step. { apply S_If1. apply S_Var. }
+  cbn.   (* compute the lookup σ1(x) = true *)
+  eapply ms_step. { apply S_IfTrue. }
+  eapply ms_step. { apply S_Seq1. apply S_Asgn. }
+  eapply ms_step. { apply S_Seq. }
+  eapply ms_step. { apply S_While. }
+  eapply ms_step. { apply S_If1. apply S_Var. }
+  cbn.   (* compute the lookup σ2(x) = false *)
+  eapply ms_step. { apply S_IfFalse. }
+  apply ms_refl.
+Qed.
+
+(* &lt;while true do skip, σ&gt;  --&gt;*  &lt;while true do skip, σ&gt;  (lecture 7) *)
+Definition loop : com := &lt;{ while true do skip }&gt;.
+Example loop_steps : forall σ,
+  (loop, σ) --&gt;* (loop, σ).
+Proof.
+  intros σ.
+  eapply ms_step. { apply S_While. }
+  eapply ms_step. { apply S_IfTrue. }
+  eapply ms_step. { apply S_Seq. }
+  apply ms_refl.
+Qed.
+
+End Imp.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 217 lines">Show code · 217 lines</button></div></div>
+
+<h2>3. Call-by-value lambda calculus</h2>
+<p>The same recipe now encodes call-by-value lambda calculus: define values, define capture-avoiding substitution for the representation used here, and translate the evaluation rules into constructors.</p>
+<div class="rules">
+  <div>\[\frac{t_1\to t_1'}{t_1\ t_2\to t_1'\ t_2}\]</div>
+  <div>\[\frac{t_2\to t_2'}{v_1\ t_2\to v_1\ t_2'}\]</div>
+  <div>\[\frac{}{(\lambda x.t)\ v\to t[x\mapsto v]}\]</div>
+</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-7">(* ---------------------------------------------------------------
+   7. Lambda calculus: CBV (lecture 6)
+   --------------------------------------------------------------- *)
+
+(* Learning objective: the CBV rules from lecture 6 in Coq.  New
+   pieces: values, substitution, and a rule (AppR) that only fires
+   once the left side is a value. *)
+
+Module Lambda.
+
+(* Syntax: the [utlc] type from Section 4.
+
+   BNF:
+      e ::= x | λx.e | e1 e2
+
+   Inference rules:
+                       e term          e1 term    e2 term
+      ------        ----------        ------------------
+      x term        λx.e term             e1 e2 term
+*)
+
+(* Simple substitution (fine here: we only substitute closed terms). *)
+Fixpoint subst (x : nat) (arg : utlc) (e : utlc) : utlc :=
+  match e with
+  | var y =&gt; if Nat.eqb x y then arg else var y
+  | app e1 e2 =&gt; app (subst x arg e1) (subst x arg e2)
+  | lam y body =&gt; if Nat.eqb x y then lam y body else lam y (subst x arg body)
+  end.
+
+(* Values:  v ::= λx.e *)
+Inductive value : utlc -&gt; Prop :=
+| v_lam : forall x e, value (lam x e).
+
+(* Lets us write  e1 -cbv-&gt; e2  for one CBV step. *)
+Reserved Notation "t '-cbv-&gt;' t'" (at level 40).
+
+(* CBV step rules.
+
+                                    e1 -cbv-&gt; e1'              e -cbv-&gt; e'
+      ---------------------- β   ------------------- AppL   -------------- AppR
+      (λx.e) v -cbv-&gt; e[x↦v]     e1 e2 -cbv-&gt; e1' e2        v e -cbv-&gt; v e'
+*)
+Inductive cbv : utlc -&gt; utlc -&gt; Prop :=
+| cbv_beta : forall x e v, value v -&gt;
+    app (lam x e) v -cbv-&gt; subst x v e
+| cbv_appL : forall e1 e1' e2, e1 -cbv-&gt; e1' -&gt;
+    app e1 e2 -cbv-&gt; app e1' e2
+| cbv_appR : forall v e e', value v -&gt; e -cbv-&gt; e' -&gt;
+    app v e -cbv-&gt; app v e'
+where "t '-cbv-&gt;' t'" := (cbv t t').
+
+Definition x := 0.
+Definition y := 1.
+Definition z := 2.
+Definition Id (x : nat) := lam x (var x).
+Definition omega := lam z (app (var z) (var z)).
+Definition Omega := app omega omega.
+
+(* The derivation tree from lecture:
+
+       --------------------------- β
+       (λx.x)(λz.z) -cbv-&gt; λz.z
+   ----------------------------------- AppL
+   ((λx.x)(λz.z)) Ω -cbv-&gt; (λz.z) Ω                                  *)
+Example lecture_tree :
+  app (app (Id x) (Id z)) Omega -cbv-&gt; app (Id z) Omega.
+Proof.
+  apply cbv_appL.
+  apply (cbv_beta x (var x) (Id z)).
+  constructor.
+Qed.
+
+(* Many CBV steps. *)
+Notation "t '-cbv-&gt;*' t'" := (multi cbv t t') (at level 40).
+
+(* ((λx.x)(λy.y)) (λz.z)  -cbv-&gt;  (λy.y)(λz.z)  -cbv-&gt;  λz.z *)
+Example run :
+  app (app (Id x) (Id y)) (Id z) -cbv-&gt;* Id z.
+Proof.
+  eapply ms_step. { apply cbv_appL. apply (cbv_beta x (var x) (Id y)). constructor. }
+  eapply ms_step. { apply (cbv_beta y (var y) (Id z)). constructor. }
+  apply ms_refl.
+Qed.
+
+(* Ω steps to itself. *)
+Example Omega_loops : Omega -cbv-&gt; Omega.
+Proof. apply (cbv_beta z (app (var z) (var z)) omega). constructor. Qed.
+
+End Lambda.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 89 lines">Show code · 89 lines</button></div></div>
+
+
+</div>
+<div id="slide-nav"><button class="prev" type="button" title="Previous slide (←)">◀</button><span class="count"></span><button class="next" type="button" title="Next slide (→)">▶</button></div>
+</div>
+</div>
+<script>
+window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, svg: { fontCache: 'global' } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.js"></script>
+<script>
+/* Slide mode.  The page is cut into slides at every h2 and h3 and at every
+   slide break (an <hr class="slide-break">).  Nothing moves: the elements
+   of the other slides are just hidden, so the Rocq blocks stay one
+   document and running a block still checks everything before it.
+   Within a slide, each element after the first appears on its own key
+   press, so a slide is revealed one piece at a time.  A folded block
+   marked "unfold" (<details class="unfold">) opens in slide mode, and
+   each .piece inside it counts as an element of its own, as do the
+   .piece parts of an element with class "pieces".  A section whose
+   h2 has class "one-slide" is a single long slide that scrolls, except
+   that an h3 with class "own-slide" still starts a slide of its own.
+   Keys: right arrow or Page Down for the next step or slide, left arrow
+   or Page Up to go back (what a presentation clicker sends), Escape to
+   leave.  The address ends in #slide-N, so a reload stays on the slide. */
+(function () {
+  const doc = document.getElementById('document');
+  const scroller = document.getElementById('code-wrapper');
+  const nav = document.getElementById('slide-nav');
+  const count = nav.querySelector('.count');
+  const context = document.getElementById('slide-context');
+  const button = document.getElementById('present-toggle');
+  const slides = [];
+  let cur = [], section = '', whole = false;
+  const close = () => { cur.steps = cur.length - 1; slides.push(cur); cur = []; };
+  const unfolds = [...doc.querySelectorAll(':scope > details.unfold')];
+  const rows = [...doc.querySelectorAll(':scope > .pieces')];
+  /* the boxes around pieces: shown on a slide when one of their pieces is */
+  const holders = [...unfolds, ...rows].flatMap(d => [d, ...d.querySelectorAll('.rules')]);
+  const units = [...doc.children].flatMap(el =>
+    el.matches('details.unfold, .pieces') ? [...el.querySelectorAll('.piece, hr.slide-break')] : [el]);
+  for (const el of units) {
+    if (el.classList.contains('topbar') || el.id === 'slide-context') continue;
+    /* a section whose h2 is marked "one-slide" stays one long slide */
+    if (el.tagName === 'H2') whole = el.classList.contains('one-slide');
+    const breaks = el.tagName === 'H2' || el.classList.contains('own-slide') ||
+      (!whole && (el.tagName === 'H3' || el.classList.contains('slide-break')));
+    if (breaks && cur.length) close();
+    if (el.tagName === 'H2') section = el.textContent;
+    if (!cur.length) cur.section = el.tagName === 'H2' ? '' : section;
+    if (el.classList.contains('slide-break')) continue;
+    el.dataset.step = cur.length;
+    cur.push(el);
+  }
+  if (cur.length) close();
+  let at = 0, shown = 0;
+  function label() {
+    const m = slides[at].steps;
+    const steps = m > 12 ? 'step ' + shown + ' of ' + m : '●'.repeat(shown) + '○'.repeat(m - shown);
+    count.textContent = (at + 1) + ' / ' + slides.length + (m ? '  ·  ' + steps : '');
+  }
+  /* frames (pieces of an element with class "frames") replace each other:
+     only the latest one revealed shows, in the same place */
+  const frameSets = [...doc.querySelectorAll(':scope > .frames')];
+  function reveal() {
+    for (const el of slides[at]) el.classList.toggle('off-step', Number(el.dataset.step) > shown);
+    for (const g of frameSets) {
+      const fs = [...g.children];
+      const last = fs.filter(f => !f.classList.contains('off-step') && !f.classList.contains('off-slide')).at(-1);
+      for (const f of fs) f.classList.toggle('off-frame', f !== last);
+    }
+    label();
+  }
+  /* show slide i with its first k steps revealed (all of them if k is 'all') */
+  function show(i, k) {
+    at = Math.max(0, Math.min(slides.length - 1, i));
+    shown = k === 'all' ? slides[at].steps : 0;
+    slides.forEach((els, n) => els.forEach(el => el.classList.toggle('off-slide', n !== at)));
+    for (const h of holders) h.classList.toggle('off-slide', !h.querySelector('.piece:not(.off-slide)'));
+    context.textContent = slides[at].section || '';
+    reveal();
+    history.replaceState(null, '', '#slide-' + (at + 1));
+    scroller.scrollTop = k === 'all' ? scroller.scrollHeight : 0;
+    /* editors that were hidden need to measure themselves again */
+    for (const el of slides[at])
+      for (const cm of el.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  /* in a long slide, bring the piece that just appeared or disappeared
+     to the middle of the screen */
+  const piece = k => slides[at].find(el => Number(el.dataset.step) === k);
+  const focusOn = el => { if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+  function next() {
+    if (shown < slides[at].steps) { shown++; reveal(); focusOn(piece(shown)); }
+    else if (at < slides.length - 1) show(at + 1, 0);
+  }
+  function prev() {
+    if (shown > 0) { const gone = piece(shown); shown--; reveal(); focusOn(gone); }
+    else if (at > 0) show(at - 1, 'all');
+  }
+  function start(i) {
+    for (const d of unfolds) { d.dataset.wasOpen = d.open; d.open = true; }
+    doc.classList.add('presenting'); nav.classList.add('on');
+    button.textContent = '✕ Stop presenting';
+    show(i, 0);
+  }
+  function stop() {
+    doc.classList.remove('presenting'); nav.classList.remove('on');
+    button.textContent = '▶ Present';
+    for (const els of slides) for (const el of els) el.classList.remove('off-slide', 'off-step');
+    for (const h of holders) h.classList.remove('off-slide');
+    for (const g of frameSets) for (const f of g.children) f.classList.remove('off-frame');
+    for (const d of unfolds) d.open = d.dataset.wasOpen === 'true';
+    history.replaceState(null, '', location.pathname + location.search);
+    const first = slides[at][0];
+    if (first) first.scrollIntoView();
+    for (const cm of doc.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  const presenting = () => doc.classList.contains('presenting');
+  button.addEventListener('click', () => presenting() ? stop() : start(at));
+  nav.querySelector('.prev').addEventListener('click', prev);
+  nav.querySelector('.next').addEventListener('click', next);
+  document.addEventListener('keydown', e => {
+    if (!presenting() || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest && e.target.closest('.CodeMirror, input, textarea, select')) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Escape') stop();
+  });
+  const m = location.hash.match(/^#slide-(\d+)$/);
+  if (m) start(Number(m[1]) - 1);
+})();
+</script>
+<script>
+/* jsCoq is loaded from the jsDelivr CDN.  Two problems, two fixes:
+   1. Browsers refuse to start a Worker from another domain, so wrap the
+      worker script in a same-origin blob that imports it.
+   2. The WebAssembly backend finds its runtime (OCaml, zarith, ...) in a
+      node_modules folder next to jsCoq.  The CDN has no such folder, so
+      requests for node_modules/<package>/<file> go to that package's own
+      CDN URL, at a pinned version. */
+function workerPrelude(BASE, PIN) {
+  const nativeFetch = self.fetch.bind(self);
+  function remap(r) {
+    const u = new URL(r, BASE);
+    const m = u.pathname.match(/\/(?:node_modules|undefined)\/(.*)$/);
+    if (m) {
+      const rest = m[1];
+      for (const pkg in PIN)
+        if (rest.startsWith(pkg + '/'))
+          return 'https://cdn.jsdelivr.net/npm/' + pkg + '@' + PIN[pkg] + rest.slice(pkg.length);
+    }
+    return u.href;
+  }
+  self.fetch = (r, o) => nativeFetch(typeof r === 'string' || r instanceof URL ? remap(String(r)) : r, o);
+}
+(function () {
+  const PIN = {
+    'ocaml-wasm': '4.12.0-0',
+    '@ocaml-wasm/4.12--zarith': '1.13.0-0',
+    '@ocaml-wasm/4.12--janestreet-base': '0.16.0-0',
+    '@ocaml-wasm/4.12--num': '1.4.0-0'
+  };
+  const NativeWorker = window.Worker;
+  window.Worker = class extends NativeWorker {
+    constructor(url, opts) {
+      const u = new URL(url, location.href);
+      if (u.origin !== location.origin) {
+        const src = '(' + workerPrelude + ')(' + JSON.stringify(u.href) + ', ' +
+                    JSON.stringify(PIN) + '); importScripts(' + JSON.stringify(u.href) + ');';
+        super(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })), opts);
+      } else {
+        super(url, opts);
+      }
+    }
+  };
+})();
+</script>
+<script type="module">
+  const JSCOQ = 'https://cdn.jsdelivr.net/npm/jscoq@0.17.1/';
+  const { JsCoq } = await import(JSCOQ + 'jscoq.js');
+  const theme0 = document.documentElement.getAttribute('data-theme');
+  const button = document.getElementById('theme-toggle');
+  const label = t => { button.textContent = t === 'dark' ? '☀ Light mode' : '☾ Dark mode'; };
+  label(theme0);
+  const coq = await JsCoq.start(['textarea.coq'], {
+    theme: theme0,
+    base_path: JSCOQ,
+    backend: 'wa',
+    prelude: true,
+    implicit_libs: true,
+    init_pkgs: ['init'],
+    all_pkgs: ['coq'],
+    editor: { mode: { 'company-coq': true }, theme: 'd6' },
+    focus: false
+  });
+  /* The light switch: page colors, jsCoq's panel (and its icons). */
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('jscoq-page-theme', t); } catch (e) {}
+    try { coq.layout.configure({ theme: t }); } catch (e) {}
+    /* jsCoq switches its editors to its own themes here; put ours back.
+       Our editor theme reads the page colors, so it follows data-theme. */
+    try { coq.provider.configure({ theme: 'd6' }); } catch (e) {}
+    label(t);
+  }
+  button.addEventListener('click', () =>
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+  /* Keep the right-hand goals panel under the same explicit control used
+     by the later discussion pages. */
+  const ide = document.getElementById('ide-wrapper');
+  const panelButton = document.getElementById('panel-toggle');
+  const panelOpen = () => !ide.classList.contains('toggled');
+  const panelLabel = () => { panelButton.textContent = panelOpen() ? '◨ Hide goals' : '◧ Show goals'; };
+  const setPanel = open => {
+    ide.classList.toggle('toggled', !open);
+    panelLabel();
+    setTimeout(() => { for (const cm of document.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh(); }, 350);
+  };
+  panelButton.addEventListener('click', () => {
+    const open = !panelOpen();
+    setPanel(open);
+    try { localStorage.setItem('jscoq-panel', open ? 'open' : 'closed'); } catch (e) {}
+  });
+  new MutationObserver(panelLabel).observe(ide, { attributes: true, attributeFilter: ['class'] });
+  let savedPanel = null;
+  try { savedPanel = localStorage.getItem('jscoq-panel'); } catch (e) {}
+  const wantPanel = savedPanel !== 'closed';
+  for (const t of [0, 600, 2000]) setTimeout(() => setPanel(wantPanel), t);
+  panelLabel();
+
+  /* Folded code cells.  A cell opens when you click its button or click
+     into its code, and by itself when Coq reports an error inside it.
+     Stepping into a folded cell leaves it folded; the goals panel still
+     follows along. */
+  const cells = [...document.querySelectorAll('.cell')];
+  function setCell(cell, open) {
+    cell.classList.toggle('is-collapsed', !open);
+    const b = cell.querySelector('.cell-toggle');
+    b.setAttribute('aria-expanded', String(open));
+    b.textContent = open ? 'Hide code' : b.dataset.label;
+    const cm = cell.querySelector('.CodeMirror');
+    if (cm && cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  for (const cell of cells) {
+    cell.querySelector('.cell-toggle').addEventListener('click', () =>
+      setCell(cell, cell.classList.contains('is-collapsed')));
+    /* Run: check everything up to the end of this block, using jsCoq's
+       "run to cursor".  Coq checks in order, so earlier blocks run first.
+       If later blocks were already checked, roll back to the end of this
+       block: "run to cursor" rewinds to just before the sentence at the
+       cursor, so for that the cursor goes to the start of the next block. */
+    cell.querySelector('.cell-run').addEventListener('click', () => {
+      const editorOf = c => c.querySelector('.CodeMirror')?.CodeMirror;
+      /* jsCoq tracks the active editor through focus events, which a
+         scripted focus doesn't always fire, so tell it directly. */
+      const point = (cm, pos) => {
+        cm.focus();
+        cm.setCursor(pos);
+        const sp = coq.provider.snippets.find(s => s.editor === cm);
+        if (sp) coq.provider.currentFocus = sp;
+      };
+      const cm = editorOf(cell);
+      if (!cm) return;
+      const last = cm.lastLine();
+      point(cm, { line: last, ch: cm.getLine(last).length });
+      if (coq.provider.getAtPoint()) {
+        /* the end of this block is already checked */
+        const next = cells[cells.indexOf(cell) + 1];
+        if (!next) return;
+        point(editorOf(next), { line: 0, ch: 0 });
+        if (!coq.provider.getAtPoint()) return;   /* nothing checked after this block */
+      }
+      coq.goCursor();
+      /* moving the cursor scrolls the editor; a folded one should still
+         show its first lines */
+      if (cell.classList.contains('is-collapsed')) {
+        cm.scrollTo(0, 0);
+        const n = cells[cells.indexOf(cell) + 1];
+        if (n && n.classList.contains('is-collapsed')) editorOf(n).scrollTo(0, 0);
+      }
+    });
+    cell.addEventListener('mousedown', e => {
+      if (cell.classList.contains('is-collapsed') && e.target.closest('.CodeMirror')) setCell(cell, true);
+    });
+  }
+  /* A folded editor only draws its first lines, so look at Coq's marks
+     in the editor itself, not at the page, to spot an error. */
+  setInterval(() => {
+    for (const cell of cells) {
+      if (!cell.classList.contains('is-collapsed')) continue;
+      const cm = cell.querySelector('.CodeMirror')?.CodeMirror;
+      if (cm && cm.getAllMarks().some(m => (m.className || '').includes('coq-eval-failed'))) setCell(cell, true);
+    }
+  }, 500);
+  const fold = document.getElementById('fold-toggle');
+  fold.addEventListener('click', () => {
+    const open = fold.getAttribute('aria-pressed') !== 'true';
+    fold.setAttribute('aria-pressed', String(open));
+    fold.textContent = open ? 'Fold all code' : 'Show all code';
+    for (const cell of cells) setCell(cell, open);
+  });
+</script>
+</body>
+</html>

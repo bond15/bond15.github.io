@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<script>
+/* Pick the theme before anything paints: the saved choice, else the OS setting. */
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('jscoq-page-theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark')
+    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<title>Discussion 1: Names, binding, and alpha-equivalence</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jscoq@0.17.1/dist/frontend/index.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;650&amp;family=Spectral:ital,wght@0,400;0,600;1,400&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+/* Layout: one reading column, course-handout style; each inference rule is its own block that wraps on phones. */
+:root {
+  --bg: #fbfbf8;
+  --fg: #1d2330;
+  --muted: #5a6273;
+  --navy: #00274c;
+  --maize: #e0a800;
+  --panel: #eef1f6;
+  --line: #d6dbe4;
+  --head: var(--navy);
+  --code-bg: #f3f5f9;
+  --kw: #7a2e8c;
+  --str: #2f6b2f;
+  --num: #a14a00;
+  --font-display: "Commissioner", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Spectral", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+:root[data-theme="dark"] {
+  --bg: #0f1724; --fg: #e4e8ef; --muted: #9aa4b5; --navy: #8fb4e3; --maize: #ffcb05;
+  --panel: #172234; --line: #2a3850; --head: #ffcb05; --code-bg: #121c2c; --kw: #d7a6f0; --str: #9fd39f; --num: #f2b073; color-scheme: dark;
+}
+#document { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 1.05rem; line-height: 1.6; padding-inline: 16px; padding-block: 1.5rem 4rem; }
+#document .CodeMirror { font-size: .8rem; height: auto; }
+#document textarea.coq { width: 100%; }
+header { border-bottom: 3px solid var(--maize); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.eyebrow { font-family: var(--font-display); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1, h2, h3 { font-family: var(--font-display); color: var(--head); text-wrap: balance; line-height: 1.25; }
+h1 { font-size: 1.7rem; margin: .3rem 0 .4rem; font-weight: 650; }
+h2 { font-size: 1.3rem; margin: 2.6rem 0 .6rem; font-weight: 650; padding-top: .4rem; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 1.6rem 0 .4rem; font-weight: 650; }
+p, li { max-width: 65ch; }
+.lede { color: var(--muted); margin: 0; }
+code { font-family: var(--font-mono); font-size: .82em; background: var(--panel); padding: .05em .3em; border-radius: 3px; overflow-wrap: anywhere; }
+.rules { display: flex; flex-wrap: wrap; gap: .4rem 2rem; justify-content: center; align-items: flex-end; margin: .8rem 0 1rem; }
+.rules > div { min-width: 0; max-width: 100%; overflow-x: auto; }
+.display { overflow-x: auto; max-width: 100%; margin: .8rem 0; }
+mjx-container[display="true"] { margin: .4em 0 !important; }
+.thm { background: var(--panel); border-left: 3px solid var(--navy); padding: .7rem 1rem; margin: 1rem 0; }
+.thm p { margin: .3rem 0; }
+.thm .name { font-family: var(--font-display); font-weight: 650; color: var(--navy); }
+.proof { margin: .4rem 0 1rem; }
+.proof em:first-child { font-style: italic; }
+.route-note { background: var(--panel); border-left: 3px solid var(--navy); padding: .7rem 1rem; margin: 1rem 0 1.4rem; }
+.route-note strong { font-family: var(--font-display); color: var(--head); }
+details.source { margin: 1rem 0; }
+details.source img { display: block; max-width: 100%; box-sizing: border-box; margin: .7rem 0; padding: .4rem; background: #050505; border: 1px solid var(--line); border-radius: 6px; }
+ul { padding-left: 1.2rem; }
+li { margin: .25rem 0; }
+
+#document code { color: var(--fg); }
+/* jsCoq's own stylesheet paints the document white; use the page tokens instead */
+body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #document { background: var(--bg) !important; color: var(--fg) !important; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+#theme-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+#theme-toggle:hover, #fold-toggle:hover, #present-toggle:hover, #panel-toggle:hover { border-color: var(--navy); }
+#fold-toggle, #present-toggle, #panel-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+.topbar .switches { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+/* displayed math scrolls sideways if it must, never up and down */
+.display, .rules > div { overflow-y: hidden; }
+#document .iso-diagram { color: var(--fg); margin: .6rem auto; max-width: 30rem; }
+#document p.aside { font-size: .85em; color: var(--muted); }
+/* math marked with \\class{hl-blue}{\\bbox[...]{...}}: the step note's soft blue behind it */
+mjx-container .hl-blue { color: var(--fg); }
+mjx-container .hl-blue rect { fill: var(--panel) !important; stroke: var(--line) !important; stroke-width: 20 !important; }
+#document:not(.presenting) mjx-container .hl-blue rect { fill: none !important; stroke: none !important; }
+#document pre.lang { background: var(--code-bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: .6rem .9rem; margin: .6rem 0 .9rem; overflow-x: auto; font-family: var(--font-mono); font-size: .78rem; line-height: 1.45; }
+#document pre.lang code { background: none; padding: 0; font-size: inherit; white-space: pre; }
+#document .iso-diagram svg { display: block; width: 100%; height: auto; }
+/* a program, one line per piece, left aligned */
+#document .display.prog { margin: .15rem 0; padding-left: 1.5rem; }
+#document .display.prog + :not(.display.prog) { margin-top: .9rem; }
+#document .display.prog mjx-container[display="true"] { text-align: left !important; margin: .3em 0 !important; }
+.rules.ch { margin: .2rem 0; align-items: center; }
+/* a tree built in stages: the page shows the last stage; slides show one at a time, in one place */
+#document .frames > .frame:not(.keep) { display: none; }
+#document.presenting .frames { display: grid; }
+#document.presenting .frames > .frame { display: block; grid-area: 1 / 1; align-self: end; }
+/* what each stage did, in one sentence: only in slide mode */
+#document .step-note { display: none; }
+#document.presenting .step-note { display: block; text-align: left; font-size: .8em; line-height: 1.4; min-height: 4.2em;
+  margin: .6rem auto 0; max-width: 34em; padding: .5rem .8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+/* opacity, not visibility: a stage's own visible parts must not show through */
+#document.presenting .frames > .frame.off-frame, #document.presenting .frames > .frame.off-step { opacity: 0; }
+.rules.ch > .ch-name { margin-left: -1.2rem; font-size: .9em; overflow: visible; }
+/* the rule correspondence as a table: typing rule | logic rule | name, labeled on top */
+#document .ch-table { display: grid; grid-template-columns: max-content max-content max-content; justify-content: safe center; align-items: center; column-gap: 1.2rem; row-gap: .3rem; margin: .8rem 0 1rem; overflow-x: auto; }
+#document .ch-table .piece { min-width: auto; max-width: none; overflow: visible; }
+#document .ch-table > .rules.ch { display: contents; }
+#document .ch-table .ch-name { margin-left: 0; justify-self: start; }
+#document .ch-table .ch-label { order: -1; text-align: center; font-family: var(--font-display); font-weight: 650; color: var(--head); padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
+#document .ch-table .ch-label span { display: block; font-family: var(--font-body); font-weight: 400; font-size: .8em; color: var(--muted); }
+#document .ch-table .ch-label.ipl { grid-column: 2 / span 2; }
+/* folded code cells: the first two lines show, faded out, until opened */
+.cell { margin: .8rem 0 1.2rem; }
+.cell.is-collapsed .CodeMirror { max-height: 3.3em !important; overflow: hidden; cursor: pointer; }
+.cell.is-collapsed .CodeMirror::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2.2em; background: linear-gradient(to bottom, transparent, var(--code-bg)); pointer-events: none; z-index: 10; }
+.cell-bar { display: flex; align-items: center; gap: 1rem; margin-top: .25rem; }
+.cell-run { font-family: var(--font-display); font-size: .78rem; font-weight: 650; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .15rem .7rem; cursor: pointer; }
+.cell-run:hover { border-color: var(--navy); }
+.cell-run:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+.cell-toggle { display: block; font-family: var(--font-display); font-size: .78rem; color: var(--navy); background: none; border: 0; padding: .15rem 0; cursor: pointer; }
+.cell-toggle:hover { text-decoration: underline; }
+.cell-toggle:focus-visible, #fold-toggle:focus-visible, #present-toggle:focus-visible, #panel-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+#theme-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+
+/* ---- jsCoq in the page's colors ------------------------------------
+   Three hues only, taken from the page: blue for the language (commands
+   bold, keywords plain, tactics a second, greener blue), amber for
+   literals and bullets, gray for comments.  Everything else is plain
+   text.  All at least about 5:1 on the code background, for projectors. */
+:root {
+  --syn-cmd: #0b4f9c; --syn-tactic: #0b6378; --syn-amber: #8a5a00; --syn-comment: #5c6370;
+  --ok-bg: #e7ecf4; --pending-bg: #fbefc4; --failed-bg: #f5d3d3;
+}
+:root[data-theme="dark"] {
+  --syn-cmd: #8cb4ff; --syn-tactic: #6cc4d6; --syn-amber: #f2c14e; --syn-comment: #9aa3b3;
+  --ok-bg: #19273b; --pending-bg: #3b3313; --failed-bg: #4a1f26;
+}
+/* editors */
+/* a question with its answer folded underneath */
+#document details.question { border: 1px solid var(--line); border-radius: 8px; padding: .6rem 1rem; margin: 1rem 0; background: var(--bg); }
+#document details.question > summary { cursor: pointer; font-family: var(--font-display); font-weight: 650; color: var(--head); }
+#document details.question[open] > summary { margin-bottom: .4rem; }
+/* nested-sets diagram */
+.venn { margin: 1rem 0; }
+.venn svg { display: block; width: 100%; max-width: 600px; height: auto; margin: 0 auto; }
+.venn .v-all { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+.venn .v-safe { fill: var(--ok-bg); stroke: var(--navy); stroke-width: 1.5; }
+.venn .v-typed { fill: var(--pending-bg); stroke: var(--maize); stroke-width: 2; }
+.venn .v-label { fill: var(--fg); font-family: var(--font-display); font-weight: 650; font-size: 20px; }
+.venn .v-ex { fill: var(--fg); font-family: var(--font-body); font-style: italic; font-size: 18px; }
+#document .cite { font-size: .85rem; color: var(--muted); }
+#document ul.refs { font-size: .88rem; color: var(--muted); padding-left: 1.1rem; }
+#document ul.refs li { margin: .3rem 0; }
+#document table.ref { border-collapse: collapse; margin: .8rem 0 1rem; font-size: .95rem; }
+#document table.ref th, #document table.ref td { border-bottom: 1px solid var(--line); padding: .3rem .9rem .3rem 0; text-align: left; }
+#document table.ref th { font-family: var(--font-display); font-weight: 650; color: var(--head); }
+/* step rules that do the real work */
+.rules > div.work { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 6px; padding: 0 .7rem; }
+.work-key { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 4px; padding: 0 .3rem; }
+/* math marked new with \\class{hl-new}{...}: maize marker behind the text */
+mjx-container .hl-new { color: var(--fg); }
+mjx-container .hl-new rect { fill: var(--pending-bg) !important; stroke: var(--maize) !important; stroke-width: 20 !important; }
+.cm-s-d6.CodeMirror { background: var(--code-bg) !important; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; }
+.cm-s-d6 .CodeMirror-gutters { background: var(--code-bg) !important; border-right: 1px solid var(--line) !important; }
+.cm-s-d6 .CodeMirror-linenumber { color: var(--muted) !important; }
+.cm-s-d6 .CodeMirror-cursor { border-left-color: var(--fg) !important; }
+.cm-s-d6 .CodeMirror-selected, .cm-s-d6.CodeMirror-focused .CodeMirror-selected { background: var(--line) !important; }
+.cm-s-d6 span[class*="cm-"] { color: var(--fg) !important; font-weight: 400; font-style: normal; }
+.cm-s-d6 span.cm-builtin { color: var(--syn-cmd) !important; font-weight: 700; }
+.cm-s-d6 span.cm-keyword { color: var(--syn-cmd) !important; }
+.cm-s-d6 span.cm-tactic { color: var(--syn-tactic) !important; font-weight: 600; }
+.cm-s-d6 span.cm-terminator { color: var(--syn-tactic) !important; font-weight: 700; }
+.cm-s-d6 span.cm-comment { color: var(--syn-comment) !important; font-style: italic; }
+.cm-s-d6 span.cm-string, .cm-s-d6 span.cm-number { color: var(--syn-amber) !important; }
+.cm-s-d6 span.cm-coq-bullet { color: var(--syn-amber) !important; font-weight: 700; }
+.cm-s-d6 span.cm-coq-focus { color: var(--muted) !important; }
+.cm-s-d6 span.CodeMirror-matchingbracket { color: var(--fg) !important; outline: 1px solid var(--maize); text-shadow: none; }
+/* how far Coq has checked */
+.cm-s-d6 .coq-eval-ok { background-color: var(--ok-bg) !important; }
+.cm-s-d6 .coq-eval-ok.coq-highlight { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-pending { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-failed { background-color: var(--failed-bg) !important; }
+/* the goals / messages panel */
+body.jscoq-main #panel-wrapper { background: var(--bg) !important; color: var(--fg) !important; border-left: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel { border-top: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel > .caption { background: var(--panel) !important; color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper #toolbar { border-bottom: 1px solid var(--line) !important; }
+body.jscoq-main #vsep, body.jscoq-main #hsep { background: var(--line) !important; }
+body.jscoq-main #panel-wrapper a, body.jscoq-main #panel-wrapper a:visited { color: var(--navy) !important; }
+body.jscoq-main #panel-wrapper #goal-panel p.system { color: var(--muted) !important; }
+body.jscoq-main #panel-wrapper [class*="constr."], body.jscoq-main #panel-wrapper [class*="module."],
+body.jscoq-main #panel-wrapper [class*="tactic."] { color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper .constr\.keyword, body.jscoq-main #panel-wrapper .module\.keyword,
+body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !important; }
+
+/* slide mode: one slide of the page at a time, at projector size */
+#document hr.slide-break { display: none; }
+#document.presenting .off-step { visibility: hidden; }
+/* collapsed table borders ignore visibility */
+#document.presenting tr.off-step > td, #document.presenting tr.off-step > th { border-color: transparent; }
+#document .slide-only { display: none; }
+#document.presenting .off-slide { display: none !important; }
+#document.presenting { font-size: 1.4rem; line-height: 1.5; padding-block: 1rem 5rem; }
+#document.presenting .CodeMirror { font-size: 1.05rem; }
+#document.presenting .topbar .eyebrow { display: none; }
+#document.presenting h1 { font-size: 1.8em; }
+#document.presenting h2 { font-size: 1.5em; margin-top: .4rem; border-top: 0; }
+#document.presenting h3 { font-size: 1.2em; margin-top: .4rem; }
+#document.presenting .topbar button { font-size: .8rem; }
+#document.presenting table.ref { font-size: .85em; }
+#document.presenting details:not(.unfold) .display, #document.presenting details:not(.unfold) .rules { font-size: .72em; }
+#document.presenting details.unfold { border: 0; padding: 0; margin: 0; background: none; }
+#document.presenting details.unfold > summary { display: none; }
+#document.presenting .slide-only { display: block; }
+#document.presenting #slide-context { font-family: var(--font-display); font-weight: 650; font-size: .8rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 .4rem; }
+#document.presenting #slide-context:empty { display: none; }
+#slide-nav { position: fixed; left: 16px; bottom: 14px; z-index: 50; display: none; gap: .4rem; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .3rem .5rem; font-family: var(--font-display); font-size: .9rem; color: var(--fg); }
+#document.presenting ~ #slide-nav, #slide-nav.on { display: flex; }
+#slide-nav button { font: inherit; }
+#slide-nav .count { min-width: 4.5em; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body class="jscoq-main">
+<div id="ide-wrapper" class="toggled">
+<div id="code-wrapper">
+<div id="document">
+<div class="topbar">
+<p class="eyebrow" style="margin-top:0">Runs in your browser: click into a code block and press Alt+↓ (Option+↓ on a Mac) to step, or Alt+Enter to run to the cursor. Goals show in the panel on the right.</p>
+<div class="switches">
+<button id="present-toggle" type="button">▶ Present</button>
+<button id="fold-toggle" type="button" aria-pressed="false">Show all code</button>
+<button id="panel-toggle" type="button" title="Collapse or open the goals and messages panel"></button>
+<button id="theme-toggle" type="button"></button>
+</div>
+</div>
+<p id="slide-context" class="slide-only"></p>
+
+<header>
+  <p class="eyebrow">CSE 590 · Fall 2026 · Discussion 1</p>
+  <h1>Names, binding, and alpha-equivalence</h1>
+  <p class="lede">Build alpha-equivalence from syntax, names, free variables, and simultaneous swapping.</p>
+</header>
+
+<aside class="route-note"><strong>Source.</strong> No Discussion 1 recording is available. The original executable source is the finalized Agda module <code>Syntax.NamedUntyped</code>; a Rocq version is included here.</aside>
+
+<p>Names are strings, and finite collections of names are represented by lists. The apparent “sets” are therefore lists: union is concatenation and duplicates are intentionally retained.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-1">From Coq Require Import String List Bool.
+Import ListNotations.
+Open Scope string_scope.
+
+Definition Var := string.
+
+Fixpoint memv (x : Var) (xs : list Var) : bool :=
+  match xs with
+  | [] =&gt; false
+  | y :: ys =&gt; if String.eqb x y then true else memv x ys
+  end.
+
+Fixpoint diff (xs ys : list Var) : list Var :=
+  match xs with
+  | [] =&gt; []
+  | x :: xs' =&gt; if memv x ys then diff xs' ys else x :: diff xs' ys
+  end.
+
+Definition fresh (x : Var) (xs : list Var) : Prop := memv x xs = false.
+Notation "x ∉ xs" := (fresh x xs) (at level 70).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 20 lines">Show code · 20 lines</button></div></div>
+
+<h2>1. Homework 1: what to be ready to do</h2>
+<h3>Question 2: a relation is a set-valued function</h3>
+<div class="display">\[
+(X\to\mathcal P(Y))\cong\mathcal P(X\times Y)
+\]</div>
+<p>Given \(f:X\to\mathcal P(Y)\), form \(R_f=\{(x,y)\mid y\in f(x)\}\). Given \(R\subseteq X\times Y\), form \(f_R(x)=\{y\mid(x,y)\in R\}\). The review task is to check that the two constructions undo each other.</p>
+
+<h3>Question 3: parse before reducing</h3>
+<ul>
+  <li>restore parentheses using application-left-associativity and the scope of each lambda;</li>
+  <li>identify each bound occurrence and each free occurrence;</li>
+  <li>perform alpha-renaming and beta-reduction without changing binding.</li>
+</ul>
+
+<h3>Question 4: respect the substitution side conditions</h3>
+<p>The original section deliberately does not solve the capture-avoiding-substitution exercise. Its goal here is narrower: recognize that the side conditions prevent a formerly free variable from becoming bound.</p>
+
+<h2>2. Syntax</h2>
+<div class="display">\[
+e ::= x \mid e_1\ e_2 \mid \lambda x.e
+\]</div>
+<p>The syntax tree has exactly three cases. Every function we define next follows those same three cases.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-2">Inductive term : Type :=
+| TVar (x : Var)
+| App (e f : term)
+| Lam (x : Var) (e : term).
+
+Notation "⟨ x ⟩" := (TVar x) (at level 0).
+Infix "·" := App (at level 59, left associativity).
+Notation "'ƛ' x '⇒' e" := (Lam x e) (at level 60, right associativity).
+
+Definition example1 : term := ƛ "x" ⇒ ⟨ "x" ⟩.
+Definition example2 : term := ƛ "x" ⇒ ƛ "y" ⇒ ⟨ "x" ⟩.
+Definition example3 : term := (ƛ "x" ⇒ ⟨ "x" ⟩) · ⟨ "y" ⟩.
+Definition example4 : term := ƛ "x" ⇒ ⟨ "x" ⟩ · ⟨ "x" ⟩.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 13 lines">Show code · 13 lines</button></div></div>
+
+<h2>3. Names and free variables</h2>
+<div class="rules">
+  <div>\[\begin{aligned}\mathsf{Vars}(x)&=[x]\\\mathsf{Vars}(e_1e_2)&=\mathsf{Vars}(e_1){+\!+}\mathsf{Vars}(e_2)\\\mathsf{Vars}(\lambda x.e)&=x::\mathsf{Vars}(e)\end{aligned}\]</div>
+  <div>\[\begin{aligned}\mathsf{FV}(x)&=\{x\}\\\mathsf{FV}(e_1e_2)&=\mathsf{FV}(e_1)\cup\mathsf{FV}(e_2)\\\mathsf{FV}(\lambda x.e)&=\mathsf{FV}(e)\setminus\{x\}\end{aligned}\]</div>
+</div>
+<p><code>Vars</code> records every name that appears, including binders and repeated occurrences. <code>FV</code> filters out every occurrence of the bound name. This matches the Agda definitions exactly rather than silently replacing their lists by mathematical sets.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-3">Fixpoint Vars (e : term) : list Var :=
+  match e with
+  | ⟨ x ⟩ =&gt; [x]
+  | e · f =&gt; Vars e ++ Vars f
+  | ƛ x ⇒ e =&gt; x :: Vars e
+  end.
+
+Example example5 : Vars ⟨ "x" ⟩ = ["x"].
+Proof. reflexivity. Qed.
+
+Example example6 : Vars (ƛ "x" ⇒ ⟨ "x" ⟩) = ["x"; "x"].
+Proof. reflexivity. Qed.
+
+Example example7 : Vars (ƛ "x" ⇒ ⟨ "x" ⟩ · ⟨ "y" ⟩) = ["x"; "x"; "y"].
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 15 lines">Show code · 15 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-4">Fixpoint FV (e : term) : list Var :=
+  match e with
+  | ⟨ x ⟩ =&gt; [x]
+  | e · f =&gt; FV e ++ FV f
+  | ƛ x ⇒ e =&gt; diff (FV e) [x]
+  end.
+
+Example example8 : FV (ƛ "x" ⇒ ⟨ "x" ⟩) = [].
+Proof. reflexivity. Qed.
+
+Example example9 : FV (ƛ "x" ⇒ ⟨ "x" ⟩ · ⟨ "y" ⟩) = ["y"].
+Proof. reflexivity. Qed.
+
+Example example10 : FV ((ƛ "x" ⇒ ⟨ "x" ⟩) · ⟨ "x" ⟩) = ["x"].
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 15 lines">Show code · 15 lines</button></div></div>
+
+<h2>4. Simultaneous swapping</h2>
+<p>A swap \(e[x\leftrightarrow y]\) exchanges the two names everywhere, including binders. It is one structural operation, not two substitutions performed in sequence.</p>
+<div class="display">\[
+\begin{aligned}
+x[x\leftrightarrow y]&=y & y[x\leftrightarrow y]&=x\\
+(e_1e_2)[x\leftrightarrow y]&=e_1[x\leftrightarrow y]\ e_2[x\leftrightarrow y]\\
+(\lambda z.e)[x\leftrightarrow y]&=\lambda(z[x\leftrightarrow y]).\,e[x\leftrightarrow y]
+\end{aligned}
+\]</div>
+<p>Name-level transposition swaps two names. Its structural lifting swaps variables and binders throughout a term.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-5">Definition swap_name (z x y : Var) : Var :=
+  if String.eqb z x then y else if String.eqb z y then x else z.
+
+Notation "z [ x ↔ y ]ₙ" := (swap_name z x y)
+  (at level 7, x at next level, y at next level).
+
+Example example11 : "x" [ "x" ↔ "y" ]ₙ = "y".
+Proof. reflexivity. Qed.
+
+Example example12 : "y" [ "x" ↔ "y" ]ₙ = "x".
+Proof. reflexivity. Qed.
+
+Example example13 : "z" [ "x" ↔ "y" ]ₙ = "z".
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 14 lines">Show code · 14 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-6">Fixpoint swap (e : term) (x y : Var) : term :=
+  match e with
+  | ⟨ z ⟩ =&gt; ⟨ z [ x ↔ y ]ₙ ⟩
+  | e · f =&gt; swap e x y · swap f x y
+  | ƛ z ⇒ e =&gt; ƛ (z [ x ↔ y ]ₙ) ⇒ swap e x y
+  end.
+
+Notation "e [ x ↔ y ]" := (swap e x y)
+  (at level 7, x at next level, y at next level).
+
+Example example14 :
+  (⟨ "x" ⟩ · ⟨ "y" ⟩) [ "x" ↔ "y" ] = ⟨ "y" ⟩ · ⟨ "x" ⟩.
+Proof. reflexivity. Qed.
+
+Example example15 :
+  (ƛ "x" ⇒ ⟨ "x" ⟩) [ "x" ↔ "y" ] = ƛ "y" ⇒ ⟨ "y" ⟩.
+Proof. reflexivity. Qed.
+
+Example example16 :
+  (ƛ "x" ⇒ ⟨ "x" ⟩ · ⟨ "y" ⟩) [ "x" ↔ "y" ]
+  = ƛ "y" ⇒ ⟨ "y" ⟩ · ⟨ "x" ⟩.
+Proof. reflexivity. Qed.
+
+Example example17 :
+  (ƛ "x" ⇒ ƛ "y" ⇒ ⟨ "x" ⟩ · ⟨ "y" ⟩) [ "x" ↔ "y" ]
+  = ƛ "y" ⇒ ƛ "x" ⇒ ⟨ "y" ⟩ · ⟨ "x" ⟩.
+Proof. reflexivity. Qed.
+
+Example example18 :
+  (ƛ "x" ⇒ ⟨ "x" ⟩ · ⟨ "z" ⟩) [ "x" ↔ "y" ]
+  = ƛ "y" ⇒ ⟨ "y" ⟩ · ⟨ "z" ⟩.
+Proof. reflexivity. Qed.
+
+Example example19 :
+  (ƛ "z" ⇒ ⟨ "x" ⟩ · ⟨ "z" ⟩) [ "x" ↔ "y" ]
+  = ƛ "z" ⇒ ⟨ "y" ⟩ · ⟨ "z" ⟩.
+Proof. reflexivity. Qed.
+
+Example example20 :
+  ((ƛ "x" ⇒ ⟨ "x" ⟩ · ⟨ "y" ⟩) [ "x" ↔ "y" ]) [ "x" ↔ "y" ]
+  = ƛ "x" ⇒ ⟨ "x" ⟩ · ⟨ "y" ⟩.
+Proof. reflexivity. Qed.
+
+Example example21 :
+  ((ƛ "x" ⇒ ⟨ "x" ⟩ · ⟨ "y" ⟩) [ "x" ↔ "y" ]) [ "y" ↔ "z" ]
+  = ƛ "z" ⇒ ⟨ "z" ⟩ · ⟨ "x" ⟩.
+Proof. reflexivity. Qed.
+
+Example example22 :
+  ((ƛ "x" ⇒ ƛ "z" ⇒
+      (⟨ "x" ⟩ · ⟨ "y" ⟩) · (⟨ "x" ⟩ · ⟨ "z" ⟩) ·
+      (⟨ "w" ⟩ · ⟨ "y" ⟩) · (⟨ "z" ⟩ · ⟨ "w" ⟩))
+    [ "x" ↔ "y" ]) [ "z" ↔ "w" ]
+  = ƛ "y" ⇒ ƛ "w" ⇒
+      (⟨ "y" ⟩ · ⟨ "x" ⟩) · (⟨ "y" ⟩ · ⟨ "w" ⟩) ·
+      (⟨ "z" ⟩ · ⟨ "x" ⟩) · (⟨ "w" ⟩ · ⟨ "z" ⟩).
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 57 lines">Show code · 57 lines</button></div></div>
+<details class="source"><summary>Swapping examples</summary><img src="images/swapping-examples.png" alt="Four examples of simultaneous swapping in lambda terms"><img src="images/swap-not-substitution.png" alt="Why simultaneous swapping is not two successive substitutions"></details>
+
+<h2>5. Alpha-equivalence</h2>
+<p>Variables are alpha-equivalent to themselves, and applications are alpha-equivalent componentwise. For abstractions, compare both bodies after moving their binders to the same genuinely fresh name.</p>
+<div class="rules">
+  <div>\[\frac{}{x\equiv_\alpha x}\;\mathsf{Var}\]</div>
+  <div>\[\frac{e_1\equiv_\alpha f_1\quad e_2\equiv_\alpha f_2}{e_1e_2\equiv_\alpha f_1f_2}\;\mathsf{App}\]</div>
+  <div>\[\frac{e[x\leftrightarrow z]\equiv_\alpha f[y\leftrightarrow z]\quad z\text{ fresh for }x,y,e,f}{\lambda x.e\equiv_\alpha\lambda y.f}\;\mathsf{Abs}\]</div>
+</div>
+<p>“Fresh” means \(z\ne x,y\) and \(z\) occurs nowhere in either body, including at binders.</p>
+<details class="source"><summary>Alpha-equivalence rule image</summary><img src="images/alpha-equivalence.png" alt="Variable, application, and abstraction rules for alpha-equivalence"></details>
+
+<h3>Example proof</h3>
+<p>\(\lambda x.x\equiv_\alpha\lambda y.y\). Choose fresh \(z\). Both swapped bodies are \(z\), so the abstraction rule reduces the goal to \(z\equiv_\alpha z\).</p>
+
+<h3>Example non-proof</h3>
+<p>\(\lambda x.x\not\equiv_\alpha\lambda y.x\). The left occurrence of \(x\) is bound while the right occurrence is free. The contradiction proof formalizes this mismatch.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-7">Inductive alpha : term -&gt; term -&gt; Prop :=
+| alpha_var : forall x,
+    alpha ⟨ x ⟩ ⟨ x ⟩
+| alpha_app : forall e1 e2 f1 f2,
+    alpha e1 f1 -&gt;
+    alpha e2 f2 -&gt;
+    alpha (e1 · e2) (f1 · f2)
+| alpha_lam : forall x y e f (z : Var),
+    z ∉ (Vars (ƛ x ⇒ e) ++ Vars (ƛ y ⇒ f)) -&gt;
+    alpha (e [ x ↔ z ]) (f [ y ↔ z ]) -&gt;
+    alpha (ƛ x ⇒ e) (ƛ y ⇒ f).
+
+Notation "e ≈α f" := (alpha e f) (at level 70).
+
+Example example23 : ⟨ "x" ⟩ ≈α ⟨ "x" ⟩.
+Proof. constructor. Qed.
+
+Example example24 : ~ (⟨ "x" ⟩ ≈α ⟨ "y" ⟩).
+Proof. intros H. inversion H. Qed.
+
+Example example25 : (ƛ "x" ⇒ ⟨ "x" ⟩) ≈α (ƛ "y" ⇒ ⟨ "y" ⟩).
+Proof.
+  eapply alpha_lam with (z := "z").
+  - reflexivity.
+  - constructor.
+Qed.
+
+Example example26 : ⟨ "x" ⟩ · ⟨ "y" ⟩ ≈α ⟨ "x" ⟩ · ⟨ "y" ⟩.
+Proof. constructor; constructor. Qed.
+
+Example example27 :
+  ~ (⟨ "x" ⟩ · ⟨ "y" ⟩ ≈α ⟨ "w" ⟩ · ⟨ "z" ⟩).
+Proof. intros H. inversion H; subst. inversion H3. Qed.
+
+Example example28 :
+  (ƛ "x" ⇒ ƛ "y" ⇒ ⟨ "x" ⟩ · ⟨ "y" ⟩)
+  ≈α (ƛ "a" ⇒ ƛ "b" ⇒ ⟨ "a" ⟩ · ⟨ "b" ⟩).
+Proof.
+  eapply alpha_lam with (z := "u").
+  - reflexivity.
+  - eapply alpha_lam with (z := "v").
+    + reflexivity.
+    + constructor; constructor.
+Qed.
+
+(* The Agda source leaves the false positive as a commented-out hole, then
+   proves that any such evidence would be contradictory. *)
+Example example30 :
+  ~ ((ƛ "x" ⇒ ⟨ "x" ⟩) ≈α (ƛ "y" ⇒ ⟨ "x" ⟩)).
+Proof.
+  intros H. inversion H; subst.
+  simpl in H3, H5.
+  assert (Ezx : String.eqb z "x" = false).
+  { unfold fresh in H3. simpl in H3.
+    destruct (String.eqb z "x") eqn:E; simpl in H3; try discriminate.
+    reflexivity. }
+  assert (Exz : String.eqb "x" z = false).
+  { rewrite String.eqb_sym. exact Ezx. }
+  change (⟨ z ⟩ ≈α ⟨ if String.eqb "x" z then "y" else "x" ⟩) in H5.
+  rewrite Exz in H5. simpl in H5.
+  inversion H5; subst.
+  rewrite String.eqb_refl in Ezx. discriminate.
+Qed.
+
+(* Navier–Stokes Lean: https://github.com/openai/NavierStokesAndEuler *)</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 65 lines">Show code · 65 lines</button></div></div>
+
+<h2>6. Mechanization connection</h2>
+<p>These definitions and their proofs can be encoded in proof assistants such as Agda. The PL-adjacent news item linked that week was OpenAI's <a href="https://github.com/openai/NavierStokesAndEuler">Navier–Stokes formalization in Lean</a>.</p>
+
+
+</div>
+<div id="slide-nav"><button class="prev" type="button" title="Previous slide (←)">◀</button><span class="count"></span><button class="next" type="button" title="Next slide (→)">▶</button></div>
+</div>
+</div>
+<script>
+window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, svg: { fontCache: 'global' } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.js"></script>
+<script>
+/* Slide mode.  The page is cut into slides at every h2 and h3 and at every
+   slide break (an <hr class="slide-break">).  Nothing moves: the elements
+   of the other slides are just hidden, so the Rocq blocks stay one
+   document and running a block still checks everything before it.
+   Within a slide, each element after the first appears on its own key
+   press, so a slide is revealed one piece at a time.  A folded block
+   marked "unfold" (<details class="unfold">) opens in slide mode, and
+   each .piece inside it counts as an element of its own, as do the
+   .piece parts of an element with class "pieces".  A section whose
+   h2 has class "one-slide" is a single long slide that scrolls, except
+   that an h3 with class "own-slide" still starts a slide of its own.
+   Keys: right arrow or Page Down for the next step or slide, left arrow
+   or Page Up to go back (what a presentation clicker sends), Escape to
+   leave.  The address ends in #slide-N, so a reload stays on the slide. */
+(function () {
+  const doc = document.getElementById('document');
+  const scroller = document.getElementById('code-wrapper');
+  const nav = document.getElementById('slide-nav');
+  const count = nav.querySelector('.count');
+  const context = document.getElementById('slide-context');
+  const button = document.getElementById('present-toggle');
+  const slides = [];
+  let cur = [], section = '', whole = false;
+  const close = () => { cur.steps = cur.length - 1; slides.push(cur); cur = []; };
+  const unfolds = [...doc.querySelectorAll(':scope > details.unfold')];
+  const rows = [...doc.querySelectorAll(':scope > .pieces')];
+  /* the boxes around pieces: shown on a slide when one of their pieces is */
+  const holders = [...unfolds, ...rows].flatMap(d => [d, ...d.querySelectorAll('.rules')]);
+  const units = [...doc.children].flatMap(el =>
+    el.matches('details.unfold, .pieces') ? [...el.querySelectorAll('.piece, hr.slide-break')] : [el]);
+  for (const el of units) {
+    if (el.classList.contains('topbar') || el.id === 'slide-context') continue;
+    /* a section whose h2 is marked "one-slide" stays one long slide */
+    if (el.tagName === 'H2') whole = el.classList.contains('one-slide');
+    const breaks = el.tagName === 'H2' || el.classList.contains('own-slide') ||
+      (!whole && (el.tagName === 'H3' || el.classList.contains('slide-break')));
+    if (breaks && cur.length) close();
+    if (el.tagName === 'H2') section = el.textContent;
+    if (!cur.length) cur.section = el.tagName === 'H2' ? '' : section;
+    if (el.classList.contains('slide-break')) continue;
+    el.dataset.step = cur.length;
+    cur.push(el);
+  }
+  if (cur.length) close();
+  let at = 0, shown = 0;
+  function label() {
+    const m = slides[at].steps;
+    const steps = m > 12 ? 'step ' + shown + ' of ' + m : '●'.repeat(shown) + '○'.repeat(m - shown);
+    count.textContent = (at + 1) + ' / ' + slides.length + (m ? '  ·  ' + steps : '');
+  }
+  /* frames (pieces of an element with class "frames") replace each other:
+     only the latest one revealed shows, in the same place */
+  const frameSets = [...doc.querySelectorAll(':scope > .frames')];
+  function reveal() {
+    for (const el of slides[at]) el.classList.toggle('off-step', Number(el.dataset.step) > shown);
+    for (const g of frameSets) {
+      const fs = [...g.children];
+      const last = fs.filter(f => !f.classList.contains('off-step') && !f.classList.contains('off-slide')).at(-1);
+      for (const f of fs) f.classList.toggle('off-frame', f !== last);
+    }
+    label();
+  }
+  /* show slide i with its first k steps revealed (all of them if k is 'all') */
+  function show(i, k) {
+    at = Math.max(0, Math.min(slides.length - 1, i));
+    shown = k === 'all' ? slides[at].steps : 0;
+    slides.forEach((els, n) => els.forEach(el => el.classList.toggle('off-slide', n !== at)));
+    for (const h of holders) h.classList.toggle('off-slide', !h.querySelector('.piece:not(.off-slide)'));
+    context.textContent = slides[at].section || '';
+    reveal();
+    history.replaceState(null, '', '#slide-' + (at + 1));
+    scroller.scrollTop = k === 'all' ? scroller.scrollHeight : 0;
+    /* editors that were hidden need to measure themselves again */
+    for (const el of slides[at])
+      for (const cm of el.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  /* in a long slide, bring the piece that just appeared or disappeared
+     to the middle of the screen */
+  const piece = k => slides[at].find(el => Number(el.dataset.step) === k);
+  const focusOn = el => { if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+  function next() {
+    if (shown < slides[at].steps) { shown++; reveal(); focusOn(piece(shown)); }
+    else if (at < slides.length - 1) show(at + 1, 0);
+  }
+  function prev() {
+    if (shown > 0) { const gone = piece(shown); shown--; reveal(); focusOn(gone); }
+    else if (at > 0) show(at - 1, 'all');
+  }
+  function start(i) {
+    for (const d of unfolds) { d.dataset.wasOpen = d.open; d.open = true; }
+    doc.classList.add('presenting'); nav.classList.add('on');
+    button.textContent = '✕ Stop presenting';
+    show(i, 0);
+  }
+  function stop() {
+    doc.classList.remove('presenting'); nav.classList.remove('on');
+    button.textContent = '▶ Present';
+    for (const els of slides) for (const el of els) el.classList.remove('off-slide', 'off-step');
+    for (const h of holders) h.classList.remove('off-slide');
+    for (const g of frameSets) for (const f of g.children) f.classList.remove('off-frame');
+    for (const d of unfolds) d.open = d.dataset.wasOpen === 'true';
+    history.replaceState(null, '', location.pathname + location.search);
+    const first = slides[at][0];
+    if (first) first.scrollIntoView();
+    for (const cm of doc.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  const presenting = () => doc.classList.contains('presenting');
+  button.addEventListener('click', () => presenting() ? stop() : start(at));
+  nav.querySelector('.prev').addEventListener('click', prev);
+  nav.querySelector('.next').addEventListener('click', next);
+  document.addEventListener('keydown', e => {
+    if (!presenting() || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest && e.target.closest('.CodeMirror, input, textarea, select')) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Escape') stop();
+  });
+  const m = location.hash.match(/^#slide-(\d+)$/);
+  if (m) start(Number(m[1]) - 1);
+})();
+</script>
+<script>
+/* jsCoq is loaded from the jsDelivr CDN.  Two problems, two fixes:
+   1. Browsers refuse to start a Worker from another domain, so wrap the
+      worker script in a same-origin blob that imports it.
+   2. The WebAssembly backend finds its runtime (OCaml, zarith, ...) in a
+      node_modules folder next to jsCoq.  The CDN has no such folder, so
+      requests for node_modules/<package>/<file> go to that package's own
+      CDN URL, at a pinned version. */
+function workerPrelude(BASE, PIN) {
+  const nativeFetch = self.fetch.bind(self);
+  function remap(r) {
+    const u = new URL(r, BASE);
+    const m = u.pathname.match(/\/(?:node_modules|undefined)\/(.*)$/);
+    if (m) {
+      const rest = m[1];
+      for (const pkg in PIN)
+        if (rest.startsWith(pkg + '/'))
+          return 'https://cdn.jsdelivr.net/npm/' + pkg + '@' + PIN[pkg] + rest.slice(pkg.length);
+    }
+    return u.href;
+  }
+  self.fetch = (r, o) => nativeFetch(typeof r === 'string' || r instanceof URL ? remap(String(r)) : r, o);
+}
+(function () {
+  const PIN = {
+    'ocaml-wasm': '4.12.0-0',
+    '@ocaml-wasm/4.12--zarith': '1.13.0-0',
+    '@ocaml-wasm/4.12--janestreet-base': '0.16.0-0',
+    '@ocaml-wasm/4.12--num': '1.4.0-0'
+  };
+  const NativeWorker = window.Worker;
+  window.Worker = class extends NativeWorker {
+    constructor(url, opts) {
+      const u = new URL(url, location.href);
+      if (u.origin !== location.origin) {
+        const src = '(' + workerPrelude + ')(' + JSON.stringify(u.href) + ', ' +
+                    JSON.stringify(PIN) + '); importScripts(' + JSON.stringify(u.href) + ');';
+        super(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })), opts);
+      } else {
+        super(url, opts);
+      }
+    }
+  };
+})();
+</script>
+<script type="module">
+  const JSCOQ = 'https://cdn.jsdelivr.net/npm/jscoq@0.17.1/';
+  const { JsCoq } = await import(JSCOQ + 'jscoq.js');
+  const theme0 = document.documentElement.getAttribute('data-theme');
+  const button = document.getElementById('theme-toggle');
+  const label = t => { button.textContent = t === 'dark' ? '☀ Light mode' : '☾ Dark mode'; };
+  label(theme0);
+  const coq = await JsCoq.start(['textarea.coq'], {
+    theme: theme0,
+    base_path: JSCOQ,
+    backend: 'wa',
+    prelude: true,
+    implicit_libs: true,
+    init_pkgs: ['init'],
+    all_pkgs: ['coq'],
+    editor: { mode: { 'company-coq': true }, theme: 'd6' },
+    focus: false
+  });
+  /* The light switch: page colors, jsCoq's panel (and its icons). */
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('jscoq-page-theme', t); } catch (e) {}
+    try { coq.layout.configure({ theme: t }); } catch (e) {}
+    /* jsCoq switches its editors to its own themes here; put ours back.
+       Our editor theme reads the page colors, so it follows data-theme. */
+    try { coq.provider.configure({ theme: 'd6' }); } catch (e) {}
+    label(t);
+  }
+  button.addEventListener('click', () =>
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+  /* Keep the right-hand goals panel under the same explicit control used
+     by the later discussion pages. */
+  const ide = document.getElementById('ide-wrapper');
+  const panelButton = document.getElementById('panel-toggle');
+  const panelOpen = () => !ide.classList.contains('toggled');
+  const panelLabel = () => { panelButton.textContent = panelOpen() ? '◨ Hide goals' : '◧ Show goals'; };
+  const setPanel = open => {
+    ide.classList.toggle('toggled', !open);
+    panelLabel();
+    setTimeout(() => { for (const cm of document.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh(); }, 350);
+  };
+  panelButton.addEventListener('click', () => {
+    const open = !panelOpen();
+    setPanel(open);
+    try { localStorage.setItem('jscoq-panel', open ? 'open' : 'closed'); } catch (e) {}
+  });
+  new MutationObserver(panelLabel).observe(ide, { attributes: true, attributeFilter: ['class'] });
+  let savedPanel = null;
+  try { savedPanel = localStorage.getItem('jscoq-panel'); } catch (e) {}
+  const wantPanel = savedPanel !== 'closed';
+  for (const t of [0, 600, 2000]) setTimeout(() => setPanel(wantPanel), t);
+  panelLabel();
+
+  /* Folded code cells.  A cell opens when you click its button or click
+     into its code, and by itself when Coq reports an error inside it.
+     Stepping into a folded cell leaves it folded; the goals panel still
+     follows along. */
+  const cells = [...document.querySelectorAll('.cell')];
+  function setCell(cell, open) {
+    cell.classList.toggle('is-collapsed', !open);
+    const b = cell.querySelector('.cell-toggle');
+    b.setAttribute('aria-expanded', String(open));
+    b.textContent = open ? 'Hide code' : b.dataset.label;
+    const cm = cell.querySelector('.CodeMirror');
+    if (cm && cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  for (const cell of cells) {
+    cell.querySelector('.cell-toggle').addEventListener('click', () =>
+      setCell(cell, cell.classList.contains('is-collapsed')));
+    /* Run: check everything up to the end of this block, using jsCoq's
+       "run to cursor".  Coq checks in order, so earlier blocks run first.
+       If later blocks were already checked, roll back to the end of this
+       block: "run to cursor" rewinds to just before the sentence at the
+       cursor, so for that the cursor goes to the start of the next block. */
+    cell.querySelector('.cell-run').addEventListener('click', () => {
+      const editorOf = c => c.querySelector('.CodeMirror')?.CodeMirror;
+      /* jsCoq tracks the active editor through focus events, which a
+         scripted focus doesn't always fire, so tell it directly. */
+      const point = (cm, pos) => {
+        cm.focus();
+        cm.setCursor(pos);
+        const sp = coq.provider.snippets.find(s => s.editor === cm);
+        if (sp) coq.provider.currentFocus = sp;
+      };
+      const cm = editorOf(cell);
+      if (!cm) return;
+      const last = cm.lastLine();
+      point(cm, { line: last, ch: cm.getLine(last).length });
+      if (coq.provider.getAtPoint()) {
+        /* the end of this block is already checked */
+        const next = cells[cells.indexOf(cell) + 1];
+        if (!next) return;
+        point(editorOf(next), { line: 0, ch: 0 });
+        if (!coq.provider.getAtPoint()) return;   /* nothing checked after this block */
+      }
+      coq.goCursor();
+      /* moving the cursor scrolls the editor; a folded one should still
+         show its first lines */
+      if (cell.classList.contains('is-collapsed')) {
+        cm.scrollTo(0, 0);
+        const n = cells[cells.indexOf(cell) + 1];
+        if (n && n.classList.contains('is-collapsed')) editorOf(n).scrollTo(0, 0);
+      }
+    });
+    cell.addEventListener('mousedown', e => {
+      if (cell.classList.contains('is-collapsed') && e.target.closest('.CodeMirror')) setCell(cell, true);
+    });
+  }
+  /* A folded editor only draws its first lines, so look at Coq's marks
+     in the editor itself, not at the page, to spot an error. */
+  setInterval(() => {
+    for (const cell of cells) {
+      if (!cell.classList.contains('is-collapsed')) continue;
+      const cm = cell.querySelector('.CodeMirror')?.CodeMirror;
+      if (cm && cm.getAllMarks().some(m => (m.className || '').includes('coq-eval-failed'))) setCell(cell, true);
+    }
+  }, 500);
+  const fold = document.getElementById('fold-toggle');
+  fold.addEventListener('click', () => {
+    const open = fold.getAttribute('aria-pressed') !== 'true';
+    fold.setAttribute('aria-pressed', String(open));
+    fold.textContent = open ? 'Fold all code' : 'Show all code';
+    for (const cell of cells) setCell(cell, open);
+  });
+</script>
+</body>
+</html>

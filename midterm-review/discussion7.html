@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<script>
+/* Pick the theme before anything paints: the saved choice, else the OS setting. */
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('jscoq-page-theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark')
+    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<title>Discussion 7: Products and sums</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jscoq@0.17.1/dist/frontend/index.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;650&amp;family=Spectral:ital,wght@0,400;0,600;1,400&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+/* Layout: one reading column, course-handout style; each inference rule is its own block that wraps on phones. */
+:root {
+  --bg: #fbfbf8;
+  --fg: #1d2330;
+  --muted: #5a6273;
+  --navy: #00274c;
+  --maize: #e0a800;
+  --panel: #eef1f6;
+  --line: #d6dbe4;
+  --head: var(--navy);
+  --code-bg: #f3f5f9;
+  --kw: #7a2e8c;
+  --str: #2f6b2f;
+  --num: #a14a00;
+  --font-display: "Commissioner", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Spectral", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+:root[data-theme="dark"] {
+  --bg: #0f1724; --fg: #e4e8ef; --muted: #9aa4b5; --navy: #8fb4e3; --maize: #ffcb05;
+  --panel: #172234; --line: #2a3850; --head: #ffcb05; --code-bg: #121c2c; --kw: #d7a6f0; --str: #9fd39f; --num: #f2b073; color-scheme: dark;
+}
+#document { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 1.05rem; line-height: 1.6; padding-inline: 16px; padding-block: 1.5rem 4rem; }
+#document .CodeMirror { font-size: .8rem; height: auto; }
+#document textarea.coq { width: 100%; }
+header { border-bottom: 3px solid var(--maize); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.eyebrow { font-family: var(--font-display); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1, h2, h3 { font-family: var(--font-display); color: var(--head); text-wrap: balance; line-height: 1.25; }
+h1 { font-size: 1.7rem; margin: .3rem 0 .4rem; font-weight: 650; }
+h2 { font-size: 1.3rem; margin: 2.6rem 0 .6rem; font-weight: 650; padding-top: .4rem; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 1.6rem 0 .4rem; font-weight: 650; }
+p, li { max-width: 65ch; }
+.lede { color: var(--muted); margin: 0; }
+code { font-family: var(--font-mono); font-size: .82em; background: var(--panel); padding: .05em .3em; border-radius: 3px; overflow-wrap: anywhere; }
+.rules { display: flex; flex-wrap: wrap; gap: .4rem 2rem; justify-content: center; align-items: flex-end; margin: .8rem 0 1rem; }
+.rules > div { min-width: 0; max-width: 100%; overflow-x: auto; }
+.display { overflow-x: auto; max-width: 100%; margin: .8rem 0; }
+mjx-container[display="true"] { margin: .4em 0 !important; }
+.thm { background: var(--panel); border-left: 3px solid var(--navy); padding: .7rem 1rem; margin: 1rem 0; }
+.thm p { margin: .3rem 0; }
+.thm .name { font-family: var(--font-display); font-weight: 650; color: var(--navy); }
+.proof { margin: .4rem 0 1rem; }
+.proof em:first-child { font-style: italic; }
+ul { padding-left: 1.2rem; }
+li { margin: .25rem 0; }
+
+#document code { color: var(--fg); }
+/* jsCoq's own stylesheet paints the document white; use the page tokens instead */
+body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #document { background: var(--bg) !important; color: var(--fg) !important; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+#theme-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+#theme-toggle:hover, #fold-toggle:hover, #present-toggle:hover, #panel-toggle:hover { border-color: var(--navy); }
+#fold-toggle, #present-toggle, #panel-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+.topbar .switches { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+/* displayed math scrolls sideways if it must, never up and down */
+.display, .rules > div { overflow-y: hidden; }
+#document .iso-diagram { color: var(--fg); margin: .6rem auto; max-width: 30rem; }
+#document p.aside { font-size: .85em; color: var(--muted); }
+/* math marked with \\class{hl-blue}{\\bbox[...]{...}}: the step note's soft blue behind it */
+mjx-container .hl-blue { color: var(--fg); }
+mjx-container .hl-blue rect { fill: var(--panel) !important; stroke: var(--line) !important; stroke-width: 20 !important; }
+#document:not(.presenting) mjx-container .hl-blue rect { fill: none !important; stroke: none !important; }
+#document pre.lang { background: var(--code-bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: .6rem .9rem; margin: .6rem 0 .9rem; overflow-x: auto; font-family: var(--font-mono); font-size: .78rem; line-height: 1.45; }
+#document pre.lang code { background: none; padding: 0; font-size: inherit; white-space: pre; }
+#document .iso-diagram svg { display: block; width: 100%; height: auto; }
+/* a program, one line per piece, left aligned */
+#document .display.prog { margin: .15rem 0; padding-left: 1.5rem; }
+#document .display.prog + :not(.display.prog) { margin-top: .9rem; }
+#document .display.prog mjx-container[display="true"] { text-align: left !important; margin: .3em 0 !important; }
+.rules.ch { margin: .2rem 0; align-items: center; }
+/* a tree built in stages: the page shows the last stage; slides show one at a time, in one place */
+#document .frames > .frame:not(.keep) { display: none; }
+#document.presenting .frames { display: grid; }
+#document.presenting .frames > .frame { display: block; grid-area: 1 / 1; align-self: end; }
+/* what each stage did, in one sentence: only in slide mode */
+#document .step-note { display: none; }
+#document.presenting .step-note { display: block; text-align: left; font-size: .8em; line-height: 1.4; min-height: 4.2em;
+  margin: .6rem auto 0; max-width: 34em; padding: .5rem .8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+/* opacity, not visibility: a stage's own visible parts must not show through */
+#document.presenting .frames > .frame.off-frame, #document.presenting .frames > .frame.off-step { opacity: 0; }
+.rules.ch > .ch-name { margin-left: -1.2rem; font-size: .9em; overflow: visible; }
+/* the rule correspondence as a table: typing rule | logic rule | name, labeled on top */
+#document .ch-table { display: grid; grid-template-columns: max-content max-content max-content; justify-content: safe center; align-items: center; column-gap: 1.2rem; row-gap: .3rem; margin: .8rem 0 1rem; overflow-x: auto; }
+#document .ch-table .piece { min-width: auto; max-width: none; overflow: visible; }
+#document .ch-table > .rules.ch { display: contents; }
+#document .ch-table .ch-name { margin-left: 0; justify-self: start; }
+#document .ch-table .ch-label { order: -1; text-align: center; font-family: var(--font-display); font-weight: 650; color: var(--head); padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
+#document .ch-table .ch-label span { display: block; font-family: var(--font-body); font-weight: 400; font-size: .8em; color: var(--muted); }
+#document .ch-table .ch-label.ipl { grid-column: 2 / span 2; }
+/* folded code cells: the first two lines show, faded out, until opened */
+.cell { margin: .8rem 0 1.2rem; }
+.cell.is-collapsed .CodeMirror { max-height: 3.3em !important; overflow: hidden; cursor: pointer; }
+.cell.is-collapsed .CodeMirror::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2.2em; background: linear-gradient(to bottom, transparent, var(--code-bg)); pointer-events: none; z-index: 10; }
+.cell-bar { display: flex; align-items: center; gap: 1rem; margin-top: .25rem; }
+.cell-run { font-family: var(--font-display); font-size: .78rem; font-weight: 650; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .15rem .7rem; cursor: pointer; }
+.cell-run:hover { border-color: var(--navy); }
+.cell-run:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+.cell-toggle { display: block; font-family: var(--font-display); font-size: .78rem; color: var(--navy); background: none; border: 0; padding: .15rem 0; cursor: pointer; }
+.cell-toggle:hover { text-decoration: underline; }
+.cell-toggle:focus-visible, #fold-toggle:focus-visible, #present-toggle:focus-visible, #panel-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+#theme-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+
+/* ---- jsCoq in the page's colors ------------------------------------
+   Three hues only, taken from the page: blue for the language (commands
+   bold, keywords plain, tactics a second, greener blue), amber for
+   literals and bullets, gray for comments.  Everything else is plain
+   text.  All at least about 5:1 on the code background, for projectors. */
+:root {
+  --syn-cmd: #0b4f9c; --syn-tactic: #0b6378; --syn-amber: #8a5a00; --syn-comment: #5c6370;
+  --ok-bg: #e7ecf4; --pending-bg: #fbefc4; --failed-bg: #f5d3d3;
+}
+:root[data-theme="dark"] {
+  --syn-cmd: #8cb4ff; --syn-tactic: #6cc4d6; --syn-amber: #f2c14e; --syn-comment: #9aa3b3;
+  --ok-bg: #19273b; --pending-bg: #3b3313; --failed-bg: #4a1f26;
+}
+/* editors */
+/* a question with its answer folded underneath */
+#document details.question { border: 1px solid var(--line); border-radius: 8px; padding: .6rem 1rem; margin: 1rem 0; background: var(--bg); }
+#document details.question > summary { cursor: pointer; font-family: var(--font-display); font-weight: 650; color: var(--head); }
+#document details.question[open] > summary { margin-bottom: .4rem; }
+/* nested-sets diagram */
+.venn { margin: 1rem 0; }
+.venn svg { display: block; width: 100%; max-width: 600px; height: auto; margin: 0 auto; }
+.venn .v-all { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+.venn .v-safe { fill: var(--ok-bg); stroke: var(--navy); stroke-width: 1.5; }
+.venn .v-typed { fill: var(--pending-bg); stroke: var(--maize); stroke-width: 2; }
+.venn .v-label { fill: var(--fg); font-family: var(--font-display); font-weight: 650; font-size: 20px; }
+.venn .v-ex { fill: var(--fg); font-family: var(--font-body); font-style: italic; font-size: 18px; }
+#document .cite { font-size: .85rem; color: var(--muted); }
+#document ul.refs { font-size: .88rem; color: var(--muted); padding-left: 1.1rem; }
+#document ul.refs li { margin: .3rem 0; }
+#document table.ref { border-collapse: collapse; margin: .8rem 0 1rem; font-size: .95rem; }
+#document table.ref th, #document table.ref td { border-bottom: 1px solid var(--line); padding: .3rem .9rem .3rem 0; text-align: left; }
+#document table.ref th { font-family: var(--font-display); font-weight: 650; color: var(--head); }
+/* step rules that do the real work */
+.rules > div.work { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 6px; padding: 0 .7rem; }
+.work-key { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 4px; padding: 0 .3rem; }
+/* math marked new with \\class{hl-new}{...}: maize marker behind the text */
+mjx-container .hl-new { color: var(--fg); }
+mjx-container .hl-new rect { fill: var(--pending-bg) !important; stroke: var(--maize) !important; stroke-width: 20 !important; }
+.cm-s-d6.CodeMirror { background: var(--code-bg) !important; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; }
+.cm-s-d6 .CodeMirror-gutters { background: var(--code-bg) !important; border-right: 1px solid var(--line) !important; }
+.cm-s-d6 .CodeMirror-linenumber { color: var(--muted) !important; }
+.cm-s-d6 .CodeMirror-cursor { border-left-color: var(--fg) !important; }
+.cm-s-d6 .CodeMirror-selected, .cm-s-d6.CodeMirror-focused .CodeMirror-selected { background: var(--line) !important; }
+.cm-s-d6 span[class*="cm-"] { color: var(--fg) !important; font-weight: 400; font-style: normal; }
+.cm-s-d6 span.cm-builtin { color: var(--syn-cmd) !important; font-weight: 700; }
+.cm-s-d6 span.cm-keyword { color: var(--syn-cmd) !important; }
+.cm-s-d6 span.cm-tactic { color: var(--syn-tactic) !important; font-weight: 600; }
+.cm-s-d6 span.cm-terminator { color: var(--syn-tactic) !important; font-weight: 700; }
+.cm-s-d6 span.cm-comment { color: var(--syn-comment) !important; font-style: italic; }
+.cm-s-d6 span.cm-string, .cm-s-d6 span.cm-number { color: var(--syn-amber) !important; }
+.cm-s-d6 span.cm-coq-bullet { color: var(--syn-amber) !important; font-weight: 700; }
+.cm-s-d6 span.cm-coq-focus { color: var(--muted) !important; }
+.cm-s-d6 span.CodeMirror-matchingbracket { color: var(--fg) !important; outline: 1px solid var(--maize); text-shadow: none; }
+/* how far Coq has checked */
+.cm-s-d6 .coq-eval-ok { background-color: var(--ok-bg) !important; }
+.cm-s-d6 .coq-eval-ok.coq-highlight { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-pending { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-failed { background-color: var(--failed-bg) !important; }
+/* the goals / messages panel */
+body.jscoq-main #panel-wrapper { background: var(--bg) !important; color: var(--fg) !important; border-left: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel { border-top: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel > .caption { background: var(--panel) !important; color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper #toolbar { border-bottom: 1px solid var(--line) !important; }
+body.jscoq-main #vsep, body.jscoq-main #hsep { background: var(--line) !important; }
+body.jscoq-main #panel-wrapper a, body.jscoq-main #panel-wrapper a:visited { color: var(--navy) !important; }
+body.jscoq-main #panel-wrapper #goal-panel p.system { color: var(--muted) !important; }
+body.jscoq-main #panel-wrapper [class*="constr."], body.jscoq-main #panel-wrapper [class*="module."],
+body.jscoq-main #panel-wrapper [class*="tactic."] { color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper .constr\.keyword, body.jscoq-main #panel-wrapper .module\.keyword,
+body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !important; }
+
+/* slide mode: one slide of the page at a time, at projector size */
+#document hr.slide-break { display: none; }
+#document.presenting .off-step { visibility: hidden; }
+/* collapsed table borders ignore visibility */
+#document.presenting tr.off-step > td, #document.presenting tr.off-step > th { border-color: transparent; }
+#document .slide-only { display: none; }
+#document.presenting .off-slide { display: none !important; }
+#document.presenting { font-size: 1.4rem; line-height: 1.5; padding-block: 1rem 5rem; }
+#document.presenting .CodeMirror { font-size: 1.05rem; }
+#document.presenting .topbar .eyebrow { display: none; }
+#document.presenting h1 { font-size: 1.8em; }
+#document.presenting h2 { font-size: 1.5em; margin-top: .4rem; border-top: 0; }
+#document.presenting h3 { font-size: 1.2em; margin-top: .4rem; }
+#document.presenting .topbar button { font-size: .8rem; }
+#document.presenting table.ref { font-size: .85em; }
+#document.presenting details:not(.unfold) .display, #document.presenting details:not(.unfold) .rules { font-size: .72em; }
+#document.presenting details.unfold { border: 0; padding: 0; margin: 0; background: none; }
+#document.presenting details.unfold > summary { display: none; }
+#document.presenting .slide-only { display: block; }
+#document.presenting #slide-context { font-family: var(--font-display); font-weight: 650; font-size: .8rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 .4rem; }
+#document.presenting #slide-context:empty { display: none; }
+#slide-nav { position: fixed; left: 16px; bottom: 14px; z-index: 50; display: none; gap: .4rem; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .3rem .5rem; font-family: var(--font-display); font-size: .9rem; color: var(--fg); }
+#document.presenting ~ #slide-nav, #slide-nav.on { display: flex; }
+#slide-nav button { font: inherit; }
+#slide-nav .count { min-width: 4.5em; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body class="jscoq-main">
+<div id="ide-wrapper" class="toggled">
+<div id="code-wrapper">
+<div id="document">
+<div class="topbar">
+<p class="eyebrow" style="margin-top:0">Runs in your browser: click into a code block and press Alt+↓ (Option+↓ on a Mac) to step, or Alt+Enter to run to the cursor. Goals show in the panel on the right.</p>
+<div class="switches">
+<button id="present-toggle" type="button">▶ Present</button>
+<button id="fold-toggle" type="button" aria-pressed="false">Show all code</button>
+<button id="panel-toggle" type="button" title="Collapse or open the goals and messages panel"></button>
+<button id="theme-toggle" type="button"></button>
+</div>
+</div>
+<p id="slide-context" class="slide-only"></p>
+
+<header>
+  <p class="eyebrow">CSE 590 · Fall 2026 · Discussion 7</p>
+  <h1>Products, sums, and what they mean</h1>
+  <p class="lede">Products and sums as data, program isomorphisms, and the Curry–Howard correspondence.</p>
+</header>
+
+<h2 class="one-slide">1. Products and sums as data</h2>
+<details class="question unfold">
+<summary>The lecture's language, for reference: functions, products and sums</summary>
+<div class="display piece">\[
+\tau ::= \mathbf{0} \mid \mathbf{1} \mid \tau_1 \times \tau_2 \mid \tau_1 + \tau_2 \mid \tau_1 \to \tau_2
+\]</div>
+<div class="display piece">\[
+\begin{aligned}
+e ::={}& x \mid \lambda x{:}\tau.\, e \mid e_1\, e_2 \\
+  &\mid () \mid (e_1, e_2) \mid e.1 \mid e.2 \\
+  &\mid \mathsf{case}_{\mathbf{0}}\ e\ \{\} \mid \mathsf{in}_1\ e \mid \mathsf{in}_2\ e \\
+  &\mid \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\}
+\end{aligned}
+\]</div>
+<div class="display piece">\[
+v ::= \lambda x{:}\tau.\, e \mid () \mid (v_1, v_2) \mid \mathsf{in}_1\ v \mid \mathsf{in}_2\ v
+\]</div>
+<hr class="slide-break">
+<div class="rules">
+  <div class="piece">\[\frac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}\]</div>
+  <div class="piece">\[\frac{\Gamma, x{:}\tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\]</div>
+  <div class="piece">\[\frac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}\]</div>
+  <div class="piece">\[(\lambda x{:}\tau.\, e)\, v \longrightarrow e[x \mapsto v]\]</div>
+</div>
+<hr class="slide-break">
+<div class="rules">
+  <div class="piece">\[\frac{}{\Gamma \vdash () : \mathbf{1}}\]</div>
+  <div class="piece">\[\frac{\Gamma \vdash e_1 : \tau_1 \quad \Gamma \vdash e_2 : \tau_2}{\Gamma \vdash (e_1, e_2) : \tau_1 \times \tau_2}\]</div>
+  <div class="piece">\[\frac{\Gamma \vdash e : \tau_1 \times \tau_2}{\Gamma \vdash e.i : \tau_i}\]</div>
+  <div class="piece">\[(v_1, v_2).i \longrightarrow v_i\]</div>
+</div>
+<hr class="slide-break">
+<div class="rules">
+  <div class="piece">\[\frac{\Gamma \vdash e : \mathbf{0}}{\Gamma \vdash \mathsf{case}_{\mathbf{0}}\ e\ \{\} : \tau}\]</div>
+  <div class="piece">\[\frac{\Gamma \vdash e : \tau_1}{\Gamma \vdash \mathsf{in}_1\ e : \tau_1 + \tau_2}\]</div>
+  <div class="piece">\[\frac{\Gamma \vdash e : \tau_2}{\Gamma \vdash \mathsf{in}_2\ e : \tau_1 + \tau_2}\]</div>
+  <div class="piece">\[\frac{\begin{array}{c}\Gamma \vdash e : \tau_1 + \tau_2 \\ \Gamma, x_1{:}\tau_1 \vdash e_1 : \tau \quad \Gamma, x_2{:}\tau_2 \vdash e_2 : \tau\end{array}}{\Gamma \vdash \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} : \tau}\]</div>
+</div>
+<div class="display piece">\[
+\begin{aligned}&\mathsf{case}_+\ (\mathsf{in}_1\ v)\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} \\ &\qquad \longrightarrow e_1[x_1 \mapsto v]\end{aligned}
+\]</div>
+<div class="display piece">\[
+\begin{aligned}&\mathsf{case}_+\ (\mathsf{in}_2\ v)\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} \\ &\qquad \longrightarrow e_2[x_2 \mapsto v]\end{aligned}
+\]</div>
+</details>
+
+<hr class="slide-break">
+<p>Rocq already has the lecture's type formers. With a few notations, we can also write them, and their programs, in the lecture's syntax:</p>
+<table class="ref">
+  <tr><th>lecture</th><th>Rocq</th></tr>
+  <tr><td>\(\tau_1 \times \tau_2\)</td><td><code>τ₁ * τ₂</code></td></tr>
+  <tr><td>\(\tau_1 + \tau_2\)</td><td><code>τ₁ + τ₂</code></td></tr>
+  <tr><td>\(\mathbf{1}\)</td><td><code>unit</code></td></tr>
+  <tr><td>\(\mathbf{0}\)</td><td><code>Empty_set</code></td></tr>
+  <tr><td>\(()\)</td><td><code>tt</code></td></tr>
+  <tr><td>\(\mathsf{in}_1\ e\), \(\mathsf{in}_2\ e\)</td><td><code>inl e</code>, <code>inr e</code></td></tr>
+  <tr><td>\(e.1\), \(e.2\)</td><td><code>fst e</code>, <code>snd e</code></td></tr>
+  <tr><td>\(\mathsf{case}_{\mathbf{0}}\ e\ \{\}\)</td><td><code>match e with end</code></td></tr>
+  <tr><td>\(\begin{aligned}&\mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \\ &\quad \mid \mathsf{in}_2\ x_2 \to e_2\}\end{aligned}\)</td><td><code>match e with<br>| inl x₁ => e₁<br>| inr x₂ => e₂ end</code></td></tr>
+</table>
+<hr class="slide-break">
+<p>In types, <code>1</code> and <code>0</code> now mean <code>unit</code> and <code>Empty_set</code>; in programs they are still the numbers 1 and 0.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-1">Notation "τ₁ × τ₂" := (prod τ₁ τ₂) (at level 40, left associativity) : type_scope.
+Notation "1" := unit : type_scope.
+Notation "0" := Empty_set : type_scope.
+Notation "()" := tt.
+Notation in₁ := (@inl _ _).
+Notation in₂ := (@inr _ _).
+Notation "e .1" := (fst e) (at level 2, left associativity, format "e .1").
+Notation "e .2" := (snd e) (at level 2, left associativity, format "e .2").
+Notation "'case₀' e '{' '}'" := (match e with end) (at level 200, e at level 9).
+Notation "'case₊' e '{' 'in₁' x₁ → e₁ | 'in₂' x₂ → e₂ '}'" :=
+  (match e with inl x₁ =&gt; e₁ | inr x₂ =&gt; e₂ end)
+  (at level 200, e at level 9, x₁ name, x₂ name,
+   format "'case₊'  e  '{' 'in₁'  x₁  →  e₁  |  'in₂'  x₂  →  e₂ '}'").
+Notation "τ₁ → τ₂" := (τ₁ -&gt; τ₂) (at level 99, τ₂ at level 200, right associativity) : type_scope.
+Notation "'λ' x .. y , e" := (fun x =&gt; .. (fun y =&gt; e) ..)
+  (at level 200, x binder, y binder, right associativity).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 16 lines">Show code · 16 lines</button></div></div>
+<p>Sums appear in many languages. \(\tau_1 + \tau_2\) is <code>Either[A, B]</code> in Scala, <code>Result&lt;T, E&gt;</code> in Rust, and <code>Either a b</code> in Haskell. In each, \(\mathsf{in}_1\) and \(\mathsf{in}_2\) are <code>Left</code> and <code>Right</code> (Scala, Haskell) or <code>Ok</code> and <code>Err</code> (Rust).</p>
+<p>For example, Rust's standard library defines <code>enum Result&lt;T, E&gt; { Ok(T), Err(E) }</code>. Here is a division that fails on zero, and a function that takes its result apart:</p>
+<pre class="lang"><code>fn div(n: i32, d: i32) -&gt; Result&lt;i32, String&gt; {
+    if d == 0 { Err(String::from(&quot;divide by zero&quot;)) } else { Ok(n / d) }
+}
+
+fn describe(r: Result&lt;i32, String&gt;) -&gt; String {
+    match r {
+        Ok(q) =&gt; format!(&quot;quotient {}&quot;, q),
+        Err(msg) =&gt; msg,
+    }
+}</code></pre>
+<p>OCaml's standard library has the same type, called <code>result</code>: <code>type ('a, 'b) result = Ok of 'a | Error of 'b</code>. The same two functions:</p>
+<pre class="lang"><code>let div n d = if d = 0 then Error &quot;divide by zero&quot; else Ok (n / d)
+
+let describe r =
+  match r with
+  | Ok q -&gt; &quot;quotient &quot; ^ string_of_int q
+  | Error msg -&gt; msg</code></pre>
+<p>In the lecture's terms, OCaml's <code>div</code> has type \(\mathsf{int} \to \mathsf{int} \to \mathsf{int} + \mathsf{string}\). Rust's takes both arguments at once, so its type is \(\mathsf{int} \times \mathsf{int} \to \mathsf{int} + \mathsf{string}\): the two are related by currying, from Part 2. In both, <code>Ok</code> is \(\mathsf{in}_1\), <code>Err</code> (or <code>Error</code>) is \(\mathsf{in}_2\), and <code>describe</code>'s <code>match</code> is \(\mathsf{case}_+\).</p>
+<hr class="slide-break">
+<div class="cell is-collapsed"><textarea class="coq" id="coq-2">Check (3, true) : nat × bool.
+Check (3, true).1.
+Check (in₁ 3 : nat + bool).
+Check (in₂ true : nat + bool).
+Check () : 1.
+
+Definition describe (s : nat + bool) : nat :=
+  case₊ s {in₁ n → n | in₂ b → if b then 1 else 0}.
+
+Example describe_ex : describe (in₂ true) = 1.
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 11 lines">Show code · 11 lines</button></div></div>
+<p>\(\mathbf{0}\) has no introduction form, so it has no values, and a case on it has no branches: this is the lecture's \(\mathsf{case}_{\mathbf{0}}\ e\ \{\}\). From an impossible value, you can return anything.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-3">Definition absurd {τ : Type} (z : 0) : τ :=
+  case₀ z {}.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
+
+
+<h2 class="one-slide">2. Isomorphisms</h2>
+<p>Here are some equations from grade school, true for all numbers \(n\), \(m\) and \(k\):</p>
+<div class="display">\[
+\begin{gathered}
+n \cdot 1 = n \qquad n + 0 = n \qquad n \cdot 0 = 0 \\
+n \cdot m = m \cdot n \qquad 2 = 1 + 1 \\
+n\,(m + k) = n m + n k \\
+k^{n \cdot m} = (k^m)^n
+\end{gathered}
+\]</div>
+<p>They work for types too. Read \(\cdot\) as \(\times\), \(+\) as \(+\), \(k^n\) as \(n \to k\) (a function picks one of \(k\) outputs for each of \(n\) inputs), and \(=\) as \(\cong\):</p>
+<div class="display">\[
+\begin{gathered}
+\tau \times \mathbf{1} \cong \tau \qquad \tau + \mathbf{0} \cong \tau \qquad \tau \times \mathbf{0} \cong \mathbf{0} \\
+\tau_1 \times \tau_2 \cong \tau_2 \times \tau_1 \qquad \mathsf{bool} \cong \mathbf{1} + \mathbf{1} \\
+\tau_1 \times (\tau_2 + \tau_3) \cong \tau_1 \times \tau_2 + \tau_1 \times \tau_3 \\
+(\tau_1 \times \tau_2 \to \tau_3) \cong (\tau_1 \to \tau_2 \to \tau_3)
+\end{gathered}
+\]</div>
+<hr class="slide-break">
+<p>Two types are <strong>isomorphic</strong>, \(\tau_1 \cong \tau_2\), when there are programs \(f : \tau_1 \to \tau_2\) and \(g : \tau_2 \to \tau_1\) that undo each other, in both orders:</p>
+<div class="display">\[
+\begin{aligned}
+&\text{retraction:} && \forall x{:}\tau_1.\; g\,(f\, x) = x && \text{(\(g\) undoes \(f\))} \\
+&\text{section:} && \forall y{:}\tau_2.\; f\,(g\, y) = y && \text{(\(f\) undoes \(g\))}
+\end{aligned}
+\]</div>
+<hr class="slide-break">
+<p>We say \(g\) is a <strong>retraction</strong> of \(f\) when the first holds, and a <strong>section</strong> of \(f\) when the second holds. As a picture, going around either loop does nothing:</p>
+<div class="iso-diagram" role="img" aria-label="Two types, tau one and tau two, with f from tau one to tau two, g back, and a loop on each labeled with the identity">
+<svg viewBox="0 0 560 190" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="iso-head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#iso-head)">
+    <path d="M206,82 Q280,36 354,82"/>
+    <path d="M354,112 Q280,158 206,112"/>
+    <path d="M168,84 C110,40 110,154 168,110"/>
+    <path d="M392,110 C450,154 450,40 392,84"/>
+  </g>
+  <g fill="currentColor" font-family="Spectral, Georgia, serif" font-style="italic" font-size="22" text-anchor="middle">
+    <text x="186" y="104">τ<tspan font-size="15" dy="5">1</tspan></text>
+    <text x="374" y="104">τ<tspan font-size="15" dy="5">2</tspan></text>
+    <text x="280" y="44">f</text>
+    <text x="280" y="164">g</text>
+    <text x="68" y="104" text-anchor="middle">g ∘ f = id</text>
+    <text x="492" y="104" text-anchor="middle">f ∘ g = id</text>
+  </g>
+</svg>
+</div>
+<p>Then \(\tau_1\) and \(\tau_2\) have the same values, with different names.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-4">Definition retraction {τ₁ τ₂ : Type} (f : τ₁ → τ₂) (g : τ₂ → τ₁) : Prop :=
+  forall a : τ₁, g (f a) = a.
+Definition section {τ₁ τ₂ : Type} (f : τ₁ → τ₂) (g : τ₂ → τ₁) : Prop :=
+  forall b : τ₂, f (g b) = b.
+Definition iso {τ₁ τ₂ : Type} (f : τ₁ → τ₂) (g : τ₂ → τ₁) : Prop :=
+  retraction f g /\ section f g.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 6 lines">Show code · 6 lines</button></div></div>
+<hr class="slide-break">
+<p>Each isomorphism below is a pair of programs \(f\) and \(g\) in the lecture's language. Try writing each program from its type before reading it. In Rocq, each pair sits in a module of its own, so every one can be called <code>f</code> and <code>g</code>; from outside, they are <code>ProdUnit.f</code>, <code>Dist.g</code>, and so on. In Rocq, the proofs that the two programs undo each other follow the same pattern: unfold <code>iso</code> into its two laws and split them; in each, <code>cbv delta [f g]</code> unfolds \(f\) and \(g\), putting in their programs, and <code>cbv beta</code> substitutes the argument (the β step); take the value apart, one case per way it can be built; then <code>simpl</code> runs the rest, and <code>reflexivity</code> sees that both sides are the same. Step through a proof to watch both sides become equal. The two exceptions: for \(\tau \times \mathbf{0} \cong \mathbf{0}\) there is nothing to compute, since no value can be built, and for curry the values are functions, so the proof first uses <code>funext</code>.</p>
+
+<h3 class="own-slide">\(\tau \times \mathbf{1} \cong \tau\)</h3>
+<p>Like \(n \cdot 1 = n\). The second part of the pair can only be \(()\), so it carries no information.</p>
+<div class="display prog">\[
+f : \tau \times \mathbf{1} \to \tau
+\]</div>
+<div class="display prog">\[
+f = \lambda p{:}\tau \times \mathbf{1}.\, p.1
+\]</div>
+<div class="display prog">\[
+g : \tau \to \tau \times \mathbf{1}
+\]</div>
+<div class="display prog">\[
+g = \lambda x{:}\tau.\, (x, ())
+\]</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-5">Module ProdUnit.
+Section ProdUnit.
+Context {τ : Type}.
+
+Definition f : τ × 1 → τ := λ p, p.1.
+Definition g : τ → τ × 1 := λ a, (a, ()).
+
+Lemma prod_unit : iso f g.
+Proof.
+  unfold iso, retraction, section.  (* the two laws *)
+  split.
+  - (* g (f p) = p *)
+    intros p.
+    cbv delta [f g].  (* unfold f and g: put in their programs *)
+    cbv beta.         (* substitute the argument: the β step *)
+    (* (p.1, ()) = p computes no further until p is a pair (a, u),
+       and u can only be () *)
+    destruct p as [a u]. destruct u.
+    simpl.        (* run the rest *)
+    reflexivity.
+  - (* f (g a) = a *)
+    intros a.
+    cbv delta [f g].
+    cbv beta.
+    simpl.
+    reflexivity.
+Qed.
+
+End ProdUnit.
+End ProdUnit.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 30 lines">Show code · 30 lines</button></div></div>
+
+<h3 class="own-slide">\(\tau + \mathbf{0} \cong \tau\)</h3>
+<p>Like \(n + 0 = n\). The \(\mathsf{in}_2\) side would hold a value of \(\mathbf{0}\), which can't exist, so only \(\mathsf{in}_1\) ever happens.</p>
+<div class="display prog">\[
+f : \tau + \mathbf{0} \to \tau
+\]</div>
+<div class="display prog">\[
+f = \lambda s{:}\tau + \mathbf{0}.\, \mathsf{case}_+\ s\ \{\mathsf{in}_1\ x \to x \mid \mathsf{in}_2\ z \to \mathsf{case}_{\mathbf{0}}\ z\ \{\}\}
+\]</div>
+<div class="display prog">\[
+g : \tau \to \tau + \mathbf{0}
+\]</div>
+<div class="display prog">\[
+g = \lambda x{:}\tau.\, \mathsf{in}_1\ x
+\]</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-6">Module SumEmpty.
+Section SumEmpty.
+Context {τ : Type}.
+
+Definition f : τ + 0 → τ := λ s, case₊ s {in₁ a → a | in₂ z → case₀ z {}}.
+Definition g : τ → τ + 0 := λ a, in₁ a.
+
+Lemma sum_empty : iso f g.
+Proof.
+  unfold iso, retraction, section.
+  split.
+  - intros s.
+    cbv delta [f g].
+    cbv beta.
+    (* a sum is in₁ a or in₂ z *)
+    destruct s as [a | z].
+    + simpl.
+      reflexivity.
+    + (* z : 0 has no cases *)
+      destruct z.
+  - intros a.
+    cbv delta [f g].
+    cbv beta.
+    simpl.
+    reflexivity.
+Qed.
+
+End SumEmpty.
+End SumEmpty.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 29 lines">Show code · 29 lines</button></div></div>
+
+<h3 class="own-slide">\(\tau \times \mathbf{0} \cong \mathbf{0}\)</h3>
+<p>Like \(n \cdot 0 = 0\). A pair would need a value of \(\mathbf{0}\), so there are no such pairs, and the proofs have no cases.</p>
+<div class="display prog">\[
+f : \tau \times \mathbf{0} \to \mathbf{0}
+\]</div>
+<div class="display prog">\[
+f = \lambda p{:}\tau \times \mathbf{0}.\, p.2
+\]</div>
+<div class="display prog">\[
+g : \mathbf{0} \to \tau \times \mathbf{0}
+\]</div>
+<div class="display prog">\[
+g = \lambda z{:}\mathbf{0}.\, \mathsf{case}_{\mathbf{0}}\ z\ \{\}
+\]</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-7">Module ProdEmpty.
+Section ProdEmpty.
+Context {τ : Type}.
+
+Definition f : τ × 0 → 0 := λ p, p.2.
+Definition g : 0 → τ × 0 := λ z, case₀ z {}.
+
+Lemma prod_empty : iso f g.
+Proof.
+  unfold iso, retraction, section.
+  split.
+  - intros p.
+    cbv delta [f g].
+    cbv beta.
+    (* a pair (a, z) with z : 0: no cases *)
+    destruct p as [a z]. destruct z.
+  - intros z.
+    cbv delta [f g].
+    cbv beta.
+    (* z : 0: no cases *)
+    destruct z.
+Qed.
+
+End ProdEmpty.
+End ProdEmpty.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 25 lines">Show code · 25 lines</button></div></div>
+
+<h3 class="own-slide">\(\tau_1 \times \tau_2 \cong \tau_2 \times \tau_1\)</h3>
+<p>Like \(n \cdot m = m \cdot n\). Both programs swap the pair, and swapping twice gives it back.</p>
+<div class="display prog">\[
+f : \tau_1 \times \tau_2 \to \tau_2 \times \tau_1
+\]</div>
+<div class="display prog">\[
+f = \lambda p{:}\tau_1 \times \tau_2.\, (p.2, p.1)
+\]</div>
+<div class="display prog">\[
+g : \tau_2 \times \tau_1 \to \tau_1 \times \tau_2
+\]</div>
+<div class="display prog">\[
+g = \lambda p{:}\tau_2 \times \tau_1.\, (p.2, p.1)
+\]</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-8">Module ProdComm.
+Section ProdComm.
+Context {τ₁ τ₂ : Type}.
+
+Definition f : τ₁ × τ₂ → τ₂ × τ₁ := λ p, (p.2, p.1).
+Definition g : τ₂ × τ₁ → τ₁ × τ₂ := λ p, (p.2, p.1).
+
+Lemma prod_comm : iso f g.
+Proof.
+  unfold iso, retraction, section.
+  split.
+  - intros p.
+    cbv delta [f g].
+    cbv beta.
+    destruct p as [a b].
+    simpl.
+    reflexivity.
+  - intros p.
+    cbv delta [f g].
+    cbv beta.
+    destruct p as [b a].
+    simpl.
+    reflexivity.
+Qed.
+
+End ProdComm.
+End ProdComm.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 27 lines">Show code · 27 lines</button></div></div>
+
+<h3 class="own-slide">\(\tau_1 \times (\tau_2 + \tau_3) \cong \tau_1 \times \tau_2 + \tau_1 \times \tau_3\)</h3>
+<p>Like \(n(m + k) = nm + nk\). A pair whose second part is "a \(\tau_2\) or a \(\tau_3\)" is the same as "a pair with a \(\tau_2\), or a pair with a \(\tau_3\)".</p>
+<div class="display prog">\[
+f : \tau_1 \times (\tau_2 + \tau_3) \to \tau_1 \times \tau_2 + \tau_1 \times \tau_3
+\]</div>
+<div class="display prog">\[
+\begin{aligned}
+f &= \lambda p{:}\tau_1 \times (\tau_2 + \tau_3).\\
+  &\qquad \mathsf{case}_+\ p.2\ \{\mathsf{in}_1\ y \to \mathsf{in}_1\ (p.1, y) \\
+  &\qquad\qquad\quad\; \mid \mathsf{in}_2\ z \to \mathsf{in}_2\ (p.1, z)\}
+\end{aligned}
+\]</div>
+<div class="display prog">\[
+g : \tau_1 \times \tau_2 + \tau_1 \times \tau_3 \to \tau_1 \times (\tau_2 + \tau_3)
+\]</div>
+<div class="display prog">\[
+\begin{aligned}
+g &= \lambda s{:}\tau_1 \times \tau_2 + \tau_1 \times \tau_3.\\
+  &\qquad \mathsf{case}_+\ s\ \{\mathsf{in}_1\ q \to (q.1, \mathsf{in}_1\ q.2) \\
+  &\qquad\qquad\quad \mid \mathsf{in}_2\ q \to (q.1, \mathsf{in}_2\ q.2)\}
+\end{aligned}
+\]</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-9">Module Dist.
+Section Dist.
+Context {τ₁ τ₂ τ₃ : Type}.
+
+Definition f : τ₁ × (τ₂ + τ₃) → τ₁ × τ₂ + τ₁ × τ₃ :=
+  λ p, case₊ p.2 {in₁ b → in₁ (p.1, b) | in₂ c → in₂ (p.1, c)}.
+Definition g : τ₁ × τ₂ + τ₁ × τ₃ → τ₁ × (τ₂ + τ₃) :=
+  λ s, case₊ s {in₁ p → (p.1, in₁ p.2) | in₂ p → (p.1, in₂ p.2)}.
+
+Lemma dist : iso f g.
+Proof.
+  unfold iso, retraction, section.
+  split.
+  - intros p.
+    cbv delta [f g].
+    cbv beta.
+    (* a pair (a, s), and s is in₁ b or in₂ c *)
+    destruct p as [a [b | c]].
+    + simpl.
+      reflexivity.
+    + simpl.
+      reflexivity.
+  - intros s.
+    cbv delta [f g].
+    cbv beta.
+    (* in₁ (a, b) or in₂ (a, c) *)
+    destruct s as [[a b] | [a c]].
+    + simpl.
+      reflexivity.
+    + simpl.
+      reflexivity.
+Qed.
+
+End Dist.
+End Dist.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 35 lines">Show code · 35 lines</button></div></div>
+
+<h3 class="own-slide">\((\tau_1 \times \tau_2 \to \tau_3) \cong (\tau_1 \to \tau_2 \to \tau_3)\)</h3>
+<p>Like \(c^{a \cdot b} = (c^b)^a\). A function of a pair is the same as a function that takes its two arguments one at a time. \(f\) is usually called \(\mathsf{curry}\), and \(g\) \(\mathsf{uncurry}\).</p>
+<div class="display prog">\[
+f : (\tau_1 \times \tau_2 \to \tau_3) \to (\tau_1 \to \tau_2 \to \tau_3)
+\]</div>
+<div class="display prog">\[
+f = \lambda h{:}\tau_1 \times \tau_2 \to \tau_3.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y)
+\]</div>
+<div class="display prog">\[
+g : (\tau_1 \to \tau_2 \to \tau_3) \to (\tau_1 \times \tau_2 \to \tau_3)
+\]</div>
+<div class="display prog">\[
+g = \lambda k{:}\tau_1 \to \tau_2 \to \tau_3.\, \lambda p{:}\tau_1 \times \tau_2.\, k\ p.1\ p.2
+\]</div>
+<p>Here the values are functions, and two functions are equal when they agree on every input. Rocq can't prove that, so the code assumes it, as <code>funext</code>.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-10">Module Curry.
+Section Curry.
+Context {τ₁ τ₂ τ₃ : Type}.
+
+Definition f : (τ₁ × τ₂ → τ₃) → (τ₁ → τ₂ → τ₃) := λ h, λ a, λ b, h (a, b).
+Definition g : (τ₁ → τ₂ → τ₃) → (τ₁ × τ₂ → τ₃) := λ k, λ p, k p.1 p.2.
+
+Axiom funext : forall {X Y : Type} (h k : X → Y),
+  (forall x, h x = k x) → h = k.
+
+Lemma curry : iso f g.
+Proof.
+  unfold iso, retraction, section.
+  split.
+  - (* g (f h) = h: they agree on every pair (a, b) *)
+    intros h.
+    cbv delta [f g].
+    cbv beta.
+    apply funext. intros [a b].
+    simpl.
+    reflexivity.
+  - (* f (g k) = k: computes to λ a, λ b, k a b, which is k *)
+    intros k.
+    cbv delta [f g].
+    cbv beta.
+    simpl.
+    reflexivity.
+Qed.
+
+End Curry.
+End Curry.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 31 lines">Show code · 31 lines</button></div></div>
+
+<h3 class="own-slide">\(\mathsf{bool} \cong \mathbf{1} + \mathbf{1}\)</h3>
+<p>\(\mathsf{true}\) is \(\mathsf{in}_1\ ()\), \(\mathsf{false}\) is \(\mathsf{in}_2\ ()\), and \(\mathsf{if}\) is a case. So the lecture's language doesn't need \(\mathsf{bool}\) built in: sums give it to us.</p>
+<div class="display prog">\[
+f : \mathsf{bool} \to \mathbf{1} + \mathbf{1}
+\]</div>
+<div class="display prog">\[
+f = \lambda b{:}\mathsf{bool}.\, \mathsf{if}\ b\ \mathsf{then}\ \mathsf{in}_1\ ()\ \mathsf{else}\ \mathsf{in}_2\ ()
+\]</div>
+<div class="display prog">\[
+g : \mathbf{1} + \mathbf{1} \to \mathsf{bool}
+\]</div>
+<div class="display prog">\[
+g = \lambda s{:}\mathbf{1} + \mathbf{1}.\, \mathsf{case}_+\ s\ \{\mathsf{in}_1\ x \to \mathsf{true} \mid \mathsf{in}_2\ y \to \mathsf{false}\}
+\]</div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-11">Module BoolSum.
+
+Definition f : bool → 1 + 1 := λ b, if b then in₁ () else in₂ ().
+Definition g : 1 + 1 → bool := λ s, case₊ s {in₁ u → true | in₂ u → false}.
+
+Lemma bool_sum : iso f g.
+Proof.
+  unfold iso, retraction, section.
+  split.
+  - intros b.
+    cbv delta [f g].
+    cbv beta.
+    destruct b.
+    + simpl.
+      reflexivity.
+    + simpl.
+      reflexivity.
+  - intros s.
+    cbv delta [f g].
+    cbv beta.
+    (* in₁ u or in₂ u, and u can only be () *)
+    destruct s as [[] | []].
+    + simpl.
+      reflexivity.
+    + simpl.
+      reflexivity.
+Qed.
+
+End BoolSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 29 lines">Show code · 29 lines</button></div></div>
+
+<h3 class="own-slide">\(\mathsf{option}\ \tau \cong \mathbf{1} + \tau\)</h3>
+<p>\(\mathsf{None}\) is \(\mathsf{in}_1\ ()\), and \(\mathsf{Some}\ x\) is \(\mathsf{in}_2\ x\): "nothing, or a \(\tau\)". Like \(\mathsf{bool}\), \(\mathsf{option}\) is Rocq's, not the lecture's, so it is taken apart with a Rocq <code>match</code>.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-12">Module OptionSum.
+Section OptionSum.
+Context {τ : Type}.
+
+Definition f : option τ → 1 + τ :=
+  λ o, match o with
+       | None =&gt; in₁ ()
+       | Some a =&gt; in₂ a
+       end.
+Definition g : 1 + τ → option τ := λ s, case₊ s {in₁ u → None | in₂ a → Some a}.
+
+Lemma option_sum : iso f g.
+Proof.
+  unfold iso, retraction, section.
+  split.
+  - intros o.
+    cbv delta [f g].
+    cbv beta.
+    destruct o as [a |].
+    + simpl.
+      reflexivity.
+    + simpl.
+      reflexivity.
+  - intros s.
+    cbv delta [f g].
+    cbv beta.
+    destruct s as [[] | a].
+    + simpl.
+      reflexivity.
+    + simpl.
+      reflexivity.
+Qed.
+
+End OptionSum.
+End OptionSum.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 35 lines">Show code · 35 lines</button></div></div>
+
+<h2 class="one-slide">3. The Curry–Howard correspondence</h2>
+<p>Read a type as a proposition, and a program of that type as a proof of it: <em>types as propositions</em>. This is the <strong>Curry–Howard correspondence</strong>, between the simply typed λ-calculus and intuitionistic propositional logic:</p>
+<table class="ref pieces">
+  <tr class="piece"><th>type</th><th>proposition</th><th>Rocq</th></tr>
+  <tr class="piece"><td>\(\mathbf{1}\)</td><td>\(\top\)</td><td><code>True</code></td></tr>
+  <tr class="piece"><td>\(\mathbf{0}\)</td><td>\(\bot\)</td><td><code>False</code></td></tr>
+  <tr class="piece"><td>\(\tau_1 \times \tau_2\)</td><td>\(\varphi \wedge \psi \)</td><td><code>φ /\ ψ</code></td></tr>
+  <tr class="piece"><td>\(\tau_1 + \tau_2\)</td><td>\(\varphi \vee \psi \)</td><td><code>φ \/ ψ</code></td></tr>
+  <tr class="piece"><td>\(\tau_1 \to \tau_2\)</td><td>\(\varphi \Rightarrow \psi \)</td><td><code>φ -> ψ</code></td></tr>
+</table>
+<hr class="slide-break">
+<p>Erase the terms from a typing rule and you get a rule of logic. From easiest to hardest: \(()\) proves \(\top\); a case on \(\mathbf{0}\) is &ldquo;from false, anything&rdquo;; a pair is a proof of \(\varphi \wedge \psi\) from a proof of each; a case is a proof by cases; a \(\lambda\) proves \(\varphi \Rightarrow \psi\) by assuming \(\varphi\) and proving \(\psi\); and application is modus ponens:</p>
+<div class="pieces ch-table">
+<div class="rules ch"><div class="piece">\[\frac{}{\vdash () : \mathbf{1}}\;{\scriptstyle \mathbf{1}\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{}{\top}\]</div><div class="piece ch-name">\(\top\mathrm{I}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\vdash e : \mathbf{0}}{\vdash \mathsf{case}_{\mathbf{0}}\ e\ \{\} : \tau}\;{\scriptstyle \mathbf{0}\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\bot}{\xi}\]</div><div class="piece ch-name">\(\bot\mathrm{E}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\vdash e_1 : \tau_1 \quad \vdash e_2 : \tau_2}{\vdash (e_1, e_2) : \tau_1 \times \tau_2}\;{\scriptstyle \times\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \quad \psi}{\varphi \wedge \psi}\]</div><div class="piece ch-name">\(\wedge\mathrm{I}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\vdash e : \tau_1 \times \tau_2}{\vdash e.1 : \tau_1}\;{\scriptstyle \times\mathrm{E}_1}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \wedge \psi}{\varphi}\]</div><div class="piece ch-name">\(\wedge\mathrm{E}_1\)</div></div>
+<hr class="slide-break">
+<div class="rules ch"><div class="piece">\[\frac{\vdash e : \tau_1}{\vdash \mathsf{in}_1\ e : \tau_1 + \tau_2}\;{\scriptstyle +\mathrm{I}_1}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi}{\varphi \vee \psi}\]</div><div class="piece ch-name">\(\vee\mathrm{I}_1\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\vdash e : \tau_1 + \tau_2 \quad x_1{:}\tau_1 \vdash e_1 : \tau \quad x_2{:}\tau_2 \vdash e_2 : \tau}{\vdash \mathsf{case}_+\ e\ \{\mathsf{in}_1\ x_1 \to e_1 \mid \mathsf{in}_2\ x_2 \to e_2\} : \tau}\;{\scriptstyle +\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \vee \psi \quad \varphi \vdash \xi \quad \psi \vdash \xi}{\xi}\]</div><div class="piece ch-name">\(\vee\mathrm{E}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{x{:}\tau_1 \vdash e : \tau_2}{\vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\;{\scriptstyle {\to}\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \vdash \psi}{\varphi \Rightarrow \psi}\]</div><div class="piece ch-name">\({\Rightarrow}\mathrm{I}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\vdash e_1 : \tau_1 \to \tau_2 \quad \vdash e_2 : \tau_1}{\vdash e_1\, e_2 : \tau_2}\;{\scriptstyle {\to}\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\varphi \Rightarrow \psi \quad \varphi}{\psi}\]</div><div class="piece ch-name">\({\Rightarrow}\mathrm{E}\)</div></div>
+<div class="rules ch ch-labels"><div class="piece ch-label">STLC<span>simply typed λ-calculus</span></div><div class="piece ch-label ipl">IPL<span>intuitionistic propositional logic</span></div></div>
+</div>
+<h3>Curry–Howard–Lambek</h3>
+<p>The correspondence has a third corner. Our language, with \(\times\), \(+\), \(\mathbf{1}\), \(\mathbf{0}\) and \(\to\), is also the language of <strong>bicartesian closed categories</strong> (BCCCs): a type is an object, a program is a morphism (programs that are equal up to β and η are the same morphism), \(\times\) and \(+\) are the product and coproduct, \(\mathbf{1}\) and \(\mathbf{0}\) are the terminal and initial objects, and \(\to\) is the exponential. Lambek showed this for \(\times\), \(\mathbf{1}\) and \(\to\), the <em>cartesian closed</em> part. Together this is the <strong>Curry–Howard–Lambek correspondence</strong>:</p>
+<div class="pieces frames iso-diagram chl-diagram" role="img" aria-label="A triangle: STLC, the simply typed lambda calculus, at the top; IPL, intuitionistic propositional logic, at the bottom left; BCCC, bicartesian closed categories, at the bottom right. Curry–Howard joins STLC and IPL; Lambek joins STLC and BCCC; categorical logic joins IPL and BCCC.">
+<div class="piece frame">
+<svg viewBox="0 0 600 270" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" stroke="currentColor" stroke-width="1.6">
+    <path d="M250,86 L135,186"/>
+    <path d="M350,86 L465,186" visibility="hidden"/>
+    <path d="M152,209 L442,209" visibility="hidden"/>
+  </g>
+  <g fill="currentColor" font-family="Commissioner, sans-serif" text-anchor="middle" font-size="20" font-weight="650">
+    <text x="300" y="30">STLC</text>
+    <text x="120" y="215">IPL</text>
+    <text x="480" y="215" visibility="hidden">BCCC</text>
+  </g>
+  <g fill="currentColor" font-family="Spectral, Georgia, serif" font-size="14" text-anchor="middle">
+    <text x="300" y="50">simply typed λ-calculus</text>
+    <text x="300" y="68" font-style="italic">types, programs</text>
+    <text x="120" y="235">intuitionistic propositional logic</text>
+    <text x="120" y="253" font-style="italic">propositions, proofs</text>
+    <text x="480" y="235" visibility="hidden">bicartesian closed categories</text>
+    <text x="480" y="253" font-style="italic" visibility="hidden">objects, morphisms</text>
+  </g>
+  <g fill="currentColor" font-family="Commissioner, sans-serif" font-size="14">
+    <text x="190" y="128" text-anchor="end">Curry–Howard</text>
+    <text x="410" y="128" text-anchor="start" visibility="hidden">Lambek</text>
+    <text x="300" y="200" text-anchor="middle" visibility="hidden">categorical logic</text>
+  </g>
+</svg>
+</div>
+<div class="piece frame">
+<svg viewBox="0 0 600 270" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" stroke="currentColor" stroke-width="1.6">
+    <path d="M250,86 L135,186"/>
+    <path d="M350,86 L465,186"/>
+    <path d="M152,209 L442,209" visibility="hidden"/>
+  </g>
+  <g fill="currentColor" font-family="Commissioner, sans-serif" text-anchor="middle" font-size="20" font-weight="650">
+    <text x="300" y="30">STLC</text>
+    <text x="120" y="215">IPL</text>
+    <text x="480" y="215">BCCC</text>
+  </g>
+  <g fill="currentColor" font-family="Spectral, Georgia, serif" font-size="14" text-anchor="middle">
+    <text x="300" y="50">simply typed λ-calculus</text>
+    <text x="300" y="68" font-style="italic">types, programs</text>
+    <text x="120" y="235">intuitionistic propositional logic</text>
+    <text x="120" y="253" font-style="italic">propositions, proofs</text>
+    <text x="480" y="235">bicartesian closed categories</text>
+    <text x="480" y="253" font-style="italic">objects, morphisms</text>
+  </g>
+  <g fill="currentColor" font-family="Commissioner, sans-serif" font-size="14">
+    <text x="190" y="128" text-anchor="end">Curry–Howard</text>
+    <text x="410" y="128" text-anchor="start">Lambek</text>
+    <text x="300" y="200" text-anchor="middle" visibility="hidden">categorical logic</text>
+  </g>
+</svg>
+</div>
+<div class="piece frame keep">
+<svg viewBox="0 0 600 270" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" stroke="currentColor" stroke-width="1.6">
+    <path d="M250,86 L135,186"/>
+    <path d="M350,86 L465,186"/>
+    <path d="M152,209 L442,209"/>
+  </g>
+  <g fill="currentColor" font-family="Commissioner, sans-serif" text-anchor="middle" font-size="20" font-weight="650">
+    <text x="300" y="30">STLC</text>
+    <text x="120" y="215">IPL</text>
+    <text x="480" y="215">BCCC</text>
+  </g>
+  <g fill="currentColor" font-family="Spectral, Georgia, serif" font-size="14" text-anchor="middle">
+    <text x="300" y="50">simply typed λ-calculus</text>
+    <text x="300" y="68" font-style="italic">types, programs</text>
+    <text x="120" y="235">intuitionistic propositional logic</text>
+    <text x="120" y="253" font-style="italic">propositions, proofs</text>
+    <text x="480" y="235">bicartesian closed categories</text>
+    <text x="480" y="253" font-style="italic">objects, morphisms</text>
+  </g>
+  <g fill="currentColor" font-family="Commissioner, sans-serif" font-size="14">
+    <text x="190" y="128" text-anchor="end">Curry–Howard</text>
+    <text x="410" y="128" text-anchor="start">Lambek</text>
+    <text x="300" y="200" text-anchor="middle">categorical logic</text>
+  </g>
+</svg>
+</div>
+</div>
+<p class="aside">These categories are always <em>distributive</em>: since \(\tau_1 \times -\) has a right adjoint, \(\tau_1 \to -\), it preserves coproducts and the initial object. So \(\tau_1 \times (\tau_2 + \tau_3) \cong \tau_1 \times \tau_2 + \tau_1 \times \tau_3\) and \(\tau \times \mathbf{0} \cong \mathbf{0}\) from Part 2 hold in every bicartesian closed category.</p>
+<h3>Part 2 was logic</h3>
+<p>Now look back at the programs in Part 2, and read each type as a proposition. Every program we wrote was a proof:</p>
+<table class="ref pieces">
+  <tr class="piece"><th>program's type</th><th>proposition it proves</th></tr>
+  <tr class="piece"><td>\(\tau \times \mathbf{1} \to \tau\)</td><td>\(\varphi \wedge \top \Rightarrow \varphi \)</td></tr>
+  <tr class="piece"><td>\(\tau + \mathbf{0} \to \tau\)</td><td>\(\varphi \vee \bot \Rightarrow \varphi \)</td></tr>
+  <tr class="piece"><td>\(\tau \times \mathbf{0} \to \mathbf{0}\)</td><td>\(\varphi \wedge \bot \Rightarrow \bot\)</td></tr>
+  <tr class="piece"><td>\(\tau_1 \times \tau_2 \to \tau_2 \times \tau_1\)</td><td>\(\varphi \wedge \psi \Rightarrow \psi \wedge \varphi \)</td></tr>
+  <tr class="piece"><td>\(\tau_1 \times (\tau_2 + \tau_3) \to \tau_1 \times \tau_2 + \tau_1 \times \tau_3\)</td><td>\(\varphi \wedge (\psi \vee \xi ) \Rightarrow (\varphi \wedge \psi ) \vee (\varphi \wedge \xi )\)</td></tr>
+  <tr class="piece"><td>\((\tau_1 \times \tau_2 \to \tau_3) \to (\tau_1 \to \tau_2 \to \tau_3)\)</td><td>\((\varphi \wedge \psi \Rightarrow \xi ) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi )\)</td></tr>
+  <tr class="piece"><td>\((\tau_1 \to \tau_2 \to \tau_3) \to (\tau_1 \times \tau_2 \to \tau_3)\)</td><td>\((\varphi \Rightarrow \psi \Rightarrow \xi ) \Rightarrow (\varphi \wedge \psi \Rightarrow \xi )\)</td></tr>
+</table>
+<p>Each isomorphism has a program in each direction, so it proves both directions of an equivalence, such as \(\varphi \wedge (\psi \vee \xi ) \Leftrightarrow (\varphi \wedge \psi ) \vee (\varphi \wedge \xi )\).</p>
+
+<h3>One proof, two readings</h3>
+<p>Take currying, \((\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)\). It has three <em>assumptions</em>, one for each \(\Rightarrow\) we prove by assuming its left side: \(\varphi \wedge \psi \Rightarrow \xi\), then \(\varphi\), then \(\psi\). Write \(\Delta\) for all three:</p>
+<div class="display">\[
+\Delta = \varphi \wedge \psi \Rightarrow \xi,\ \varphi,\ \psi
+\]</div>
+<p>A leaf with no line above it, such as \(\Delta \vdash \varphi\), uses one of the assumptions. Here is a proof tree using the rules above, built from the goal at the bottom up: each rule turns the goal below its line into the goals above it. Then the same tree becomes a typing derivation, again from the root up: each proposition turns into its type, and then the program that the rule builds appears beside it.</p>
+<div class="pieces frames">
+<div class="display piece frame">\[
+\begin{gathered}
+\style{visibility:hidden}{\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\style{visibility:visible}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}}{\scriptstyle \Rightarrow\mathrm{I}}} \\[10pt]
+\style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
+\end{gathered}
+\]<p class="step-note">The goal: prove currying, with no assumptions yet.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\style{visibility:hidden}{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\style{visibility:visible}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}}{\scriptstyle \Rightarrow\mathrm{I}}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
+\style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
+\end{gathered}
+\]<p class="step-note">\(\Rightarrow\)I: to prove \((\varphi \wedge \psi \Rightarrow \xi) \Rightarrow \ldots\), assume \(\varphi \wedge \psi \Rightarrow \xi\) and prove the rest.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\style{visibility:hidden}{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\style{visibility:visible}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}}{\scriptstyle \Rightarrow\mathrm{I}}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
+\style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
+\end{gathered}
+\]<p class="step-note">\(\Rightarrow\)I again: assume \(\varphi\), and prove \(\psi \Rightarrow \xi\).</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\style{visibility:hidden}{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\style{visibility:visible}{\Delta \vdash \xi}}{\scriptstyle \Rightarrow\mathrm{E}}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
+\style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
+\end{gathered}
+\]<p class="step-note">\(\Rightarrow\)I again: assume \(\psi\), and prove \(\xi\). All three assumptions, \(\Delta\), are now in place.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \style{visibility:hidden}{\dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\style{visibility:visible}{\Delta \vdash \varphi \wedge \psi}}{\scriptstyle \wedge\mathrm{I}}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
+\style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
+\end{gathered}
+\]<p class="step-note">\(\Rightarrow\)E: \(\varphi \wedge \psi \Rightarrow \xi\) is an assumption, so to get \(\xi\) it is enough to prove \(\varphi \wedge \psi\).</p></div>
+<div class="display piece frame keep">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\vdash (\varphi \wedge \psi \Rightarrow \xi) \Rightarrow (\varphi \Rightarrow \psi \Rightarrow \xi)}{\scriptstyle \Rightarrow\mathrm{I}} \\[10pt]
+\style{visibility:hidden}{\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2}
+\end{gathered}
+\]<p class="step-note">\(\wedge\)I: prove \(\varphi\) and \(\psi\). Both are assumptions, so every leaf is an assumption and the proof is done.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\class{hl-blue}{\bbox[#eef1f6,2pt]{\vdash \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}}}{\scriptstyle \class{hl-blue}{\bbox[#eef1f6,2pt]{{\to}\mathrm{I}}}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">Now turn it into a typing derivation. At the root, replace each proposition by its type: \(\varphi\) by \(\tau_1\), \(\psi\) by \(\tau_2\), \(\xi\) by \(\tau_3\), \(\wedge\) by \(\times\), \(\Rightarrow\) by \(\to\). The rule \(\Rightarrow\)I becomes \(\to\)I.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\varphi \wedge \psi \Rightarrow \xi \vdash \varphi \Rightarrow \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\class{hl-blue}{\bbox[#eef1f6,2pt]{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}}}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">Add the root's program. Its rule \(\to\)I is a \(\lambda\), whose variable \(h\) names the first assumption.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\class{hl-blue}{\bbox[#eef1f6,2pt]{\sigma \vdash \tau_1 \to \tau_2 \to \tau_3}}}{\scriptstyle \class{hl-blue}{\bbox[#eef1f6,2pt]{{\to}\mathrm{I}}}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">One line up: the assumption \(\varphi \wedge \psi \Rightarrow \xi\) becomes its type \(\sigma\), and the goal becomes \(\tau_1 \to \tau_2 \to \tau_3\).</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\varphi \wedge \psi \Rightarrow \xi, \varphi \vdash \psi \Rightarrow \xi}{\scriptstyle \Rightarrow\mathrm{I}}}{\class{hl-blue}{\bbox[#eef1f6,2pt]{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}}}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">Its program: the assumption is now the variable \(h\), and \(\to\)I is the next \(\lambda\), binding \(x\).</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\class{hl-blue}{\bbox[#eef1f6,2pt]{\sigma, \tau_1 \vdash \tau_2 \to \tau_3}}}{\scriptstyle \class{hl-blue}{\bbox[#eef1f6,2pt]{{\to}\mathrm{I}}}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">One line up: assumptions \(\sigma, \tau_1\), goal \(\tau_2 \to \tau_3\).</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Delta \vdash \xi}{\scriptstyle \Rightarrow\mathrm{E}}}{\class{hl-blue}{\bbox[#eef1f6,2pt]{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}}}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">Its program: \(x\) names the assumption \(\tau_1\), and \(\to\)I is the last \(\lambda\), binding \(y\).</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\class{hl-blue}{\bbox[#eef1f6,2pt]{\sigma, \tau_1, \tau_2 \vdash \tau_3}}}{\scriptstyle \class{hl-blue}{\bbox[#eef1f6,2pt]{{\to}\mathrm{E}}}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">One line up: all three assumptions as types, \(\sigma, \tau_1, \tau_2\), and the goal \(\tau_3\). The rule \(\Rightarrow\)E becomes \(\to\)E.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Delta \vdash \varphi \wedge \psi \Rightarrow \xi \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\class{hl-blue}{\bbox[#eef1f6,2pt]{\Gamma \vdash h\ (x, y) : \tau_3}}}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">Its program: \(\Gamma\) names all three variables, and \(\to\)E is application, \(h\ (x, y)\).</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{\sigma, \tau_1, \tau_2 \vdash \sigma}} \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">The left leaf: the assumption \(\varphi \wedge \psi \Rightarrow \xi\) becomes \(\sigma\).</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{\Gamma \vdash h : \sigma}} \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\Delta \vdash \varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">Its program: using an assumption is using its variable, \(h\).</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\class{hl-blue}{\bbox[#eef1f6,2pt]{\sigma, \tau_1, \tau_2 \vdash \tau_1 \times \tau_2}}}{\scriptstyle \class{hl-blue}{\bbox[#eef1f6,2pt]{\times\mathrm{I}}}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">The right premise: \(\varphi \wedge \psi\) becomes \(\tau_1 \times \tau_2\), and \(\wedge\)I becomes \(\times\)I.</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Delta \vdash \varphi \quad \Delta \vdash \psi}{\class{hl-blue}{\bbox[#eef1f6,2pt]{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}}}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">Its program: \(\times\)I is a pair, \((x, y)\).</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{\sigma, \tau_1, \tau_2 \vdash \tau_1}} \quad \Delta \vdash \psi}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">The leaf \(\varphi\) becomes \(\tau_1\).</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{\Gamma \vdash x : \tau_1}} \quad \Delta \vdash \psi}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">Its program: the variable \(x\).</p></div>
+<div class="display piece frame">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Gamma \vdash x : \tau_1 \quad \class{hl-blue}{\bbox[#eef1f6,2pt]{\sigma, \tau_1, \tau_2 \vdash \tau_2}}}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">The leaf \(\psi\) becomes \(\tau_2\).</p></div>
+<div class="display piece frame keep">\[
+\begin{gathered}
+\dfrac{\dfrac{\dfrac{\dfrac{\Gamma \vdash h : \sigma \quad \dfrac{\Gamma \vdash x : \tau_1 \quad \class{hl-blue}{\bbox[#eef1f6,2pt]{\Gamma \vdash y : \tau_2}}}{\Gamma \vdash (x, y) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\Gamma \vdash h\ (x, y) : \tau_3}{\scriptstyle {\to}\mathrm{E}}}{h{:}\sigma, x{:}\tau_1 \vdash \lambda y{:}\tau_2.\, h\ (x, y) : \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{h{:}\sigma \vdash \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \tau_1 \to \tau_2 \to \tau_3}{\scriptstyle {\to}\mathrm{I}}}{\vdash \lambda h{:}\sigma.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y) : \sigma \to (\tau_1 \to \tau_2 \to \tau_3)}{\scriptstyle {\to}\mathrm{I}} \\[10pt]
+\text{where } \sigma = \tau_1 \times \tau_2 \to \tau_3 \text{ and } \Gamma = h{:}\sigma, x{:}\tau_1, y{:}\tau_2
+\end{gathered}
+\]<p class="step-note">Its program: the variable \(y\). The typing derivation is complete, and the program at the root is the proof.</p></div>
+</div>
+<p>The program at the root is the proof:</p>
+<div class="display">\[
+\lambda h{:}\tau_1 \times \tau_2 \to \tau_3.\, \lambda x{:}\tau_1.\, \lambda y{:}\tau_2.\, h\ (x, y)
+\]</div>
+<p>This is exactly \(f\), that is \(\mathsf{curry}\), from Part 2.</p>
+<hr class="slide-break">
+<p>Rocq has both columns, <code>τ₁ × τ₂</code> at <code>Type</code> and <code>φ /\ ψ</code> at <code>Prop</code>, and the programs are the same. Here is the swap program <code>ProdComm.f</code> again, and then the same function as a proof that \(\wedge\) is commutative: <code>conj</code> is the pair for <code>/\</code>.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-13">Check ProdComm.f : nat × bool → bool × nat.
+
+Definition and_swap {φ ψ : Prop} (h : φ /\ ψ) : ψ /\ φ :=
+  match h with
+  | conj p q =&gt; conj q p
+  end.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 6 lines">Show code · 6 lines</button></div></div>
+<hr class="slide-break">
+<p>The same proof written with tactics. <code>Print</code> shows the program the tactics built: a match that takes the pair apart and puts it back the other way round.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-14">Lemma and_swap' (φ ψ : Prop) : φ /\ ψ -&gt; ψ /\ φ.
+Proof.
+  intros [p q].
+  split.
+  - exact q.
+  - exact p.
+Qed.
+
+Print and_swap'.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 9 lines">Show code · 9 lines</button></div></div>
+<p>A case is a proof by cases, a case on \(\mathbf{0}\) is ex falso, distributivity at <code>Prop</code> does what <code>Dist.f</code> does, and currying at <code>Prop</code> is the same program as <code>Curry.f</code>:</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-15">Definition or_swap {φ ψ : Prop} (h : φ \/ ψ) : ψ \/ φ :=
+  match h with
+  | or_introl p =&gt; or_intror p
+  | or_intror q =&gt; or_introl q
+  end.
+
+Definition ex_falso {φ : Prop} (h : False) : φ :=
+  match h with end.
+
+Definition and_or_dist {φ ψ ξ : Prop} (h : φ /\ (ψ \/ ξ))
+  : (φ /\ ψ) \/ (φ /\ ξ) :=
+  match h with
+  | conj p (or_introl q) =&gt; or_introl (conj p q)
+  | conj p (or_intror r) =&gt; or_intror (conj p r)
+  end.
+
+Definition and_curry {φ ψ ξ : Prop} : (φ /\ ψ → ξ) → (φ → ψ → ξ) :=
+  λ f, λ p, λ q, f (conj p q).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 18 lines">Show code · 18 lines</button></div></div>
+<h3>Steps simplify proofs</h3>
+<p>A proof can take a detour: prove \(\varphi \wedge \psi\) by \(\wedge\)I, then immediately use \(\wedge\)E to get back \(\varphi\). The detour can be cut out, leaving the proof of \(\varphi\) we started with:</p>
+<div class="pieces frames">
+<div class="display piece frame">\[
+\style{visibility:hidden}{\dfrac{\dfrac{\style{visibility:visible}{\begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array}} \quad \begin{array}{c}\mathcal{D}_2 \\ \psi\end{array}}{\varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\varphi}{\scriptstyle \wedge\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array}}
+\]</div>
+<div class="display piece frame">\[
+\style{visibility:hidden}{\dfrac{\dfrac{\style{visibility:visible}{\begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \psi\end{array}}}{\varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\varphi}{\scriptstyle \wedge\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array}}
+\]</div>
+<div class="display piece frame">\[
+\style{visibility:hidden}{\dfrac{\style{visibility:visible}{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \psi\end{array}}{\varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}}{\varphi}{\scriptstyle \wedge\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \psi\end{array}}{\varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\varphi}{\scriptstyle \wedge\mathrm{E}_1} \style{visibility:hidden}{\quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \psi\end{array}}{\varphi \wedge \psi}{\scriptstyle \wedge\mathrm{I}}}{\varphi}{\scriptstyle \wedge\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \varphi\end{array}
+\]</div>
+</div>
+<hr class="slide-break">
+<p>As a typing derivation, \(\mathcal{D}_1\) and \(\mathcal{D}_2\) type values \(v_1\) and \(v_2\), and the detour is a pair that is projected right away:</p>
+<div class="pieces frames">
+<div class="display piece frame">\[
+\style{visibility:hidden}{\dfrac{\dfrac{\style{visibility:visible}{\begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array}} \quad \begin{array}{c}\mathcal{D}_2 \\ \vdash v_2 : \tau_2\end{array}}{\vdash (v_1, v_2) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\vdash (v_1, v_2).1 : \tau_1}{\scriptstyle \times\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array}}
+\]</div>
+<div class="display piece frame">\[
+\style{visibility:hidden}{\dfrac{\dfrac{\style{visibility:visible}{\begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \vdash v_2 : \tau_2\end{array}}}{\vdash (v_1, v_2) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\vdash (v_1, v_2).1 : \tau_1}{\scriptstyle \times\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array}}
+\]</div>
+<div class="display piece frame">\[
+\style{visibility:hidden}{\dfrac{\style{visibility:visible}{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \vdash v_2 : \tau_2\end{array}}{\vdash (v_1, v_2) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}}{\vdash (v_1, v_2).1 : \tau_1}{\scriptstyle \times\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \vdash v_2 : \tau_2\end{array}}{\vdash (v_1, v_2) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\vdash (v_1, v_2).1 : \tau_1}{\scriptstyle \times\mathrm{E}_1} \style{visibility:hidden}{\quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\dfrac{\begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array} \quad \begin{array}{c}\mathcal{D}_2 \\ \vdash v_2 : \tau_2\end{array}}{\vdash (v_1, v_2) : \tau_1 \times \tau_2}{\scriptstyle \times\mathrm{I}}}{\vdash (v_1, v_2).1 : \tau_1}{\scriptstyle \times\mathrm{E}_1} \quad\leadsto\quad \begin{array}{c}\mathcal{D}_1 \\ \vdash v_1 : \tau_1\end{array}
+\]</div>
+</div>
+<p>Compare the programs at the roots with the lecture's step rule:</p>
+<div class="display">\[
+(v_1, v_2).1 \longrightarrow v_1
+\]</div>
+<p>It is the same simplification. Cutting out the detour in the proof is taking the step in the program, so evaluating a program is simplifying a proof.</p>
+
+<h3>What about \(\forall\) and \(\exists\)?</h3>
+<p>Our logic is <em>propositional</em>: it has \(\top\), \(\bot\), \(\wedge\), \(\vee\) and \(\Rightarrow\), but no \(\forall x.\, \varphi(x)\) or \(\exists x.\, \varphi(x)\). A quantified proposition is about a value \(x\): the proposition \(\varphi(x)\) depends on \(x\). On the types side, that is a type that depends on a value, a <strong>dependent type</strong>. The simply typed λ-calculus has none: its types never mention programs.</p>
+<p>Rocq is a dependent type theory, and has both. On the types side, \(\forall\) is the <strong>dependent function type</strong> \(\Pi\), and \(\exists\) is the <strong>dependent pair type</strong> \(\Sigma\):</p>
+<table class="ref">
+  <tr><th>type</th><th>logic</th><th>Rocq</th><th>a proof is</th></tr>
+  <tr><td>\(\Pi x{:}\tau.\, \sigma\)</td><td>\(\forall x{:}\tau.\, \varphi\)</td><td><code>forall x : τ, φ x</code></td><td>a function that, given any \(x\), returns a proof of \(\varphi\) for that \(x\)</td></tr>
+  <tr><td>\(\Sigma x{:}\tau.\, \sigma\)</td><td>\(\exists x{:}\tau.\, \varphi\)</td><td><code>{x : τ | φ x}</code> when φ x is a proposition, <code>{x : τ &amp; σ x}</code> for any type</td><td>a pair of a witness \(x\) and a proof of \(\varphi\) for it</td></tr>
+</table>
+<p>A special case is when \(\sigma\) doesn't mention \(x\): then \(\Pi x{:}\tau.\, \sigma\) is \(\tau \to \sigma\), and \(\Sigma x{:}\tau.\, \sigma\) is \(\tau \times \sigma\). Here are their rules, side by side with the logic. Now \(\sigma\), \(\varphi\) may mention \(x\), and \(\sigma[x \mapsto e]\) is \(\sigma\) with \(e\) for \(x\). In \(\Sigma\mathrm{E}\), \(x\) and \(y\) must not appear in \(\rho\), and in \(\exists\mathrm{E}\), \(x\) must not appear in \(\psi\).</p>
+<div class="pieces ch-table">
+<div class="rules ch"><div class="piece">\[\frac{\Gamma, x{:}\tau \vdash e : \sigma}{\Gamma \vdash \lambda x{:}\tau.\, e : \Pi x{:}\tau.\, \sigma}\;{\scriptstyle \Pi\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{\Gamma, x{:}\tau \vdash \varphi}{\Gamma \vdash \forall x{:}\tau.\, \varphi}\]</div><div class="piece ch-name">\(\forall\mathrm{I}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\Gamma \vdash e_1 : \Pi x{:}\tau.\, \sigma \quad \Gamma \vdash e_2 : \tau}{\Gamma \vdash e_1\, e_2 : \sigma[x \mapsto e_2]}\;{\scriptstyle \Pi\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\Gamma \vdash \forall x{:}\tau.\, \varphi \quad \Gamma \vdash t : \tau}{\Gamma \vdash \varphi[x \mapsto t]}\]</div><div class="piece ch-name">\(\forall\mathrm{E}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\Gamma \vdash e_1 : \tau \quad \Gamma \vdash e_2 : \sigma[x \mapsto e_1]}{\Gamma \vdash (e_1, e_2) : \Sigma x{:}\tau.\, \sigma}\;{\scriptstyle \Sigma\mathrm{I}}\]</div><div class="piece">\[\leadsto\quad \frac{\Gamma \vdash t : \tau \quad \Gamma \vdash \varphi[x \mapsto t]}{\Gamma \vdash \exists x{:}\tau.\, \varphi}\]</div><div class="piece ch-name">\(\exists\mathrm{I}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\Gamma \vdash e : \Sigma x{:}\tau.\, \sigma \quad \Gamma, x{:}\tau, y{:}\sigma \vdash e' : \rho}{\Gamma \vdash \mathsf{case}\ e\ \{(x, y) \to e'\} : \rho}\;{\scriptstyle \Sigma\mathrm{E}}\]</div><div class="piece">\[\leadsto\quad \frac{\Gamma \vdash \exists x{:}\tau.\, \varphi \quad \Gamma, x{:}\tau, \varphi \vdash \psi}{\Gamma \vdash \psi}\]</div><div class="piece ch-name">\(\exists\mathrm{E}\)</div></div>
+<div class="rules ch"><div class="piece">\[\frac{\Gamma \vdash e : \Sigma x{:}\tau.\, \sigma}{\Gamma \vdash e.1 : \tau}\;{\scriptstyle \Sigma\mathrm{E}_1}\]</div><div class="piece">\[\leadsto\quad \text{no counterpart}\]</div><div class="ch-name"></div></div>
+<div class="rules ch"><div class="piece">\[\frac{\Gamma \vdash e : \Sigma x{:}\tau.\, \sigma}{\Gamma \vdash e.2 : \sigma[x \mapsto e.1]}\;{\scriptstyle \Sigma\mathrm{E}_2}\]</div><div class="piece">\[\leadsto\quad \text{no counterpart}\]</div><div class="ch-name"></div></div>
+<div class="rules ch ch-labels"><div class="piece ch-label">DTT<span>dependent type theory</span></div><div class="piece ch-label ipl">Predicate logic<span>intuitionistic, with ∀ and ∃</span></div></div>
+</div>
+<p>A proof of \(\forall x{:}\tau.\, \varphi\) is a function that works for every \(x\), and using it at \(t\) proves \(\varphi\) for that \(t\). A proof of \(\exists x{:}\tau.\, \varphi\) is a witness with a proof that \(\varphi\) holds of it, and using it means taking the pair apart, without knowing which witness it was. \(\Sigma\) can do more: its projections read the witness back out, \(e.1\), and \(\exists\) has no rule for that.</p>
+<p>The type of values from Discussion 6, <code>{ e : exp | value e }</code>, is a \(\Sigma\) type: an expression together with a proof that it is a value. At <code>Prop</code>, Rocq writes \(\exists\) as <code>exists x, φ x</code>, which has only the case rule.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-16">Definition refl_all : forall n : nat, n = n := λ n, eq_refl.
+
+Check (forall _ : nat, bool).
+
+Definition even_four : {n : nat | Nat.even n = true} := exist _ 4 eq_refl.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
+
+<h3>Excluded middle</h3>
+<details class="question">
+<summary>Can you prove \(\varphi \vee \neg \varphi \)?</summary>
+<p>Here \(\neg \varphi \) is \(\varphi \Rightarrow \bot\), so as a type it is \(\varphi + (\varphi \to \mathbf{0})\). A program of this type would have to choose \(\mathsf{in}_1\) or \(\mathsf{in}_2\) without knowing anything about \(\varphi \): \(\mathsf{in}_1\) needs a proof of \(\varphi \), and \(\mathsf{in}_2\) needs a way to turn any proof of \(\varphi \) into a contradiction. There is no such program, so \(\varphi \vee \neg \varphi \) can't be proved this way. That is exactly what makes the logic <em>intuitionistic</em>.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-17">Lemma excluded_middle (φ : Prop) : φ \/ ~ φ.
+Proof.
+  (* left: we would need a proof of φ.  right: we would need φ -&gt; False. *)
+Abort.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
+<p>But it can't be refuted either: its double negation, \(\neg\neg(\varphi \vee \neg \varphi )\), has a proof. Given \(h : \neg(\varphi \vee \neg \varphi )\), choose the right side; to show \(\neg \varphi \), assume \(p : \varphi \); then \(\mathsf{in}_1\ p\) contradicts \(h\).</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-18">Lemma not_not_excluded_middle (φ : Prop) : ~ ~ (φ \/ ~ φ).
+Proof.
+  intros h.
+  apply h.
+  right.
+  intros p.
+  apply h.
+  left.
+  exact p.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 10 lines">Show code · 10 lines</button></div></div>
+</details>
+
+
+</div>
+<div id="slide-nav"><button class="prev" type="button" title="Previous slide (←)">◀</button><span class="count"></span><button class="next" type="button" title="Next slide (→)">▶</button></div>
+</div>
+</div>
+<script>
+window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, svg: { fontCache: 'global' } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.js"></script>
+<script>
+/* Slide mode.  The page is cut into slides at every h2 and h3 and at every
+   slide break (an <hr class="slide-break">).  Nothing moves: the elements
+   of the other slides are just hidden, so the Rocq blocks stay one
+   document and running a block still checks everything before it.
+   Within a slide, each element after the first appears on its own key
+   press, so a slide is revealed one piece at a time.  A folded block
+   marked "unfold" (<details class="unfold">) opens in slide mode, and
+   each .piece inside it counts as an element of its own, as do the
+   .piece parts of an element with class "pieces".  A section whose
+   h2 has class "one-slide" is a single long slide that scrolls, except
+   that an h3 with class "own-slide" still starts a slide of its own.
+   Keys: right arrow or Page Down for the next step or slide, left arrow
+   or Page Up to go back (what a presentation clicker sends), Escape to
+   leave.  The address ends in #slide-N, so a reload stays on the slide. */
+(function () {
+  const doc = document.getElementById('document');
+  const scroller = document.getElementById('code-wrapper');
+  const nav = document.getElementById('slide-nav');
+  const count = nav.querySelector('.count');
+  const context = document.getElementById('slide-context');
+  const button = document.getElementById('present-toggle');
+  const slides = [];
+  let cur = [], section = '', whole = false;
+  const close = () => { cur.steps = cur.length - 1; slides.push(cur); cur = []; };
+  const unfolds = [...doc.querySelectorAll(':scope > details.unfold')];
+  const rows = [...doc.querySelectorAll(':scope > .pieces')];
+  /* the boxes around pieces: shown on a slide when one of their pieces is */
+  const holders = [...unfolds, ...rows].flatMap(d => [d, ...d.querySelectorAll('.rules')]);
+  const units = [...doc.children].flatMap(el =>
+    el.matches('details.unfold, .pieces') ? [...el.querySelectorAll('.piece, hr.slide-break')] : [el]);
+  for (const el of units) {
+    if (el.classList.contains('topbar') || el.id === 'slide-context') continue;
+    /* a section whose h2 is marked "one-slide" stays one long slide */
+    if (el.tagName === 'H2') whole = el.classList.contains('one-slide');
+    const breaks = el.tagName === 'H2' || el.classList.contains('own-slide') ||
+      (!whole && (el.tagName === 'H3' || el.classList.contains('slide-break')));
+    if (breaks && cur.length) close();
+    if (el.tagName === 'H2') section = el.textContent;
+    if (!cur.length) cur.section = el.tagName === 'H2' ? '' : section;
+    if (el.classList.contains('slide-break')) continue;
+    el.dataset.step = cur.length;
+    cur.push(el);
+  }
+  if (cur.length) close();
+  let at = 0, shown = 0;
+  function label() {
+    const m = slides[at].steps;
+    const steps = m > 12 ? 'step ' + shown + ' of ' + m : '●'.repeat(shown) + '○'.repeat(m - shown);
+    count.textContent = (at + 1) + ' / ' + slides.length + (m ? '  ·  ' + steps : '');
+  }
+  /* frames (pieces of an element with class "frames") replace each other:
+     only the latest one revealed shows, in the same place */
+  const frameSets = [...doc.querySelectorAll(':scope > .frames')];
+  function reveal() {
+    for (const el of slides[at]) el.classList.toggle('off-step', Number(el.dataset.step) > shown);
+    for (const g of frameSets) {
+      const fs = [...g.children];
+      const last = fs.filter(f => !f.classList.contains('off-step') && !f.classList.contains('off-slide')).at(-1);
+      for (const f of fs) f.classList.toggle('off-frame', f !== last);
+    }
+    label();
+  }
+  /* show slide i with its first k steps revealed (all of them if k is 'all') */
+  function show(i, k) {
+    at = Math.max(0, Math.min(slides.length - 1, i));
+    shown = k === 'all' ? slides[at].steps : 0;
+    slides.forEach((els, n) => els.forEach(el => el.classList.toggle('off-slide', n !== at)));
+    for (const h of holders) h.classList.toggle('off-slide', !h.querySelector('.piece:not(.off-slide)'));
+    context.textContent = slides[at].section || '';
+    reveal();
+    history.replaceState(null, '', '#slide-' + (at + 1));
+    scroller.scrollTop = k === 'all' ? scroller.scrollHeight : 0;
+    /* editors that were hidden need to measure themselves again */
+    for (const el of slides[at])
+      for (const cm of el.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  /* in a long slide, bring the piece that just appeared or disappeared
+     to the middle of the screen */
+  const piece = k => slides[at].find(el => Number(el.dataset.step) === k);
+  const focusOn = el => { if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+  function next() {
+    if (shown < slides[at].steps) { shown++; reveal(); focusOn(piece(shown)); }
+    else if (at < slides.length - 1) show(at + 1, 0);
+  }
+  function prev() {
+    if (shown > 0) { const gone = piece(shown); shown--; reveal(); focusOn(gone); }
+    else if (at > 0) show(at - 1, 'all');
+  }
+  function start(i) {
+    for (const d of unfolds) { d.dataset.wasOpen = d.open; d.open = true; }
+    doc.classList.add('presenting'); nav.classList.add('on');
+    button.textContent = '✕ Stop presenting';
+    show(i, 0);
+  }
+  function stop() {
+    doc.classList.remove('presenting'); nav.classList.remove('on');
+    button.textContent = '▶ Present';
+    for (const els of slides) for (const el of els) el.classList.remove('off-slide', 'off-step');
+    for (const h of holders) h.classList.remove('off-slide');
+    for (const g of frameSets) for (const f of g.children) f.classList.remove('off-frame');
+    for (const d of unfolds) d.open = d.dataset.wasOpen === 'true';
+    history.replaceState(null, '', location.pathname + location.search);
+    const first = slides[at][0];
+    if (first) first.scrollIntoView();
+    for (const cm of doc.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  const presenting = () => doc.classList.contains('presenting');
+  button.addEventListener('click', () => presenting() ? stop() : start(at));
+  nav.querySelector('.prev').addEventListener('click', prev);
+  nav.querySelector('.next').addEventListener('click', next);
+  document.addEventListener('keydown', e => {
+    if (!presenting() || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest && e.target.closest('.CodeMirror, input, textarea, select')) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Escape') stop();
+  });
+  const m = location.hash.match(/^#slide-(\d+)$/);
+  if (m) start(Number(m[1]) - 1);
+})();
+</script>
+<script>
+/* jsCoq is loaded from the jsDelivr CDN.  Two problems, two fixes:
+   1. Browsers refuse to start a Worker from another domain, so wrap the
+      worker script in a same-origin blob that imports it.
+   2. The WebAssembly backend finds its runtime (OCaml, zarith, ...) in a
+      node_modules folder next to jsCoq.  The CDN has no such folder, so
+      requests for node_modules/<package>/<file> go to that package's own
+      CDN URL, at a pinned version. */
+function workerPrelude(BASE, PIN) {
+  const nativeFetch = self.fetch.bind(self);
+  function remap(r) {
+    const u = new URL(r, BASE);
+    const m = u.pathname.match(/\/(?:node_modules|undefined)\/(.*)$/);
+    if (m) {
+      const rest = m[1];
+      for (const pkg in PIN)
+        if (rest.startsWith(pkg + '/'))
+          return 'https://cdn.jsdelivr.net/npm/' + pkg + '@' + PIN[pkg] + rest.slice(pkg.length);
+    }
+    return u.href;
+  }
+  self.fetch = (r, o) => nativeFetch(typeof r === 'string' || r instanceof URL ? remap(String(r)) : r, o);
+}
+(function () {
+  const PIN = {
+    'ocaml-wasm': '4.12.0-0',
+    '@ocaml-wasm/4.12--zarith': '1.13.0-0',
+    '@ocaml-wasm/4.12--janestreet-base': '0.16.0-0',
+    '@ocaml-wasm/4.12--num': '1.4.0-0'
+  };
+  const NativeWorker = window.Worker;
+  window.Worker = class extends NativeWorker {
+    constructor(url, opts) {
+      const u = new URL(url, location.href);
+      if (u.origin !== location.origin) {
+        const src = '(' + workerPrelude + ')(' + JSON.stringify(u.href) + ', ' +
+                    JSON.stringify(PIN) + '); importScripts(' + JSON.stringify(u.href) + ');';
+        super(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })), opts);
+      } else {
+        super(url, opts);
+      }
+    }
+  };
+})();
+</script>
+<script type="module">
+  const JSCOQ = 'https://cdn.jsdelivr.net/npm/jscoq@0.17.1/';
+  const { JsCoq } = await import(JSCOQ + 'jscoq.js');
+  const theme0 = document.documentElement.getAttribute('data-theme');
+  const button = document.getElementById('theme-toggle');
+  const label = t => { button.textContent = t === 'dark' ? '☀ Light mode' : '☾ Dark mode'; };
+  label(theme0);
+  const coq = await JsCoq.start(['textarea.coq'], {
+    theme: theme0,
+    base_path: JSCOQ,
+    backend: 'wa',
+    prelude: true,
+    implicit_libs: true,
+    init_pkgs: ['init'],
+    all_pkgs: ['coq'],
+    editor: { mode: { 'company-coq': true }, theme: 'd6' },
+    focus: false
+  });
+  /* The light switch: page colors, jsCoq's panel (and its icons). */
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('jscoq-page-theme', t); } catch (e) {}
+    try { coq.layout.configure({ theme: t }); } catch (e) {}
+    /* jsCoq switches its editors to its own themes here; put ours back.
+       Our editor theme reads the page colors, so it follows data-theme. */
+    try { coq.provider.configure({ theme: 'd6' }); } catch (e) {}
+    label(t);
+  }
+  button.addEventListener('click', () =>
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+  /* Keep the right-hand goals panel under the same explicit control used
+     by the later discussion pages. */
+  const ide = document.getElementById('ide-wrapper');
+  const panelButton = document.getElementById('panel-toggle');
+  const panelOpen = () => !ide.classList.contains('toggled');
+  const panelLabel = () => { panelButton.textContent = panelOpen() ? '◨ Hide goals' : '◧ Show goals'; };
+  const setPanel = open => {
+    ide.classList.toggle('toggled', !open);
+    panelLabel();
+    setTimeout(() => { for (const cm of document.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh(); }, 350);
+  };
+  panelButton.addEventListener('click', () => {
+    const open = !panelOpen();
+    setPanel(open);
+    try { localStorage.setItem('jscoq-panel', open ? 'open' : 'closed'); } catch (e) {}
+  });
+  new MutationObserver(panelLabel).observe(ide, { attributes: true, attributeFilter: ['class'] });
+  let savedPanel = null;
+  try { savedPanel = localStorage.getItem('jscoq-panel'); } catch (e) {}
+  const wantPanel = savedPanel !== 'closed';
+  for (const t of [0, 600, 2000]) setTimeout(() => setPanel(wantPanel), t);
+  panelLabel();
+
+  /* Folded code cells.  A cell opens when you click its button or click
+     into its code, and by itself when Coq reports an error inside it.
+     Stepping into a folded cell leaves it folded; the goals panel still
+     follows along. */
+  const cells = [...document.querySelectorAll('.cell')];
+  function setCell(cell, open) {
+    cell.classList.toggle('is-collapsed', !open);
+    const b = cell.querySelector('.cell-toggle');
+    b.setAttribute('aria-expanded', String(open));
+    b.textContent = open ? 'Hide code' : b.dataset.label;
+    const cm = cell.querySelector('.CodeMirror');
+    if (cm && cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  for (const cell of cells) {
+    cell.querySelector('.cell-toggle').addEventListener('click', () =>
+      setCell(cell, cell.classList.contains('is-collapsed')));
+    /* Run: check everything up to the end of this block, using jsCoq's
+       "run to cursor".  Coq checks in order, so earlier blocks run first.
+       If later blocks were already checked, roll back to the end of this
+       block: "run to cursor" rewinds to just before the sentence at the
+       cursor, so for that the cursor goes to the start of the next block. */
+    cell.querySelector('.cell-run').addEventListener('click', () => {
+      const editorOf = c => c.querySelector('.CodeMirror')?.CodeMirror;
+      /* jsCoq tracks the active editor through focus events, which a
+         scripted focus doesn't always fire, so tell it directly. */
+      const point = (cm, pos) => {
+        cm.focus();
+        cm.setCursor(pos);
+        const sp = coq.provider.snippets.find(s => s.editor === cm);
+        if (sp) coq.provider.currentFocus = sp;
+      };
+      const cm = editorOf(cell);
+      if (!cm) return;
+      const last = cm.lastLine();
+      point(cm, { line: last, ch: cm.getLine(last).length });
+      if (coq.provider.getAtPoint()) {
+        /* the end of this block is already checked */
+        const next = cells[cells.indexOf(cell) + 1];
+        if (!next) return;
+        point(editorOf(next), { line: 0, ch: 0 });
+        if (!coq.provider.getAtPoint()) return;   /* nothing checked after this block */
+      }
+      coq.goCursor();
+      /* moving the cursor scrolls the editor; a folded one should still
+         show its first lines */
+      if (cell.classList.contains('is-collapsed')) {
+        cm.scrollTo(0, 0);
+        const n = cells[cells.indexOf(cell) + 1];
+        if (n && n.classList.contains('is-collapsed')) editorOf(n).scrollTo(0, 0);
+      }
+    });
+    cell.addEventListener('mousedown', e => {
+      if (cell.classList.contains('is-collapsed') && e.target.closest('.CodeMirror')) setCell(cell, true);
+    });
+  }
+  /* A folded editor only draws its first lines, so look at Coq's marks
+     in the editor itself, not at the page, to spot an error. */
+  setInterval(() => {
+    for (const cell of cells) {
+      if (!cell.classList.contains('is-collapsed')) continue;
+      const cm = cell.querySelector('.CodeMirror')?.CodeMirror;
+      if (cm && cm.getAllMarks().some(m => (m.className || '').includes('coq-eval-failed'))) setCell(cell, true);
+    }
+  }, 500);
+  const fold = document.getElementById('fold-toggle');
+  fold.addEventListener('click', () => {
+    const open = fold.getAttribute('aria-pressed') !== 'true';
+    fold.setAttribute('aria-pressed', String(open));
+    fold.textContent = open ? 'Fold all code' : 'Show all code';
+    for (const cell of cells) setCell(cell, open);
+  });
+</script>
+</body>
+</html>

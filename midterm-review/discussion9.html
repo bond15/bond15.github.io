@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<script>
+/* Pick the theme before anything paints: the saved choice, else the OS setting. */
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('jscoq-page-theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark')
+    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<title>Discussion 9: Program equivalence</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jscoq@0.17.1/dist/frontend/index.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;650&amp;family=Spectral:ital,wght@0,400;0,600;1,400&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+/* Layout: one reading column, course-handout style; each inference rule is its own block that wraps on phones. */
+:root {
+  --bg: #fbfbf8;
+  --fg: #1d2330;
+  --muted: #5a6273;
+  --navy: #00274c;
+  --maize: #e0a800;
+  --panel: #eef1f6;
+  --line: #d6dbe4;
+  --head: var(--navy);
+  --code-bg: #f3f5f9;
+  --kw: #7a2e8c;
+  --str: #2f6b2f;
+  --num: #a14a00;
+  --font-display: "Commissioner", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Spectral", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+:root[data-theme="dark"] {
+  --bg: #0f1724; --fg: #e4e8ef; --muted: #9aa4b5; --navy: #8fb4e3; --maize: #ffcb05;
+  --panel: #172234; --line: #2a3850; --head: #ffcb05; --code-bg: #121c2c; --kw: #d7a6f0; --str: #9fd39f; --num: #f2b073; color-scheme: dark;
+}
+#document { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 1.05rem; line-height: 1.6; padding-inline: 16px; padding-block: 1.5rem 4rem; }
+#document .CodeMirror { font-size: .8rem; height: auto; }
+#document textarea.coq { width: 100%; }
+header { border-bottom: 3px solid var(--maize); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.eyebrow { font-family: var(--font-display); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1, h2, h3 { font-family: var(--font-display); color: var(--head); text-wrap: balance; line-height: 1.25; }
+h1 { font-size: 1.7rem; margin: .3rem 0 .4rem; font-weight: 650; }
+h2 { font-size: 1.3rem; margin: 2.6rem 0 .6rem; font-weight: 650; padding-top: .4rem; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 1.6rem 0 .4rem; font-weight: 650; }
+p, li { max-width: 65ch; }
+.lede { color: var(--muted); margin: 0; }
+code { font-family: var(--font-mono); font-size: .82em; background: var(--panel); padding: .05em .3em; border-radius: 3px; overflow-wrap: anywhere; }
+.rules { display: flex; flex-wrap: wrap; gap: .4rem 2rem; justify-content: center; align-items: flex-end; margin: .8rem 0 1rem; }
+.rules > div { min-width: 0; max-width: 100%; overflow-x: auto; }
+.display { overflow-x: auto; max-width: 100%; margin: .8rem 0; }
+mjx-container[display="true"] { margin: .4em 0 !important; }
+.thm { background: var(--panel); border-left: 3px solid var(--navy); padding: .7rem 1rem; margin: 1rem 0; }
+.thm p { margin: .3rem 0; }
+.thm .name { font-family: var(--font-display); font-weight: 650; color: var(--navy); }
+.proof { margin: .4rem 0 1rem; }
+.proof em:first-child { font-style: italic; }
+ul { padding-left: 1.2rem; }
+li { margin: .25rem 0; }
+
+#document code { color: var(--fg); }
+/* jsCoq's own stylesheet paints the document white; use the page tokens instead */
+body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #document { background: var(--bg) !important; color: var(--fg) !important; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+#theme-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+#theme-toggle:hover, #fold-toggle:hover, #present-toggle:hover, #panel-toggle:hover { border-color: var(--navy); }
+#fold-toggle, #present-toggle, #panel-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+.topbar .switches { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+/* displayed math scrolls sideways if it must, never up and down */
+.display, .rules > div { overflow-y: hidden; }
+#document .iso-diagram { color: var(--fg); margin: .6rem auto; max-width: 30rem; }
+#document p.aside { font-size: .85em; color: var(--muted); }
+/* math marked with \\class{hl-blue}{\\bbox[...]{...}}: the step note's soft blue behind it */
+mjx-container .hl-blue { color: var(--fg); }
+mjx-container .hl-blue rect { fill: var(--panel) !important; stroke: var(--line) !important; stroke-width: 20 !important; }
+#document:not(.presenting) mjx-container .hl-blue rect { fill: none !important; stroke: none !important; }
+#document pre.lang { background: var(--code-bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: .6rem .9rem; margin: .6rem 0 .9rem; overflow-x: auto; font-family: var(--font-mono); font-size: .78rem; line-height: 1.45; }
+#document pre.lang code { background: none; padding: 0; font-size: inherit; white-space: pre; }
+#document .iso-diagram svg { display: block; width: 100%; height: auto; }
+/* a program, one line per piece, left aligned */
+#document .display.prog { margin: .15rem 0; padding-left: 1.5rem; }
+#document .display.prog + :not(.display.prog) { margin-top: .9rem; }
+#document .display.prog mjx-container[display="true"] { text-align: left !important; margin: .3em 0 !important; }
+.rules.ch { margin: .2rem 0; align-items: center; }
+/* a tree built in stages: the page shows the last stage; slides show one at a time, in one place */
+#document .frames > .frame:not(.keep) { display: none; }
+/* staged trees get wide: a touch smaller */
+#document .frames .display { font-size: .9em; }
+#document.presenting .frames { display: grid; }
+#document.presenting .frames > .frame { display: block; grid-area: 1 / 1; align-self: end; }
+/* frames that grow downward (code with narration under it) stay pinned to the top */
+#document.presenting .frames.top > .frame { align-self: start; }
+/* what each stage did, in one sentence: only in slide mode */
+#document .step-note { display: none; }
+/* a note inside an ordinary piece shows only while that piece is the latest revealed */
+#document.presenting .pieces:not(.frames) > .piece:not(.current) .step-note { display: none !important; }
+#document.presenting .frames > .frame:not(.current) .step-note { display: none !important; }
+#document.presenting .step-note { display: block; text-align: left; font-size: .8em; line-height: 1.4; min-height: 4.2em;
+  margin: .6rem auto 0; max-width: 34em; padding: .5rem .8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+/* opacity, not visibility: a stage's own visible parts must not show through */
+#document.presenting .frames > .frame.off-frame, #document.presenting .frames > .frame.off-step { opacity: 0; }
+.rules.ch > .ch-name { margin-left: -1.2rem; font-size: .9em; overflow: visible; }
+/* the rule correspondence as a table: typing rule | logic rule | name, labeled on top */
+#document .ch-table { display: grid; grid-template-columns: max-content max-content max-content; justify-content: safe center; align-items: center; column-gap: 1.2rem; row-gap: .3rem; margin: .8rem 0 1rem; overflow-x: auto; }
+#document .ch-table .piece { min-width: auto; max-width: none; overflow: visible; }
+#document .ch-table > .rules.ch { display: contents; }
+#document .ch-table .ch-name { margin-left: 0; justify-self: start; }
+#document .ch-table .ch-label { order: -1; text-align: center; font-family: var(--font-display); font-weight: 650; color: var(--head); padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
+#document .ch-table .ch-label span { display: block; font-family: var(--font-body); font-weight: 400; font-size: .8em; color: var(--muted); }
+#document .ch-table .ch-label.ipl { grid-column: 2 / span 2; }
+/* a two-column table: rule | clause.  Rule cells (.cell) are always shown; the clauses (.piece) appear one per press */
+#document .ch-table.two { grid-template-columns: max-content minmax(0, 1fr); justify-content: start; column-gap: 1.6rem; overflow-x: visible; }
+#document .ch-table.two .piece { min-width: 0; }
+/* narrow windows (or the goals panel open on a small projector): rule above its clause */
+@media (max-width: 1100px) {
+  #document .ch-table.two { grid-template-columns: minmax(0, 1fr); }
+  #document .ch-table.two .ch-label.clause { grid-column: 1; }
+  #document .ch-table.two .ch-label { display: none; }
+}
+#document.presenting pre.lang { font-size: 1rem; }
+#document .ch-table.two .ch-label.clause { grid-column: 2; }
+#document .ch-table .cell { min-width: auto; }
+#document .ch-table pre.lang { margin: .2rem 0; }
+#document .ch-table .cell .display, #document .ch-table .cell mjx-container[display="true"] { margin: .2em 0 !important; }
+/* folded code cells: the first two lines show, faded out, until opened */
+.cell { margin: .8rem 0 1.2rem; }
+.cell.is-collapsed .CodeMirror { max-height: 3.3em !important; overflow: hidden; cursor: pointer; }
+.cell.is-collapsed .CodeMirror::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2.2em; background: linear-gradient(to bottom, transparent, var(--code-bg)); pointer-events: none; z-index: 10; }
+.cell-bar { display: flex; align-items: center; gap: 1rem; margin-top: .25rem; }
+.cell-run { font-family: var(--font-display); font-size: .78rem; font-weight: 650; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .15rem .7rem; cursor: pointer; }
+.cell-run:hover { border-color: var(--navy); }
+.cell-run:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+.cell-toggle { display: block; font-family: var(--font-display); font-size: .78rem; color: var(--navy); background: none; border: 0; padding: .15rem 0; cursor: pointer; }
+.cell-toggle:hover { text-decoration: underline; }
+.cell-toggle:focus-visible, #fold-toggle:focus-visible, #present-toggle:focus-visible, #panel-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+#theme-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+
+/* ---- jsCoq in the page's colors ------------------------------------
+   Three hues only, taken from the page: blue for the language (commands
+   bold, keywords plain, tactics a second, greener blue), amber for
+   literals and bullets, gray for comments.  Everything else is plain
+   text.  All at least about 5:1 on the code background, for projectors. */
+:root {
+  --syn-cmd: #0b4f9c; --syn-tactic: #0b6378; --syn-amber: #8a5a00; --syn-comment: #5c6370;
+  --ok-bg: #e7ecf4; --pending-bg: #fbefc4; --failed-bg: #f5d3d3;
+}
+:root[data-theme="dark"] {
+  --syn-cmd: #8cb4ff; --syn-tactic: #6cc4d6; --syn-amber: #f2c14e; --syn-comment: #9aa3b3;
+  --ok-bg: #19273b; --pending-bg: #3b3313; --failed-bg: #4a1f26;
+}
+/* editors */
+/* a question with its answer folded underneath */
+#document details.question { border: 1px solid var(--line); border-radius: 8px; padding: .6rem 1rem; margin: 1rem 0; background: var(--bg); }
+#document details.question > summary { cursor: pointer; font-family: var(--font-display); font-weight: 650; color: var(--head); }
+#document details.question[open] > summary { margin-bottom: .4rem; }
+/* nested-sets diagram */
+.venn { margin: 1rem 0; }
+.venn svg { display: block; width: 100%; max-width: 600px; height: auto; margin: 0 auto; }
+.venn .v-all { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+.venn .v-safe { fill: var(--ok-bg); stroke: var(--navy); stroke-width: 1.5; }
+.venn .v-typed { fill: var(--pending-bg); stroke: var(--maize); stroke-width: 2; }
+.venn .v-label { fill: var(--fg); font-family: var(--font-display); font-weight: 650; font-size: 20px; }
+.venn .v-ex { fill: var(--fg); font-family: var(--font-body); font-style: italic; font-size: 18px; }
+#document .cite { font-size: .85rem; color: var(--muted); }
+#document ul.refs { font-size: .88rem; color: var(--muted); padding-left: 1.1rem; }
+#document ul.refs li { margin: .3rem 0; }
+#document table.ref { border-collapse: collapse; margin: .8rem 0 1rem; font-size: .95rem; }
+#document table.ref th, #document table.ref td { border-bottom: 1px solid var(--line); padding: .3rem .9rem .3rem 0; text-align: left; }
+#document table.ref th { font-family: var(--font-display); font-weight: 650; color: var(--head); }
+/* step rules that do the real work */
+.rules > div.work { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 6px; padding: 0 .7rem; }
+.work-key { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 4px; padding: 0 .3rem; }
+/* math marked new with \\class{hl-new}{...}: maize marker behind the text */
+mjx-container .hl-new { color: var(--fg); }
+mjx-container .hl-new rect { fill: var(--pending-bg) !important; stroke: var(--maize) !important; stroke-width: 20 !important; }
+.cm-s-d6.CodeMirror { background: var(--code-bg) !important; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; }
+.cm-s-d6 .CodeMirror-gutters { background: var(--code-bg) !important; border-right: 1px solid var(--line) !important; }
+.cm-s-d6 .CodeMirror-linenumber { color: var(--muted) !important; }
+.cm-s-d6 .CodeMirror-cursor { border-left-color: var(--fg) !important; }
+.cm-s-d6 .CodeMirror-selected, .cm-s-d6.CodeMirror-focused .CodeMirror-selected { background: var(--line) !important; }
+.cm-s-d6 span[class*="cm-"] { color: var(--fg) !important; font-weight: 400; font-style: normal; }
+.cm-s-d6 span.cm-builtin { color: var(--syn-cmd) !important; font-weight: 700; }
+.cm-s-d6 span.cm-keyword { color: var(--syn-cmd) !important; }
+.cm-s-d6 span.cm-tactic { color: var(--syn-tactic) !important; font-weight: 600; }
+.cm-s-d6 span.cm-terminator { color: var(--syn-tactic) !important; font-weight: 700; }
+.cm-s-d6 span.cm-comment { color: var(--syn-comment) !important; font-style: italic; }
+.cm-s-d6 span.cm-string, .cm-s-d6 span.cm-number { color: var(--syn-amber) !important; }
+.cm-s-d6 span.cm-coq-bullet { color: var(--syn-amber) !important; font-weight: 700; }
+.cm-s-d6 span.cm-coq-focus { color: var(--muted) !important; }
+.cm-s-d6 span.CodeMirror-matchingbracket { color: var(--fg) !important; outline: 1px solid var(--maize); text-shadow: none; }
+/* how far Coq has checked */
+.cm-s-d6 .coq-eval-ok { background-color: var(--ok-bg) !important; }
+.cm-s-d6 .coq-eval-ok.coq-highlight { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-pending { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-failed { background-color: var(--failed-bg) !important; }
+/* the goals / messages panel */
+body.jscoq-main #panel-wrapper { background: var(--bg) !important; color: var(--fg) !important; border-left: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel { border-top: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel > .caption { background: var(--panel) !important; color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper #toolbar { border-bottom: 1px solid var(--line) !important; }
+body.jscoq-main #vsep, body.jscoq-main #hsep { background: var(--line) !important; }
+body.jscoq-main #panel-wrapper a, body.jscoq-main #panel-wrapper a:visited { color: var(--navy) !important; }
+body.jscoq-main #panel-wrapper #goal-panel p.system { color: var(--muted) !important; }
+body.jscoq-main #panel-wrapper [class*="constr."], body.jscoq-main #panel-wrapper [class*="module."],
+body.jscoq-main #panel-wrapper [class*="tactic."] { color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper .constr\.keyword, body.jscoq-main #panel-wrapper .module\.keyword,
+body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !important; }
+
+/* slide mode: one slide of the page at a time, at projector size */
+#document hr.slide-break { display: none; }
+#document.presenting .off-step { visibility: hidden; }
+/* collapsed table borders ignore visibility */
+#document.presenting tr.off-step > td, #document.presenting tr.off-step > th { border-color: transparent; }
+#document .slide-only { display: none; }
+/* notebook-only text (e.g. the narration a slide carries in its step notes) */
+#document.presenting .page-only { display: none; }
+#document.presenting .off-slide { display: none !important; }
+#document.presenting { font-size: 1.4rem; line-height: 1.5; padding-block: 1rem 5rem; }
+#document.presenting .CodeMirror { font-size: 1.05rem; }
+#document.presenting .topbar .eyebrow { display: none; }
+#document.presenting h1 { font-size: 1.8em; }
+#document.presenting h2 { font-size: 1.5em; margin-top: .4rem; border-top: 0; }
+#document.presenting h3 { font-size: 1.2em; margin-top: .4rem; }
+#document.presenting .topbar button { font-size: .8rem; }
+#document.presenting table.ref { font-size: .85em; }
+#document.presenting details:not(.unfold) .display, #document.presenting details:not(.unfold) .rules { font-size: .72em; }
+#document.presenting details.unfold { border: 0; padding: 0; margin: 0; background: none; }
+#document.presenting details.unfold > summary { display: none; }
+#document.presenting .slide-only { display: block; }
+#document.presenting #slide-context { font-family: var(--font-display); font-weight: 650; font-size: .8rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 .4rem; }
+#document.presenting #slide-context:empty { display: none; }
+#slide-nav { position: fixed; left: 16px; bottom: 14px; z-index: 50; display: none; gap: .4rem; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .3rem .5rem; font-family: var(--font-display); font-size: .9rem; color: var(--fg); }
+#document.presenting ~ #slide-nav, #slide-nav.on { display: flex; }
+#slide-nav button { font: inherit; }
+#slide-nav .count { min-width: 4.5em; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body class="jscoq-main">
+<div id="ide-wrapper" class="toggled">
+<div id="code-wrapper">
+<div id="document">
+<div class="topbar">
+<p class="eyebrow" style="margin-top:0">Runs in your browser: click into a code block and press Alt+↓ (Option+↓ on a Mac) to step, or Alt+Enter to run to the cursor. Goals show in the panel on the right.</p>
+<div class="switches">
+<button id="present-toggle" type="button">▶ Present</button>
+<button id="fold-toggle" type="button" aria-pressed="false">Show all code</button>
+<button id="panel-toggle" type="button" title="Collapse or open the goals and messages panel"></button>
+<button id="theme-toggle" type="button"></button>
+</div>
+</div>
+<p id="slide-context" class="slide-only"></p>
+
+<header>
+  <p class="eyebrow">CSE 590 · Fall 2026 · Discussion 9</p>
+  <h1>Program equivalence</h1>
+  <p class="lede">Lectures 17 and 18, as a reference. Rocq: <code>Discussion 9/Discussion9.v</code>, in file order.</p>
+</header>
+<details class="question">
+<summary>0. The language, from Discussion 6</summary>
+<p>Imports.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-1">From Coq Require Import ZArith String List.
+Import ListNotations.
+Open Scope Z_scope.
+Open Scope string_scope.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
+<p>Types and expressions, with notation.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-2">Definition name := string.
+
+Inductive ty : Type :=
+| TInt
+| TBool
+| TArr (τ1 τ2 : ty).
+
+Inductive exp : Type :=
+| Num (n : Z)
+| Tru
+| Fls
+| Var (x : name)
+| Lam (x : name) (τ : ty) (e : exp)
+| App (e1 e2 : exp)
+| Plus (e1 e2 : exp)
+| If (e e1 e2 : exp).
+
+Notation "'INT'" := TInt.
+Notation "'BOOL'" := TBool.
+Notation "τ1 ⇒ τ2" := (TArr τ1 τ2) (at level 30, right associativity).
+
+Notation "'const' n" := (Num n) (at level 1, n at level 0).
+Notation "'TRUE'" := Tru.
+Notation "'FALSE'" := Fls.
+Notation "'var' x" := (Var x) (at level 1, x at level 0).
+Notation "'λ' x : τ , e" := (Lam x τ e)
+  (at level 99, x at level 0, τ at level 99, e at level 99).
+Notation "e1 · e2" := (App e1 e2) (at level 40, left associativity).
+Notation "e1 ⊕ e2" := (Plus e1 e2) (at level 50, left associativity).
+Notation "'IF' e 'THEN' e1 'ELSE' e2 'FI'" := (If e e1 e2) (at level 80).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 30 lines">Show code · 30 lines</button></div></div>
+<p>Values, and <code>val</code>.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-3">Inductive value : exp -&gt; Prop :=
+| v_num n : value (const n)
+| v_true : value TRUE
+| v_false : value FALSE
+| v_lam x τ e : value (λ x : τ , e).
+
+Definition val : Type := { e : exp | value e }.
+Definition exp_of (v : val) : exp := proj1_sig v.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
+<p>Substitution and the redex rules.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-4">Fixpoint subst (x : name) (v : exp) (e : exp) : exp :=
+  match e with
+  | const n =&gt; const n
+  | TRUE =&gt; TRUE
+  | FALSE =&gt; FALSE
+  | var y =&gt; if String.eqb y x then v else var y
+  | λ y : τ , body =&gt;
+      if String.eqb y x then λ y : τ , body
+      else λ y : τ , subst x v body
+  | e1 · e2 =&gt; subst x v e1 · subst x v e2
+  | e1 ⊕ e2 =&gt; subst x v e1 ⊕ subst x v e2
+  | IF e THEN e1 ELSE e2 FI =&gt;
+      IF subst x v e THEN subst x v e1 ELSE subst x v e2 FI
+  end.
+
+Notation "e [ x ↦ v ]" := (subst x v e) (at level 2, x at level 99).
+
+Inductive redex : exp -&gt; exp -&gt; Prop :=
+| r_beta x τ e v : value v -&gt; redex ((λ x : τ , e) · v) (e [x ↦ v])
+| r_plus n1 n2 : redex (const n1 ⊕ const n2) (const (n1 + n2))
+| r_if_true e1 e2 : redex (IF TRUE THEN e1 ELSE e2 FI) e1
+| r_if_false e1 e2 : redex (IF FALSE THEN e1 ELSE e2 FI) e2.
+
+Notation "e '⟶r' e'" := (redex e e') (at level 70).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 24 lines">Show code · 24 lines</button></div></div>
+<p>Evaluation contexts, steps, runs.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-5">Inductive ectx : Type :=
+| Hole
+| AppL (E : ectx) (e2 : exp)
+| AppR (v : val) (E : ectx)
+| PlusL (E : ectx) (e2 : exp)
+| PlusR (n : Z) (E : ectx)
+| IfC (E : ectx) (e1 e2 : exp).
+
+Fixpoint plug (E : ectx) (e : exp) : exp :=
+  match E with
+  | Hole =&gt; e
+  | AppL E e2 =&gt; plug E e · e2
+  | AppR v E =&gt; exp_of v · plug E e
+  | PlusL E e2 =&gt; plug E e ⊕ e2
+  | PlusR n E =&gt; const n ⊕ plug E e
+  | IfC E e1 e2 =&gt; IF plug E e THEN e1 ELSE e2 FI
+  end.
+
+Notation "E [ e ]" := (plug E e) (at level 2, e at level 99).
+
+Reserved Notation "e '⟶' e'" (at level 70).
+
+Inductive step : exp -&gt; exp -&gt; Prop :=
+| s_ctx E r r' : redex r r' -&gt; E [r] ⟶ E [r']
+where "e ⟶ e'" := (step e e').
+
+Reserved Notation "e '⟶*' e'" (at level 70).
+
+Inductive multi : exp -&gt; exp -&gt; Prop :=
+| m_refl e : e ⟶* e
+| m_step e1 e2 e3 : e1 ⟶ e2 -&gt; e2 ⟶* e3 -&gt; e1 ⟶* e3
+where "e ⟶* e'" := (multi e e').</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 32 lines">Show code · 32 lines</button></div></div>
+<p>Contexts, lookup, typing.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-6">Definition ctx := list (name * ty).
+
+Fixpoint lookup {A : Type} (Γ : list (name * A)) (y : name) : option A :=
+  match Γ with
+  | nil =&gt; None
+  | (x, a) :: Γ' =&gt; if String.eqb y x then Some a else lookup Γ' y
+  end.
+
+Reserved Notation "Γ ⊢ e : τ" (at level 70, e at level 99, τ at level 69).
+
+Inductive has_type : ctx -&gt; exp -&gt; ty -&gt; Prop :=
+| t_num Γ n :
+    Γ ⊢ const n : INT
+| t_true Γ :
+    Γ ⊢ TRUE : BOOL
+| t_false Γ :
+    Γ ⊢ FALSE : BOOL
+| t_var Γ x τ :
+    lookup Γ x = Some τ -&gt;
+    Γ ⊢ var x : τ
+| t_lam Γ x τ1 e τ2 :
+    (x, τ1) :: Γ ⊢ e : τ2 -&gt;
+    Γ ⊢ λ x : τ1 , e : τ1 ⇒ τ2
+| t_app Γ e1 e2 τ1 τ2 :
+    Γ ⊢ e1 : τ1 ⇒ τ2 -&gt; Γ ⊢ e2 : τ1 -&gt;
+    Γ ⊢ e1 · e2 : τ2
+| t_plus Γ e1 e2 :
+    Γ ⊢ e1 : INT -&gt; Γ ⊢ e2 : INT -&gt;
+    Γ ⊢ e1 ⊕ e2 : INT
+| t_if Γ e e1 e2 τ :
+    Γ ⊢ e : BOOL -&gt; Γ ⊢ e1 : τ -&gt; Γ ⊢ e2 : τ -&gt;
+    Γ ⊢ IF e THEN e1 ELSE e2 FI : τ
+where "Γ ⊢ e : τ" := (has_type Γ e τ).
+
+Notation "⊢ e : τ" := (has_type nil e τ)
+  (at level 70, e at level 99, τ at level 69).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 36 lines">Show code · 36 lines</button></div></div>
+</details>
+
+<h2>1. Contextual equivalence</h2>
+<div class="thm"><p><span class="name">Definition (closed Boolean equivalence).</span> For \(\vdash e : \mathsf{bool}\) and \(\vdash e' : \mathsf{bool}\):</p>
+<div class="display">\[
+e \equiv^{\mathsf{cl}}_{\mathsf{bool}} e' \quad:=\quad (e \longrightarrow^* \mathsf{true} \text{ and } e' \longrightarrow^* \mathsf{true}) \text{ or } (e \longrightarrow^* \mathsf{false} \text{ and } e' \longrightarrow^* \mathsf{false})
+\]</div></div>
+<div class="thm"><p><span class="name">Example.</span> \(\mathsf{true} \equiv^{\mathsf{cl}}_{\mathsf{bool}} (\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5\): the left is \(\mathsf{true}\), the right steps to \(\mathsf{true}\) by β.</p></div>
+<p>The definition and the example.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-7">Definition cl_bool (e e' : exp) : Prop :=
+  (e ⟶* TRUE /\ e' ⟶* TRUE) \/ (e ⟶* FALSE /\ e' ⟶* FALSE).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-8">Example cl_bool_ex : cl_bool TRUE ((λ "x" : INT , TRUE) · const 5).
+Proof.
+  left. split.
+  - apply m_refl.
+  - apply m_step with (e2 := TRUE).
+    + apply (s_ctx Hole). apply r_beta. apply v_num.
+    + apply m_refl.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
+<div class="thm"><p><span class="name">Definition (context).</span> A term with one hole, anywhere:</p>
+<div class="display">\[
+\begin{aligned}
+C ::= {} & [\,] \mid \lambda x{:}\tau.\, C \mid C\, e \mid e\, C \mid C + e \mid e + C \\
+& \mid \mathsf{if}\ C\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \mid \mathsf{if}\ e\ \mathsf{then}\ C\ \mathsf{else}\ e_2 \mid \mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ C
+\end{aligned}
+\]</div>
+<p>\(C[e]\) puts \(e\) in the hole, without renaming. Unlike an evaluation context: the hole may sit under a λ, and the other positions hold any \(e\), not only values.</p></div>
+<div class="thm"><p><span class="name">Example (capture).</span> \((\lambda x{:}\mathsf{int}.\, [\,])[x] = \lambda x{:}\mathsf{int}.\, x\). The free \(x\) is bound by the context.</p></div>
+<div class="thm"><p><span class="name">Definition (typed context).</span> \(C : (\Gamma \vdash \tau) \Rightarrow (\Gamma' \vdash \tau')\) when for every \(e\), \(\Gamma \vdash e : \tau\) implies \(\Gamma' \vdash C[e] : \tau'\).</p></div>
+<p>Contexts, plugging, the capture example, typed contexts.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-9">Inductive gctx : Type :=
+| GHole
+| GLam (x : name) (τ : ty) (C : gctx)
+| GAppL (C : gctx) (e2 : exp)
+| GAppR (e1 : exp) (C : gctx)
+| GPlusL (C : gctx) (e2 : exp)
+| GPlusR (e1 : exp) (C : gctx)
+| GIf (C : gctx) (e1 e2 : exp)
+| GIfL (e : exp) (C : gctx) (e2 : exp)
+| GIfR (e e1 : exp) (C : gctx).
+
+Fixpoint gplug (C : gctx) (e : exp) : exp :=
+  match C with
+  | GHole =&gt; e
+  | GLam x τ C =&gt; λ x : τ , gplug C e
+  | GAppL C e2 =&gt; gplug C e · e2
+  | GAppR e1 C =&gt; e1 · gplug C e
+  | GPlusL C e2 =&gt; gplug C e ⊕ e2
+  | GPlusR e1 C =&gt; e1 ⊕ gplug C e
+  | GIf C e1 e2 =&gt; IF gplug C e THEN e1 ELSE e2 FI
+  | GIfL e0 C e2 =&gt; IF e0 THEN gplug C e ELSE e2 FI
+  | GIfR e0 e1 C =&gt; IF e0 THEN e1 ELSE gplug C e FI
+  end.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 23 lines">Show code · 23 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-10">Notation "C ⟨ e ⟩" := (gplug C e) (at level 2, e at level 99).
+
+Example capture : (GLam "x" INT GHole) ⟨ var "x" ⟩ = λ "x" : INT , var "x".
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-11">Definition ctx_type (C : gctx) (Γ : ctx) (τ : ty) (Γ' : ctx) (τ' : ty) : Prop :=
+  forall e, Γ ⊢ e : τ -&gt; Γ' ⊢ C ⟨ e ⟩ : τ'.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
+<div class="thm"><p><span class="name">Definition (contextual equivalence).</span> For \(\Gamma \vdash e : \tau\) and \(\Gamma \vdash e' : \tau\):</p>
+<div class="display">\[
+e \equiv^{\mathsf{ctx}}_{\Gamma \vdash \tau} e' \quad:=\quad \forall C : (\Gamma \vdash \tau) \Rightarrow (\cdot \vdash \mathsf{bool}).\ \ C[e] \equiv^{\mathsf{cl}}_{\mathsf{bool}} C[e']
+\]</div>
+<p>Also called observational equivalence. Closed \(\mathsf{bool}\) is the observation; with effects, closing at \(1\) is also used.</p></div>
+<p>The definition.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-12">Definition ctx_equiv (Γ : ctx) (τ : ty) (e e' : exp) : Prop :=
+  forall C, ctx_type C Γ τ nil BOOL -&gt; cl_bool (C ⟨ e ⟩) (C ⟨ e' ⟩).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
+
+<h2>2. Congruence and adequacy</h2>
+<div class="thm"><p><span class="name">Lemma (congruence).</span> If \(C : (\Gamma \vdash \tau) \Rightarrow (\Gamma' \vdash \tau')\) and \(e \equiv^{\mathsf{ctx}}_{\Gamma \vdash \tau} e'\) then \(C[e] \equiv^{\mathsf{ctx}}_{\Gamma' \vdash \tau'} C[e']\). Proof: given \(C' : (\Gamma' \vdash \tau') \Rightarrow (\cdot \vdash \mathsf{bool})\), the context \(C'[C[\,]]\) is \((\Gamma \vdash \tau) \Rightarrow (\cdot \vdash \mathsf{bool})\), and \(C'[C[e]] = (C'[C[\,]])[e]\).</p></div>
+<div class="thm"><p><span class="name">Lemma (adequacy).</span> If \(e \equiv^{\mathsf{ctx}}_{\cdot \vdash \mathsf{bool}} e'\) then \(e \equiv^{\mathsf{cl}}_{\mathsf{bool}} e'\). Proof: take \(C = [\,]\).</p></div>
+<div class="thm"><p><span class="name">Example.</span> \(\lambda y{:}\mathsf{int}.\, \mathsf{true} \equiv^{\mathsf{ctx}}_{\cdot \vdash \mathsf{int} \to \mathsf{bool}} \lambda y{:}\mathsf{int}.\, (\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5\). No step applies: no reduction under λ. By congruence with \(C = \lambda y{:}\mathsf{int}.\, [\,]\), it suffices that \(\mathsf{true} \equiv^{\mathsf{ctx}}_{y:\mathsf{int} \vdash \mathsf{bool}} (\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5\), which section 3 gives.</p></div>
+<div class="thm"><p><span class="name">Theorem (greatest adequate congruence).</span> If \(R\) is a family of relations on well-typed terms that is adequate (\(e\, R\, e'\) at \(\cdot \vdash \mathsf{bool}\) implies \(e \equiv^{\mathsf{cl}}_{\mathsf{bool}} e'\)) and a congruence (closed under every typed context), then \(e\, R\, e'\) implies \(e \equiv^{\mathsf{ctx}} e'\). Proof: for \(C : (\Gamma \vdash \tau) \Rightarrow (\cdot \vdash \mathsf{bool})\), \(C[e]\, R\, C[e']\) by congruence, so \(C[e] \equiv^{\mathsf{cl}}_{\mathsf{bool}} C[e']\) by adequacy. This is how every contextual equivalence is proved: never from the definition.</p></div>
+<p>Composition of contexts, \((C \circ C')[e] = C[C'[e]]\); then congruence and adequacy.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-13">Fixpoint gcompose (C C' : gctx) : gctx :=
+  match C with
+  | GHole =&gt; C'
+  | GLam x τ C =&gt; GLam x τ (gcompose C C')
+  | GAppL C e2 =&gt; GAppL (gcompose C C') e2
+  | GAppR e1 C =&gt; GAppR e1 (gcompose C C')
+  | GPlusL C e2 =&gt; GPlusL (gcompose C C') e2
+  | GPlusR e1 C =&gt; GPlusR e1 (gcompose C C')
+  | GIf C e1 e2 =&gt; GIf (gcompose C C') e1 e2
+  | GIfL e0 C e2 =&gt; GIfL e0 (gcompose C C') e2
+  | GIfR e0 e1 C =&gt; GIfR e0 e1 (gcompose C C')
+  end.
+
+Lemma gplug_compose C C' e : (gcompose C C') ⟨ e ⟩ = C ⟨ C' ⟨ e ⟩ ⟩.
+Proof.
+  induction C; simpl; try rewrite IHC; reflexivity.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 17 lines">Show code · 17 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-14">Theorem congruence Γ τ Γ' τ' e e' C :
+  ctx_type C Γ τ Γ' τ' -&gt;
+  ctx_equiv Γ τ e e' -&gt;
+  ctx_equiv Γ' τ' (C ⟨ e ⟩) (C ⟨ e' ⟩).
+Proof.
+  intros HC He C' HC'.
+  rewrite &lt;- (gplug_compose C' C e), &lt;- (gplug_compose C' C e').
+  apply He.
+  intros e0 He0. rewrite gplug_compose. apply HC'. apply HC. apply He0.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 10 lines">Show code · 10 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-15">Theorem adequacy e e' : ctx_equiv nil BOOL e e' -&gt; cl_bool e e'.
+Proof.
+  intros H. apply (H GHole). intros e0 He0. apply He0.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
+
+<h2>3. Denotational equivalence</h2>
+<div class="thm"><p><span class="name">Definition.</span> For \(\Gamma \vdash e : \tau\) and \(\Gamma \vdash e' : \tau\), with \([\![e]\!] : [\![\Gamma]\!] \to [\![\tau]\!]\) from Discussion 8: \(e \equiv^{\mathsf{den}}_{\Gamma \vdash \tau} e' := [\![e]\!] = [\![e']\!]\).</p></div>
+<div class="thm"><p><span class="name">Lemma (compositionality for contexts).</span> For \(C : (\Gamma \vdash \tau) \Rightarrow (\Gamma' \vdash \tau')\) there is \([\![C]\!] : ([\![\Gamma]\!] \to [\![\tau]\!]) \to ([\![\Gamma']\!] \to [\![\tau']\!])\) with \([\![C[e]]\!] = [\![C]\!]\,[\![e]\!]\). By induction on \(C\); the λ case is \([\![\lambda x{:}\tau_1.\, C]\!]\,g = \gamma \mapsto z \mapsto [\![C]\!]\,g\,(\gamma, x \mapsto z)\).</p></div>
+<div class="thm"><p><span class="name">Theorem.</span> \(\equiv^{\mathsf{den}}\) is an adequate congruence, so \(e \equiv^{\mathsf{den}} e'\) implies \(e \equiv^{\mathsf{ctx}} e'\). Congruence: \([\![e]\!] = [\![e']\!]\) gives \([\![C]\!]\,[\![e]\!] = [\![C]\!]\,[\![e']\!]\). Adequacy: at \(\cdot \vdash \mathsf{bool}\), \(e \longrightarrow^* [\![e]\!](*) = [\![e']\!](*)\) and \(e' \longrightarrow^* [\![e']\!](*)\), by adequacy from Discussion 8.</p></div>
+<div class="thm"><p><span class="name">Example.</span> \([\![\mathsf{true}]\!](*) = \mathsf{true}\) and \([\![(\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5]\!](*) = (z \mapsto \mathsf{true})(5) = \mathsf{true}\). So \(\mathsf{true} \equiv^{\mathsf{ctx}}_{\cdot \vdash \mathsf{bool}} (\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5\), and likewise under \(y{:}\mathsf{int}\), where both meanings are \(\gamma \mapsto \mathsf{true}\).</p></div>
+<div class="thm"><p><span class="name">Corollary.</span> If \(e \longrightarrow^* e'\) then \(e \equiv^{\mathsf{ctx}} e'\): by soundness, \([\![e]\!] = [\![e']\!]\).</p></div>
+<div class="thm"><p><span class="name">Theorem (completeness, pure STLC).</span> With only \(\to\), \(\times\), \(+\), \(1\), \(0\) and \(\mathsf{bool}\), \(e \equiv^{\mathsf{ctx}} e'\) implies \(e \equiv^{\mathsf{den}} e'\): every \([\![\tau]\!]\) is finite and every element is the meaning of a term. Fails with \(\mathbb{N}\) and recursion: \([\![\mathsf{nat} \to \mathsf{nat}]\!]\) contains functions no term names and no context separates.</p></div>
+<p>Both meanings in Rocq, equal by computation.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-16">Definition den_true : unit -&gt; bool := fun _ =&gt; true.
+Definition den_app : unit -&gt; bool := fun _ =&gt; (fun (x : Z) =&gt; true) 5.
+
+Example den_equal : den_true = den_app.
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
+
+<h2>4. Axiomatic equivalence</h2>
+<div class="thm"><p><span class="name">Definition.</span> \(\Gamma \vdash e \equiv^{\mathsf{ax}} e' : \tau\) is the least relation closed under: reflexivity, symmetry, transitivity; one congruence rule per constructor (\(e_1 \equiv^{\mathsf{ax}} e_1'\) and \(e_2 \equiv^{\mathsf{ax}} e_2'\) give \(e_1\, e_2 \equiv^{\mathsf{ax}} e_1'\, e_2'\), and so on); and for each type a β law and an η law, below.</p>
+<ul>
+  <li>β: an introduction form inside an elimination form simplifies. Computation.</li>
+  <li>η: a term of the type equals the introduction form built from its eliminations. Reasoning; no step rule looks like it.</li>
+</ul></div>
+<div class="thm"><p><span class="name">Definition (functions).</span> Intro \(\lambda x{:}\tau.\, e\), elim \(e\, e'\).</p>
+<div class="display">\[
+\begin{gathered}
+(\lambda x{:}\tau.\, e)\, e' \equiv^{\mathsf{ax}} e[x \mapsto e'] \ (\beta) \qquad e \equiv^{\mathsf{ax}} \lambda x{:}\tau_1.\, e\, x \ (\eta) \\[.4em]
+\frac{\Gamma, x{:}\tau_1 \vdash e\, x \equiv^{\mathsf{ax}} e'\, x : \tau_2}{\Gamma \vdash e \equiv^{\mathsf{ax}} e' : \tau_1 \to \tau_2} \ (\eta')
+\end{gathered}
+\]</div>
+<p>β is the step rule on open terms with any argument \(e'\), not only a value. η′ (extensionality) follows from η and congruence.</p></div>
+<div class="thm"><p><span class="name">Definition (products).</span> Intro \((e_1, e_2)\), elim \(e.1\), \(e.2\).</p>
+<div class="display">\[
+\begin{gathered}
+(e_1, e_2).1 \equiv^{\mathsf{ax}} e_1 \qquad (e_1, e_2).2 \equiv^{\mathsf{ax}} e_2 \ (\beta) \qquad e \equiv^{\mathsf{ax}} (e.1, e.2) \ (\eta) \\[.4em]
+\frac{e.1 \equiv^{\mathsf{ax}} e'.1 \quad e.2 \equiv^{\mathsf{ax}} e'.2}{e \equiv^{\mathsf{ax}} e'} \ (\eta')
+\end{gathered}
+\]</div></div>
+<div class="thm"><p><span class="name">Definition (unit).</span> Intro \(()\), no elim. No β. \(e \equiv^{\mathsf{ax}} () \ (\eta)\); equivalently \(e \equiv^{\mathsf{ax}} e'\) for any two terms of type \(1\).</p></div>
+<div class="thm"><p><span class="name">Definition (sums).</span> Intro \(\mathsf{inl}\ e\), \(\mathsf{inr}\ e\); elim \(\mathsf{case}\ e\ \{\mathsf{inl}\ x_1 \to e_1 \mid \mathsf{inr}\ x_2 \to e_2\}\).</p>
+<div class="display">\[
+\begin{gathered}
+\mathsf{case}\ (\mathsf{inl}\ e)\ \{\mathsf{inl}\ x_1 \to e_1 \mid \mathsf{inr}\ x_2 \to e_2\} \equiv^{\mathsf{ax}} e_1[x_1 \mapsto e] \ (\beta) \\
+\mathsf{case}\ (\mathsf{inr}\ e)\ \{\mathsf{inl}\ x_1 \to e_1 \mid \mathsf{inr}\ x_2 \to e_2\} \equiv^{\mathsf{ax}} e_2[x_2 \mapsto e] \ (\beta)
+\end{gathered}
+\]</div>
+<div class="display">\[
+e \equiv^{\mathsf{ax}} \mathsf{case}\ e\ \{\mathsf{inl}\ x_1 \to \mathsf{inl}\ x_1 \mid \mathsf{inr}\ x_2 \to \mathsf{inr}\ x_2\} \ (\text{weak } \eta)
+\]</div>
+<div class="display">\[
+\begin{gathered}
+\Gamma \vdash e' : \tau_1 + \tau_2 \qquad \Gamma, x{:}\tau_1 + \tau_2 \vdash e : \tau \\
+\Gamma \vdash e[x \mapsto e'] \equiv^{\mathsf{ax}} \mathsf{case}\ e'\ \{\mathsf{inl}\ x_1 \to e[x \mapsto \mathsf{inl}\ x_1] \mid \mathsf{inr}\ x_2 \to e[x \mapsto \mathsf{inr}\ x_2]\} : \tau \ (\text{strong } \eta)
+\end{gathered}
+\]</div>
+<p>Strong η is the second line, under the two typing premises on the first. Weak η is strong η at \(e = x\). Strong η is weak η plus the commuting conversions. The side condition keeps \(e'\) from mentioning anything bound inside \(e\).</p></div>
+<div class="thm"><p><span class="name">Definition (zero).</span> No intro; elim \(\mathsf{case}\ e\ \{\}\). No β. Weak η: \(e \equiv^{\mathsf{ax}} \mathsf{case}\ e\ \{\}\) for \(e : 0\). Strong η: for \(\Gamma \vdash e' : 0\) and \(\Gamma, x{:}0 \vdash e : \tau\), \(e[x \mapsto e'] \equiv^{\mathsf{ax}} \mathsf{case}\ e'\ \{\}\).</p></div>
+<div class="thm"><p><span class="name">Example (commuting conversion).</span> \(\mathsf{bool} = 1 + 1\), \(\mathsf{if}\) is its \(\mathsf{case}\). Strong η with \(e' = b\):</p>
+<div class="display">\[
+e[x \mapsto \mathsf{if}\ b\ \mathsf{then}\ e_2\ \mathsf{else}\ e_3] \equiv^{\mathsf{ax}} \mathsf{if}\ b\ \mathsf{then}\ e[x \mapsto e_2]\ \mathsf{else}\ e[x \mapsto e_3]
+\]</div>
+<p>In each branch the value of \(x\) is known, so each branch simplifies further.</p></div>
+<div class="thm"><p><span class="name">Example (dead code).</span> With \(f{:}1 \to 0\) in \(\Gamma\) and any \(\Gamma \vdash e : \tau\): \(e = e[x \mapsto f\,()]\) for a fresh \(x\), so \(e \equiv^{\mathsf{ax}} \mathsf{case}\ (f\,())\ \{\}\). Every term under a hypothesis of type \(0\) equals the empty case, whether or not it uses the hypothesis.</p></div>
+
+<h2>5. The laws in the model</h2>
+<div class="thm"><p><span class="name">Lemma.</span> Every β and η law holds in the model of Discussion 7: a type is a Rocq type, a term with a free variable \(x\) is a Rocq function of \(x\), \(e[x \mapsto e']\) is application. Each proof is <code>reflexivity</code> (β, η for functions) or <code>destruct</code> on the value (η for products, unit, sums, zero). η′ for functions is assumed (<code>funext</code>).</p></div>
+<p>Three types for the laws to range over.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-17">Section BetaEta.
+
+Variables A B C : Type.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
+<p>Functions: β, η, η′.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-18">Lemma beta_fun (e : A -&gt; B) (e' : A) : (fun x =&gt; e x) e' = e e'.
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-19">Lemma eta_fun (e : A -&gt; B) : e = fun x =&gt; e x.
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-20">Axiom funext : forall (f g : A -&gt; B), (forall x, f x = g x) -&gt; f = g.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 1 line">Show code · 1 line</button></div></div>
+<p>Products: β, η, η′.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-21">Lemma beta_prod_1 (e1 : A) (e2 : B) : fst (e1, e2) = e1.
+Proof. reflexivity. Qed.
+
+Lemma beta_prod_2 (e1 : A) (e2 : B) : snd (e1, e2) = e2.
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-22">Lemma eta_prod (e : A * B) : e = (fst e, snd e).
+Proof. destruct e as [a b]. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-23">Lemma eta_prod' (e e' : A * B) : fst e = fst e' -&gt; snd e = snd e' -&gt; e = e'.
+Proof.
+  destruct e as [a b]. destruct e' as [a' b']. simpl.
+  intros H1 H2. rewrite H1, H2. reflexivity.
+Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
+<p>Unit: η, both forms.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-24">Lemma eta_unit (e : unit) : e = tt.
+Proof. destruct e. reflexivity. Qed.
+
+Lemma eta_unit' (e e' : unit) : e = e'.
+Proof. destruct e. destruct e'. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
+<p>Sums: β, weak η, strong η; the commuting conversion for \(\mathsf{if}\).</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-25">Lemma beta_sum_l (e : A) (e1 : A -&gt; C) (e2 : B -&gt; C) :
+  match inl e with inl x1 =&gt; e1 x1 | inr x2 =&gt; e2 x2 end = e1 e.
+Proof. reflexivity. Qed.
+
+Lemma beta_sum_r (e : B) (e1 : A -&gt; C) (e2 : B -&gt; C) :
+  match inr e with inl x1 =&gt; e1 x1 | inr x2 =&gt; e2 x2 end = e2 e.
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 7 lines">Show code · 7 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-26">Lemma eta_sum_weak (e : A + B) :
+  e = match e with inl x1 =&gt; inl x1 | inr x2 =&gt; inr x2 end.
+Proof. destruct e as [a | b]; reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-27">Lemma eta_sum_strong (e' : A + B) (f : A + B -&gt; C) :
+  f e' = match e' with inl x1 =&gt; f (inl x1) | inr x2 =&gt; f (inr x2) end.
+Proof. destruct e' as [a | b]; reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-28">Lemma commute_if (b : bool) (e2 e3 : A) (f : A -&gt; C) :
+  f (if b then e2 else e3) = if b then f e2 else f e3.
+Proof. destruct b; reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
+<p>Zero: strong η; dead code.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-29">Lemma eta_zero (e' : Empty_set) (f : Empty_set -&gt; C) :
+  f e' = match e' with end.
+Proof. destruct e'. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-30">Lemma dead_code (g : unit -&gt; Empty_set) (e : C) : e = match g tt with end.
+Proof. destruct (g tt). Qed.
+
+End BetaEta.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
+<div class="thm"><p><span class="name">Remark (polarity).</span> Functions, products, unit: negative, used by application and projection, η says the term is the intro form of its eliminations. Sums, zero: positive, used by pattern matching, η says a term using them may match first. One η pattern per polarity.</p></div>
+<div class="thm"><p><span class="name">Theorem (soundness).</span> \(e \equiv^{\mathsf{ax}} e'\) implies \(e \equiv^{\mathsf{den}} e'\) implies \(e \equiv^{\mathsf{ctx}} e'\). The first by the lemma above and induction on the derivation; the second by section 3.</p></div>
+<div class="thm"><p><span class="name">Theorem (completeness, pure STLC).</span> \(e \equiv^{\mathsf{ctx}} e'\) implies \(e \equiv^{\mathsf{ax}} e'\). Fails with \(\mathbb{N}\) and primitive recursion: \(\equiv^{\mathsf{ax}}\) is recursively enumerable and \(\equiv^{\mathsf{ctx}}\) is not. Deciding \(\equiv^{\mathsf{ax}}\) includes deciding whether \(0\) is inhabited under \(\Gamma\) (dead code): decidable here, undecidable with dependent types.</p></div>
+<p>The first example in the model. <code>Print Assumptions</code>: strong η for sums uses no axiom.</p>
+<div class="cell is-collapsed"><textarea class="coq" id="coq-31">Example first_example : (fun (x : Z) =&gt; true) 5 = true.
+Proof. reflexivity. Qed.
+
+Print Assumptions eta_sum_strong.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
+
+
+</div>
+<div id="slide-nav"><button class="prev" type="button" title="Previous slide (←)">◀</button><span class="count"></span><button class="next" type="button" title="Next slide (→)">▶</button></div>
+</div>
+</div>
+<script>
+window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, svg: { fontCache: 'global' } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.js"></script>
+<script>
+/* Slide mode.  The page is cut into slides at every h2 and h3 and at every
+   slide break (an <hr class="slide-break">).  Nothing moves: the elements
+   of the other slides are just hidden, so the Rocq blocks stay one
+   document and running a block still checks everything before it.
+   Within a slide, each element after the first appears on its own key
+   press, so a slide is revealed one piece at a time.  A folded block
+   marked "unfold" (<details class="unfold">) opens in slide mode, and
+   each .piece inside it counts as an element of its own, as do the
+   .piece parts of an element with class "pieces".  A section whose
+   h2 has class "one-slide" is a single long slide that scrolls, except
+   that an h3 with class "own-slide" still starts a slide of its own.
+   Keys: right arrow or Page Down for the next step or slide, left arrow
+   or Page Up to go back (what a presentation clicker sends), Escape to
+   leave.  The address ends in #slide-N, so a reload stays on the slide. */
+(function () {
+  const doc = document.getElementById('document');
+  const scroller = document.getElementById('code-wrapper');
+  const nav = document.getElementById('slide-nav');
+  const count = nav.querySelector('.count');
+  const context = document.getElementById('slide-context');
+  const button = document.getElementById('present-toggle');
+  const slides = [];
+  let cur = [], section = '', whole = false;
+  const close = () => { cur.steps = cur.length - 1; slides.push(cur); cur = []; };
+  const unfolds = [...doc.querySelectorAll(':scope > details.unfold')];
+  const rows = [...doc.querySelectorAll(':scope > .pieces')];
+  /* the boxes around pieces: shown on a slide when one of their pieces is */
+  const holders = [...unfolds, ...rows].flatMap(d => [d, ...d.querySelectorAll('.rules')]);
+  const units = [...doc.children].flatMap(el =>
+    el.matches('details.unfold, .pieces') ? [...el.querySelectorAll('.piece, hr.slide-break')] : [el]);
+  for (const el of units) {
+    if (el.classList.contains('topbar') || el.id === 'slide-context' || el.classList.contains('page-only')) continue;
+    /* a section whose h2 is marked "one-slide" stays one long slide */
+    if (el.tagName === 'H2') whole = el.classList.contains('one-slide');
+    const breaks = el.tagName === 'H2' || el.classList.contains('own-slide') ||
+      (!whole && (el.tagName === 'H3' || el.classList.contains('slide-break')));
+    if (breaks && cur.length) close();
+    if (el.tagName === 'H2') section = el.textContent;
+    if (!cur.length) cur.section = el.tagName === 'H2' ? '' : section;
+    if (el.classList.contains('slide-break')) continue;
+    el.dataset.step = cur.length;
+    cur.push(el);
+  }
+  if (cur.length) close();
+  let at = 0, shown = 0;
+  function label() {
+    const m = slides[at].steps;
+    const steps = m > 12 ? 'step ' + shown + ' of ' + m : '●'.repeat(shown) + '○'.repeat(m - shown);
+    count.textContent = (at + 1) + ' / ' + slides.length + (m ? '  ·  ' + steps : '');
+  }
+  /* frames (pieces of an element with class "frames") replace each other:
+     only the latest one revealed shows, in the same place */
+  const frameSets = [...doc.querySelectorAll(':scope > .frames')];
+  function reveal() {
+    for (const el of slides[at]) el.classList.toggle('off-step', Number(el.dataset.step) > shown);
+    /* the latest revealed piece is 'current': its step note shows, earlier ones hide */
+    for (const el of slides[at]) el.classList.toggle('current', Number(el.dataset.step) === shown);
+    for (const g of frameSets) {
+      const fs = [...g.children];
+      const last = fs.filter(f => !f.classList.contains('off-step') && !f.classList.contains('off-slide')).at(-1);
+      for (const f of fs) f.classList.toggle('off-frame', f !== last);
+    }
+    label();
+  }
+  /* show slide i with its first k steps revealed (all of them if k is 'all') */
+  function show(i, k) {
+    at = Math.max(0, Math.min(slides.length - 1, i));
+    shown = k === 'all' ? slides[at].steps : 0;
+    slides.forEach((els, n) => els.forEach(el => el.classList.toggle('off-slide', n !== at)));
+    for (const h of holders) h.classList.toggle('off-slide', !h.querySelector('.piece:not(.off-slide)'));
+    context.textContent = slides[at].section || '';
+    reveal();
+    history.replaceState(null, '', '#slide-' + (at + 1));
+    scroller.scrollTop = k === 'all' ? scroller.scrollHeight : 0;
+    /* editors that were hidden need to measure themselves again */
+    for (const el of slides[at])
+      for (const cm of el.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  /* in a long slide, bring the piece that just appeared or disappeared
+     to the middle of the screen */
+  const piece = k => slides[at].find(el => Number(el.dataset.step) === k);
+  const focusOn = el => { if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+  function next() {
+    if (shown < slides[at].steps) { shown++; reveal(); focusOn(piece(shown)); }
+    else if (at < slides.length - 1) show(at + 1, 0);
+  }
+  function prev() {
+    if (shown > 0) { const gone = piece(shown); shown--; reveal(); focusOn(gone); }
+    else if (at > 0) show(at - 1, 'all');
+  }
+  function start(i) {
+    for (const d of unfolds) { d.dataset.wasOpen = d.open; d.open = true; }
+    doc.classList.add('presenting'); nav.classList.add('on');
+    button.textContent = '✕ Stop presenting';
+    show(i, 0);
+  }
+  function stop() {
+    doc.classList.remove('presenting'); nav.classList.remove('on');
+    button.textContent = '▶ Present';
+    for (const els of slides) for (const el of els) el.classList.remove('off-slide', 'off-step');
+    for (const h of holders) h.classList.remove('off-slide');
+    for (const g of frameSets) for (const f of g.children) f.classList.remove('off-frame');
+    for (const d of unfolds) d.open = d.dataset.wasOpen === 'true';
+    history.replaceState(null, '', location.pathname + location.search);
+    const first = slides[at][0];
+    if (first) first.scrollIntoView();
+    for (const cm of doc.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  const presenting = () => doc.classList.contains('presenting');
+  button.addEventListener('click', () => presenting() ? stop() : start(at));
+  nav.querySelector('.prev').addEventListener('click', prev);
+  nav.querySelector('.next').addEventListener('click', next);
+  document.addEventListener('keydown', e => {
+    if (!presenting() || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest && e.target.closest('.CodeMirror, input, textarea, select')) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Escape') stop();
+  });
+  const m = location.hash.match(/^#slide-(\d+)$/);
+  if (m) start(Number(m[1]) - 1);
+})();
+</script>
+<script>
+/* jsCoq is loaded from the jsDelivr CDN.  Two problems, two fixes:
+   1. Browsers refuse to start a Worker from another domain, so wrap the
+      worker script in a same-origin blob that imports it.
+   2. The WebAssembly backend finds its runtime (OCaml, zarith, ...) in a
+      node_modules folder next to jsCoq.  The CDN has no such folder, so
+      requests for node_modules/<package>/<file> go to that package's own
+      CDN URL, at a pinned version. */
+function workerPrelude(BASE, PIN) {
+  const nativeFetch = self.fetch.bind(self);
+  function remap(r) {
+    const u = new URL(r, BASE);
+    const m = u.pathname.match(/\/(?:node_modules|undefined)\/(.*)$/);
+    if (m) {
+      const rest = m[1];
+      for (const pkg in PIN)
+        if (rest.startsWith(pkg + '/'))
+          return 'https://cdn.jsdelivr.net/npm/' + pkg + '@' + PIN[pkg] + rest.slice(pkg.length);
+    }
+    return u.href;
+  }
+  self.fetch = (r, o) => nativeFetch(typeof r === 'string' || r instanceof URL ? remap(String(r)) : r, o);
+}
+(function () {
+  const PIN = {
+    'ocaml-wasm': '4.12.0-0',
+    '@ocaml-wasm/4.12--zarith': '1.13.0-0',
+    '@ocaml-wasm/4.12--janestreet-base': '0.16.0-0',
+    '@ocaml-wasm/4.12--num': '1.4.0-0'
+  };
+  const NativeWorker = window.Worker;
+  window.Worker = class extends NativeWorker {
+    constructor(url, opts) {
+      const u = new URL(url, location.href);
+      if (u.origin !== location.origin) {
+        const src = '(' + workerPrelude + ')(' + JSON.stringify(u.href) + ', ' +
+                    JSON.stringify(PIN) + '); importScripts(' + JSON.stringify(u.href) + ');';
+        super(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })), opts);
+      } else {
+        super(url, opts);
+      }
+    }
+  };
+})();
+</script>
+<script type="module">
+  const JSCOQ = 'https://cdn.jsdelivr.net/npm/jscoq@0.17.1/';
+  const { JsCoq } = await import(JSCOQ + 'jscoq.js');
+  const theme0 = document.documentElement.getAttribute('data-theme');
+  const button = document.getElementById('theme-toggle');
+  const label = t => { button.textContent = t === 'dark' ? '☀ Light mode' : '☾ Dark mode'; };
+  label(theme0);
+  const coq = await JsCoq.start(['textarea.coq'], {
+    theme: theme0,
+    base_path: JSCOQ,
+    backend: 'wa',
+    prelude: true,
+    implicit_libs: true,
+    init_pkgs: ['init'],
+    all_pkgs: ['coq'],
+    editor: { mode: { 'company-coq': true }, theme: 'd6' },
+    focus: false
+  });
+  /* The light switch: page colors, jsCoq's panel (and its icons). */
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('jscoq-page-theme', t); } catch (e) {}
+    try { coq.layout.configure({ theme: t }); } catch (e) {}
+    /* jsCoq switches its editors to its own themes here; put ours back.
+       Our editor theme reads the page colors, so it follows data-theme. */
+    try { coq.provider.configure({ theme: 'd6' }); } catch (e) {}
+    label(t);
+  }
+  button.addEventListener('click', () =>
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+  /* The goals panel on the right can be collapsed.  jsCoq hides the
+     panel while #ide-wrapper has the class "toggled" ("toggled away"),
+     and settles that class shortly after it starts, so the class is the
+     source of truth here, and the remembered choice is applied once
+     jsCoq has settled. */
+  const ide = document.getElementById('ide-wrapper');
+  const panelButton = document.getElementById('panel-toggle');
+  const panelOpen = () => !ide.classList.contains('toggled');
+  const panelLabel = () => { panelButton.textContent = panelOpen() ? '◨ Hide goals' : '◧ Show goals'; };
+  const setPanel = open => {
+    ide.classList.toggle('toggled', !open);
+    panelLabel();
+    setTimeout(() => { for (const cm of document.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh(); }, 350);
+  };
+  panelButton.addEventListener('click', () => {
+    const open = !panelOpen();
+    setPanel(open);
+    try { localStorage.setItem('jscoq-panel', open ? 'open' : 'closed'); } catch (e) {}
+  });
+  new MutationObserver(panelLabel).observe(ide, { attributes: true, attributeFilter: ['class'] });
+  let savedPanel = null;
+  try { savedPanel = localStorage.getItem('jscoq-panel'); } catch (e) {}
+  const wantPanel = savedPanel !== 'closed';
+  for (const t of [0, 600, 2000]) setTimeout(() => setPanel(wantPanel), t);
+  panelLabel();
+
+  /* Folded code cells.  A cell opens when you click its button or click
+     into its code, and by itself when Coq reports an error inside it.
+     Stepping into a folded cell leaves it folded; the goals panel still
+     follows along. */
+  const cells = [...document.querySelectorAll('.cell')];
+  function setCell(cell, open) {
+    cell.classList.toggle('is-collapsed', !open);
+    const b = cell.querySelector('.cell-toggle');
+    b.setAttribute('aria-expanded', String(open));
+    b.textContent = open ? 'Hide code' : b.dataset.label;
+    const cm = cell.querySelector('.CodeMirror');
+    if (cm && cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  for (const cell of cells) {
+    cell.querySelector('.cell-toggle').addEventListener('click', () =>
+      setCell(cell, cell.classList.contains('is-collapsed')));
+    /* Run: check everything up to the end of this block, using jsCoq's
+       "run to cursor".  Coq checks in order, so earlier blocks run first.
+       If later blocks were already checked, roll back to the end of this
+       block: "run to cursor" rewinds to just before the sentence at the
+       cursor, so for that the cursor goes to the start of the next block. */
+    cell.querySelector('.cell-run').addEventListener('click', () => {
+      const editorOf = c => c.querySelector('.CodeMirror')?.CodeMirror;
+      /* jsCoq tracks the active editor through focus events, which a
+         scripted focus doesn't always fire, so tell it directly. */
+      const point = (cm, pos) => {
+        cm.focus();
+        cm.setCursor(pos);
+        const sp = coq.provider.snippets.find(s => s.editor === cm);
+        if (sp) coq.provider.currentFocus = sp;
+      };
+      const cm = editorOf(cell);
+      if (!cm) return;
+      const last = cm.lastLine();
+      point(cm, { line: last, ch: cm.getLine(last).length });
+      if (coq.provider.getAtPoint()) {
+        /* the end of this block is already checked */
+        const next = cells[cells.indexOf(cell) + 1];
+        if (!next) return;
+        point(editorOf(next), { line: 0, ch: 0 });
+        if (!coq.provider.getAtPoint()) return;   /* nothing checked after this block */
+      }
+      coq.goCursor();
+      /* moving the cursor scrolls the editor; a folded one should still
+         show its first lines */
+      if (cell.classList.contains('is-collapsed')) {
+        cm.scrollTo(0, 0);
+        const n = cells[cells.indexOf(cell) + 1];
+        if (n && n.classList.contains('is-collapsed')) editorOf(n).scrollTo(0, 0);
+      }
+    });
+    cell.addEventListener('mousedown', e => {
+      if (cell.classList.contains('is-collapsed') && e.target.closest('.CodeMirror')) setCell(cell, true);
+    });
+  }
+  /* A folded editor only draws its first lines, so look at Coq's marks
+     in the editor itself, not at the page, to spot an error. */
+  setInterval(() => {
+    for (const cell of cells) {
+      if (!cell.classList.contains('is-collapsed')) continue;
+      const cm = cell.querySelector('.CodeMirror')?.CodeMirror;
+      if (cm && cm.getAllMarks().some(m => (m.className || '').includes('coq-eval-failed'))) setCell(cell, true);
+    }
+  }, 500);
+  const fold = document.getElementById('fold-toggle');
+  fold.addEventListener('click', () => {
+    const open = fold.getAttribute('aria-pressed') !== 'true';
+    fold.setAttribute('aria-pressed', String(open));
+    fold.textContent = open ? 'Fold all code' : 'Show all code';
+    for (const cell of cells) setCell(cell, open);
+  });
+</script>
+</body>
+</html>
