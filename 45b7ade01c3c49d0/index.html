@@ -293,10 +293,12 @@ v &::= n \mid \mathsf{true} \mid \mathsf{false} \mid \lambda x{:}\tau.\, e
   <div class="piece">\[\frac{\Gamma \vdash e : \mathsf{bool} \quad \Gamma \vdash e_1 : \tau \quad \Gamma \vdash e_2 : \tau}{\Gamma \vdash \mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 : \tau}\]</div>
 </div>
 </details>
+<p>The imports: integers for the numbers, strings for variable names, lists for contexts.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-1">From Coq Require Import ZArith String List.
 Import ListNotations.
 Open Scope Z_scope.
 Open Scope string_scope.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
+<p>The syntax: types and expressions as two inductive types, with the notation that lets a term read as on the board, <code>λ x : INT , var x ⊕ const 1</code>.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-2">Definition name := string.
 
 Inductive ty : Type :=
@@ -327,6 +329,7 @@ Notation "'λ' x : τ , e" := (Lam x τ e)
 Notation "e1 · e2" := (App e1 e2) (at level 40, left associativity).
 Notation "e1 ⊕ e2" := (Plus e1 e2) (at level 50, left associativity).
 Notation "'IF' e 'THEN' e1 'ELSE' e2 'FI'" := (If e e1 e2) (at level 80).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 30 lines">Show code · 30 lines</button></div></div>
+<p>Values, and <code>val</code>, the subset type of expressions that are values: an expression together with a proof.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-3">Inductive value : exp -&gt; Prop :=
 | v_num n : value (const n)
 | v_true : value TRUE
@@ -335,6 +338,7 @@ Notation "'IF' e 'THEN' e1 'ELSE' e2 'FI'" := (If e e1 e2) (at level 80).</texta
 
 Definition val : Type := { e : exp | value e }.
 Definition exp_of (v : val) : exp := proj1_sig v.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
+<p>Substitution, which only ever substitutes closed values, and the four redex rules that do the real work.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-4">Fixpoint subst (x : name) (v : exp) (e : exp) : exp :=
   match e with
   | const n =&gt; const n
@@ -359,6 +363,7 @@ Inductive redex : exp -&gt; exp -&gt; Prop :=
 | r_if_false e1 e2 : redex (IF FALSE THEN e1 ELSE e2 FI) e2.
 
 Notation "e '⟶r' e'" := (redex e e') (at level 70).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 24 lines">Show code · 24 lines</button></div></div>
+<p>Evaluation contexts, plugging into the hole, the one step rule, and runs of zero or more steps.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-5">Inductive ectx : Type :=
 | Hole
 | AppL (E : ectx) (e2 : exp)
@@ -391,6 +396,7 @@ Inductive multi : exp -&gt; exp -&gt; Prop :=
 | m_refl e : e ⟶* e
 | m_step e1 e2 e3 : e1 ⟶ e2 -&gt; e2 ⟶* e3 -&gt; e1 ⟶* e3
 where "e ⟶* e'" := (multi e e').</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 32 lines">Show code · 32 lines</button></div></div>
+<p>Contexts as lists of typed variables, lookup, and the typing rules, one constructor each.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-6">Definition ctx := list (name * ty).
 
 Fixpoint lookup {A : Type} (Γ : list (name * A)) (y : name) : option A :=
@@ -428,6 +434,7 @@ where "Γ ⊢ e : τ" := (has_type Γ e τ).
 Notation "⊢ e : τ" := (has_type nil e τ)
   (at level 70, e at level 99, τ at level 69).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 36 lines">Show code · 36 lines</button></div></div>
 <p>Four lemmas from Discussion 6 are used below: canonical forms at function type, steps inside a context, weakening, and the substitution lemma. Two small new ones: runs compose, and a run inside a context is a run.</p>
+<p>Canonical forms at function type, and a step inside a context is a step, both from Discussion 6.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-7">Lemma canonical_arr v τ1 τ2 :
   value v -&gt; ⊢ v : τ1 ⇒ τ2 -&gt; exists x e, v = λ x : τ1 , e.
 Proof.
@@ -458,6 +465,7 @@ Proof.
   rewrite &lt;- (plug_compose E E' r), &lt;- (plug_compose E E' r').
   apply s_ctx. apply Hr.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 30 lines">Show code · 30 lines</button></div></div>
+<p>Two facts about runs that Part 1 uses in every case: runs compose, and a run inside a context is a run.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-8">Lemma multi_trans e1 e2 e3 : e1 ⟶* e2 -&gt; e2 ⟶* e3 -&gt; e1 ⟶* e3.
 Proof.
   intros H12 H23. induction H12 as [ | e1 e2 e3' Hs Hrest IH].
@@ -471,6 +479,7 @@ Proof.
   - apply m_refl.
   - apply (m_step _ _ _ (step_in_context E _ _ Hs)). apply IH.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 13 lines">Show code · 13 lines</button></div></div>
+<p>Weakening and the substitution lemma, from Discussion 6, with the proofs as they were.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-9">Definition incl (Γ Γ' : ctx) : Prop :=
   forall x τ, lookup Γ x = Some τ -&gt; lookup Γ' x = Some τ.
 
@@ -558,6 +567,7 @@ Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" titl
 <p>Rice's theorem: in a Turing-complete language, no non-trivial semantic property of programs is decidable. But if every closed \(e : \mathsf{int}\) terminates, the property "\(e\) is equivalent to \(0\)" is decidable: run \(e\) (it stops, since the step relation is computable and the run is finite) and look at the number. It is non-trivial: \(1\) does not have it. So STLC cannot be Turing complete. In untyped λ-calculus the same test only gives a semi-decision procedure, because the run might not stop.</p>
 <p>Whether this is good or bad depends on what you want. Smart contracts, configuration languages, and the core languages of Lean and Rocq all want termination; for Rocq it is what makes the proof assistant sound as a logic.</p>
 </details>
+<p><code>terminates e</code> is the conclusion of the theorem: a value that \(e\) reaches.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-10">Definition terminates (e : exp) : Prop := exists v, e ⟶* v /\ value v.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 1 line">Show code · 1 line</button></div></div>
 
 <h3>Attempt 1: induction on the typing derivation</h3>
@@ -659,6 +669,7 @@ End Attempt1.</textarea><div class="cell-bar"><button class="cell-run" type="but
 </div>
 <p>A good function value is one that behaves well under the elimination form: applied to a good value, it gives a good expression. Almost every logical relation treats functions this way. Base types list their canonical values. This is a <em>logical predicate</em>; "relation" is the name of the technique.</p>
 <p class="aside">In Rocq, \(\mathcal{V}_{\tau_1 \to \tau_2}\) also records that \(v\) is a value and that \(\vdash v : \tau_1 \to \tau_2\). The lecture takes both for granted, since \(\mathcal{V}_\tau\) is a set of closed values; the proof needs them written down.</p>
+<p>The two relations as one recursive definition on the type, with \(\mathcal{E}\) written out inside the function clause, and then as its own definition.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-12">Fixpoint V (τ : ty) (v : exp) : Prop :=
   match τ with
   | INT =&gt; exists n, v = const n
@@ -669,6 +680,7 @@ End Attempt1.</textarea><div class="cell-bar"><button class="cell-run" type="but
   end.
 
 Definition E (τ : ty) (e : exp) : Prop := exists v, e ⟶* v /\ V τ v.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 10 lines">Show code · 10 lines</button></div></div>
+<p>Two facts read straight off the definition: a good value is a value, and a good value is well typed.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-13">Lemma V_value τ v : V τ v -&gt; value v.
 Proof.
   destruct τ as [ | | τ1 τ2 ]; simpl; intros H.
@@ -751,6 +763,7 @@ v_1\, v_2 \in \mathcal{E}_{\tau_2} \qquad e_1\, e_2 \longrightarrow^* v_1\, v_2 
 \]<p class="step-note">Look familiar? The theorem is about closed terms, and \(e'\) has \(x\) free. The inductive hypothesis for it is vacuous.</p></div>
 </div>
 <p>Two failures, two lessons. The first time the hypothesis said too little about the value. The second time it said nothing about open terms, although induction on typing derivations passes through them at every λ.</p>
+<p>Attempt 2 in Rocq. The application case closes; the proof stops at the λ case, where the inductive hypothesis has nothing to say. Run the block and read the goal.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-15">Theorem termination_attempt_2 e τ : ⊢ e : τ -&gt; E τ e.
 Proof.
   intros Ht.
@@ -804,6 +817,7 @@ Inductive G : ctx -&gt; env -&gt; Prop :=
 | G_nil : G nil nil
 | G_cons x τ v Γ γ : V τ v -&gt; G Γ γ -&gt; G ((x, τ) :: Γ) ((x, v) :: γ).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 17 lines">Show code · 17 lines</button></div></div>
 <p>On paper, substitutions commute and closed terms are left alone by them, and nobody writes the proofs. In Rocq they are seven short lemmas, by induction on the term or on \(\gamma\). Folded; the names say what they do.</p>
+<p>Free variables, and closed terms: terms with none.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-17">Fixpoint free (x : name) (e : exp) : Prop :=
   match e with
   | const _ | TRUE | FALSE =&gt; False
@@ -814,6 +828,7 @@ Inductive G : ctx -&gt; env -&gt; Prop :=
   end.
 
 Definition closed (e : exp) : Prop := forall x, ~ free x e.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 10 lines">Show code · 10 lines</button></div></div>
+<p>A free variable of a well-typed term is in its context, so a closed well-typed term has no free variables.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-18">Lemma free_in_context x e Γ τ :
   free x e -&gt; Γ ⊢ e : τ -&gt; exists σ, lookup Γ x = Some σ.
 Proof.
@@ -839,6 +854,7 @@ Proof.
   destruct (free_in_context x e nil τ Hf Ht) as [σ Hσ].
   discriminate Hσ.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 25 lines">Show code · 25 lines</button></div></div>
+<p>Substituting for a variable that is not free changes nothing; substituting a closed value kills the variable; two substitutions for different variables commute.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-19">Lemma subst_not_free x v e : ~ free x e -&gt; e [x ↦ v] = e.
 Proof.
   induction e as [ n | | | y | y τ b IH | e1 IH1 e2 IH2 | e1 IH1 e2 IH2
@@ -922,6 +938,7 @@ Proof.
   - rewrite IH1, IH2. reflexivity.
   - rewrite IH, IH1, IH2. reflexivity.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 83 lines">Show code · 83 lines</button></div></div>
+<p>A closed term is unchanged by a closing substitution, and a single substitution can be done before or after a closing substitution that does not mention its variable.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-20">Lemma msubst_closed γ e : closed e -&gt; msubst γ e = e.
 Proof.
   revert e. induction γ as [ | [x v] γ IH ]; intros e Hc; simpl.
@@ -944,6 +961,7 @@ Proof.
     + simpl. rewrite IH by apply Hγ'.
       rewrite (swap_subst y x w v e) by assumption. reflexivity.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 22 lines">Show code · 22 lines</button></div></div>
+<p>How \(e[\gamma]\) goes through each form of \(e\): a variable becomes its value, an application substitutes into both sides, a λ substitutes into its body with the bound variable dropped from \(\gamma\).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-21">Lemma msubst_var γ x :
   closed_env γ -&gt;
   msubst γ (var x) = match lookup γ x with Some v =&gt; v | None =&gt; var x end.
@@ -1001,6 +1019,7 @@ Proof.
   - reflexivity.
   - apply IH.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 57 lines">Show code · 57 lines</button></div></div>
+<p>Facts about good substitutions: their values are closed, every variable of \(\Gamma\) is sent to a good value of its type, and dropping \(x\) keeps a good substitution good.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-22">Lemma G_closed Γ γ : G Γ γ -&gt; closed_env γ.
 Proof.
   intros HG. induction HG as [ | x τ v Γ γ Hv HG IH ].
@@ -1029,6 +1048,7 @@ Proof.
     + apply IH.
     + apply G_cons. apply Hv. apply IH.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 28 lines">Show code · 28 lines</button></div></div>
+<p>Lookup after dropping and after appending; the typing of \(e[\gamma]\), by the substitution lemma once per variable; and the context swap used at a λ, where \(\Gamma, x{:}\tau_1\) is read as \(\Gamma\) with its old \(x\) dropped.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-23">Lemma lookup_drop {A : Type} (l : list (name * A)) x y :
   lookup (drop x l) y = if String.eqb y x then None else lookup l y.
 Proof.
@@ -1240,6 +1260,7 @@ A \uplus B = \{(1, a) \mid a \in A\} \cup \{(2, b) \mid b \in B\}, \qquad \{*\} 
 [\![\cdot]\!] = \{*\} \qquad\qquad [\![\Gamma, x{:}\tau]\!] = [\![\Gamma]\!] \times [\![\tau]\!]
 \]</div>
 <p>An element \(\gamma \in [\![\Gamma]\!]\) gives a value for every variable in \(\Gamma\): the semantic version of a closing substitution. Shadowing is not an issue: by α-equivalence all variables are different.</p>
+<p>In Rocq, \([\![\tau]\!]\) and \([\![\Gamma]\!]\) are Rocq types, by recursion on \(\tau\) and on \(\Gamma\).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-26">Fixpoint den_ty (τ : ty) : Type :=
   match τ with
   | INT =&gt; Z
@@ -1296,6 +1317,7 @@ Inductive deriv : ctx -&gt; exp -&gt; ty -&gt; Type :=
 | d_plus Γ e1 e2 : deriv Γ e1 INT -&gt; deriv Γ e2 INT -&gt; deriv Γ (e1 ⊕ e2) INT
 | d_if Γ e e1 e2 τ : deriv Γ e BOOL -&gt; deriv Γ e1 τ -&gt; deriv Γ e2 τ -&gt;
     deriv Γ (IF e THEN e1 ELSE e2 FI) τ.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 14 lines">Show code · 14 lines</button></div></div>
+<p>\(\gamma(x)\) reads \(x\)\u2019s value out of \(\gamma\) by following its position, and \([\![e]\!]\) is the six clauses above, one per rule.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-28">Fixpoint fetch {x τ Γ} (m : member x τ Γ) : ⟦ Γ ⟧c -&gt; ⟦ τ ⟧ :=
   match m with
   | here _ _ _ =&gt; fun γ =&gt; snd γ
@@ -1326,6 +1348,7 @@ Definition d_succ_two : deriv nil (succ · const 2) INT :=
   d_app _ _ _ _ _ d_succ (d_num _ 2).
 
 Compute (den d_succ_two tt).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 12 lines">Show code · 12 lines</button></div></div>
+<p>The open term and its derivation; <code>there</code> steps past \(y\) to reach \(x\). Running it on \(((*, 10), 20)\) gives \(10\), the value of \(x\).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-30">Definition d_open : deriv (("y", INT) :: ("x", INT) :: nil)
                           (IF TRUE THEN var "x" ELSE var "y" FI) INT :=
   d_if _ _ _ _ _ (d_true _)
@@ -1362,6 +1385,7 @@ Proof. reflexivity. Qed.
 Lemma den_plus Γ n1 n2 γ :
   den (d_plus Γ _ _ (d_num _ n1) (d_num _ n2)) γ = den (d_num Γ (n1 + n2)) γ.
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 7 lines">Show code · 7 lines</button></div></div>
+<p>The β case on the example: both sides of \((\lambda x{:}\mathsf{int}.\, x + 1)\, 2 \longrightarrow 2 + 1\) mean 3.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-32">Definition d_two_plus_one : deriv nil (const 2 ⊕ const 1) INT :=
   d_plus _ _ _ (d_num _ 2) (d_num _ 1).
 
@@ -1374,6 +1398,7 @@ Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run
 \textbf{Theorem (adequacy at } \mathsf{bool}\textbf{).}\quad \text{If } \vdash e : \mathsf{bool} \text{ then } e \longrightarrow^* [\![e]\!](*).
 \]</div>
 <p>The same statement holds at \(\mathsf{int}\), and at every type without a function in it. It cannot hold at \(\tau_1 \to \tau_2\): \(e\) reduces to a λ, not to a mathematical function. Adequacy at \(\mathsf{bool}\) alone proves every Boolean program terminates, and it makes the denotational semantics a tool: compute the meaning, with whatever mathematical shortcuts you like, instead of running the call-by-value steps.</p>
+<p>The statement in Rocq, with the Boolean denotation turned back into a term. The proof is left out; it is the fundamental theorem of the relation defined next.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-33">Definition exp_of_bool (b : bool) : exp := if b then TRUE else FALSE.
 
 Theorem adequacy_bool e (d : deriv nil e BOOL) : e ⟶* exp_of_bool (den d tt).
@@ -1713,20 +1738,6 @@ function workerPrelude(BASE, PIN) {
     fold.textContent = open ? 'Fold all code' : 'Show all code';
     for (const cell of cells) setCell(cell, open);
   });
-</script>
-
-<script>
-/* local preview only: reload when the page is rebuilt */
-(function () {
-  let seen = null;
-  setInterval(async () => {
-    try {
-      const v = await (await fetch('version.txt', { cache: 'no-store' })).text();
-      if (seen === null) seen = v;
-      else if (v !== seen) location.reload();
-    } catch (e) {}
-  }, 1000);
-})();
 </script>
 </body>
 </html>

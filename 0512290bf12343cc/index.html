@@ -265,10 +265,12 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 
 <h2 class="one-slide">0. The language, from Discussion 6</h2>
 <p>The simply typed λ-calculus of Discussion 6 again: integers, Booleans and functions, with values, substitution, evaluation contexts, and the typing rules. The blocks are folded; nothing in them is new.</p>
+<p>The imports: integers, strings for variable names, lists for contexts.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-1">From Coq Require Import ZArith String List.
 Import ListNotations.
 Open Scope Z_scope.
 Open Scope string_scope.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
+<p>The syntax: types and expressions, with the notation that lets a term read as on the board.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-2">Definition name := string.
 
 Inductive ty : Type :=
@@ -299,6 +301,7 @@ Notation "'λ' x : τ , e" := (Lam x τ e)
 Notation "e1 · e2" := (App e1 e2) (at level 40, left associativity).
 Notation "e1 ⊕ e2" := (Plus e1 e2) (at level 50, left associativity).
 Notation "'IF' e 'THEN' e1 'ELSE' e2 'FI'" := (If e e1 e2) (at level 80).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 30 lines">Show code · 30 lines</button></div></div>
+<p>Values, and the subset type <code>val</code> of expressions that are values.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-3">Inductive value : exp -&gt; Prop :=
 | v_num n : value (const n)
 | v_true : value TRUE
@@ -307,6 +310,7 @@ Notation "'IF' e 'THEN' e1 'ELSE' e2 'FI'" := (If e e1 e2) (at level 80).</texta
 
 Definition val : Type := { e : exp | value e }.
 Definition exp_of (v : val) : exp := proj1_sig v.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
+<p>Substitution and the four redex rules.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-4">Fixpoint subst (x : name) (v : exp) (e : exp) : exp :=
   match e with
   | const n =&gt; const n
@@ -331,6 +335,7 @@ Inductive redex : exp -&gt; exp -&gt; Prop :=
 | r_if_false e1 e2 : redex (IF FALSE THEN e1 ELSE e2 FI) e2.
 
 Notation "e '⟶r' e'" := (redex e e') (at level 70).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 24 lines">Show code · 24 lines</button></div></div>
+<p>Evaluation contexts, plugging, the step rule, and runs.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-5">Inductive ectx : Type :=
 | Hole
 | AppL (E : ectx) (e2 : exp)
@@ -363,6 +368,7 @@ Inductive multi : exp -&gt; exp -&gt; Prop :=
 | m_refl e : e ⟶* e
 | m_step e1 e2 e3 : e1 ⟶ e2 -&gt; e2 ⟶* e3 -&gt; e1 ⟶* e3
 where "e ⟶* e'" := (multi e e').</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 32 lines">Show code · 32 lines</button></div></div>
+<p>Contexts, lookup, and the typing rules.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-6">Definition ctx := list (name * ty).
 
 Fixpoint lookup {A : Type} (Γ : list (name * A)) (y : name) : option A :=
@@ -409,8 +415,10 @@ Notation "⊢ e : τ" := (has_type nil e τ)
 e \equiv^{\mathsf{cl}}_{\mathsf{bool}} e' \quad:=\quad (e \longrightarrow^* \mathsf{true} \text{ and } e' \longrightarrow^* \mathsf{true}) \text{ or } (e \longrightarrow^* \mathsf{false} \text{ and } e' \longrightarrow^* \mathsf{false})
 \]</div>
 <p>So \(\mathsf{true} \equiv^{\mathsf{cl}}_{\mathsf{bool}} (\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5\): one is a value, the other reaches it in a step.</p>
+<p>The closed Boolean equivalence, as a disjunction: both run to true, or both to false.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-7">Definition cl_bool (e e' : exp) : Prop :=
   (e ⟶* TRUE /\ e' ⟶* TRUE) \/ (e ⟶* FALSE /\ e' ⟶* FALSE).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
+<p>The example: \(\mathsf{true}\) reaches itself in no steps, and the application reaches it in one β step.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-8">Example cl_bool_ex : cl_bool TRUE ((λ "x" : INT , TRUE) · const 5).
 Proof.
   left. split.
@@ -430,6 +438,7 @@ C ::={}& [\,] \mid \lambda x{:}\tau.\, C \mid C\, e \mid e\, C \mid C + e \mid e
 \]</div>
 <p>\(C[e]\) puts \(e\) in the hole, <em>capturing</em>: \((\lambda x{:}\tau.\, [\,])[x] = \lambda x{:}\tau.\, x\). Two differences from an evaluation context \(E\): the hole may sit under a λ, and the other positions hold any \(e\), not just values. A value is a semantic notion, about how terms run; a context is pure syntax.</p>
 <p>Contexts are typed. \(C : (\Gamma \vdash \tau) \Rightarrow (\Gamma' \vdash \tau')\) means: for every \(e\), if \(\Gamma \vdash e : \tau\) then \(\Gamma' \vdash C[e] : \tau'\). The type of the hole matters, because it dictates what the context can do with what it is given: a Boolean can be tested by an \(\mathsf{if}\), a function can only be applied.</p>
+<p>Contexts as an inductive type, one constructor per place the hole can be, and plugging, which puts \(e\) in the hole with no renaming.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-9">Inductive gctx : Type :=
 | GHole
 | GLam (x : name) (τ : ty) (C : gctx)
@@ -453,10 +462,12 @@ Fixpoint gplug (C : gctx) (e : exp) : exp :=
   | GIfL e0 C e2 =&gt; IF e0 THEN gplug C e ELSE e2 FI
   | GIfR e0 e1 C =&gt; IF e0 THEN e1 ELSE gplug C e FI
   end.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 23 lines">Show code · 23 lines</button></div></div>
+<p>Plugging captures: check it on \((\lambda x{:}\mathsf{int}.\, [\,])[x]\).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-10">Notation "C ⟨ e ⟩" := (gplug C e) (at level 2, e at level 99).
 
 Example capture : (GLam "x" INT GHole) ⟨ var "x" ⟩ = λ "x" : INT , var "x".
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
+<p>A typed context, as the property it has: it sends well-typed terms of one type to well-typed terms of the other.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-11">Definition ctx_type (C : gctx) (Γ : ctx) (τ : ty) (Γ' : ctx) (τ' : ty) : Prop :=
   forall e, Γ ⊢ e : τ -&gt; Γ' ⊢ C ⟨ e ⟩ : τ'.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
 
@@ -465,6 +476,7 @@ Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run
 e \equiv^{\mathsf{ctx}}_{\Gamma \vdash \tau} e' \quad:=\quad \forall C : (\Gamma \vdash \tau) \Rightarrow (\cdot \vdash \mathsf{bool}).\ C[e] \equiv^{\mathsf{cl}}_{\mathsf{bool}} C[e']
 \]</div>
 <p>Closed Booleans play the role of C's <code>main</code>: the only programs we ever actually run. Everything else is equal when, for the purpose of producing Booleans, it always does the same thing. This is the gold standard of extensional program equivalence, also called <em>observational</em> equivalence. With effects one often closes at type \(1\) instead, because the effects already tell everything apart.</p>
+<p>The definition: for every closing Boolean context, the two results are closed-equivalent.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-12">Definition ctx_equiv (Γ : ctx) (τ : ty) (e e' : exp) : Prop :=
   forall C, ctx_type C Γ τ nil BOOL -&gt; cl_bool (C ⟨ e ⟩) (C ⟨ e' ⟩).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
 
@@ -508,6 +520,7 @@ C'[\mathsf{true}] \equiv^{\mathsf{cl}}_{\mathsf{bool}} C'[(\lambda x.\, \mathsf{
   <div class="piece">\[\frac{e \equiv^{\mathsf{ctx}}_{\cdot \vdash \mathsf{bool}} e'}{e \equiv^{\mathsf{cl}}_{\mathsf{bool}} e'}\ \text{(adequacy)}\]</div>
 </div>
 <p>In Rocq, congruence is the composition of contexts, and adequacy is three lines.</p>
+<p>A context inside a context, and plugging into the composite is plugging twice.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-13">Fixpoint gcompose (C C' : gctx) : gctx :=
   match C with
   | GHole =&gt; C'
@@ -525,6 +538,7 @@ Lemma gplug_compose C C' e : (gcompose C C') ⟨ e ⟩ = C ⟨ C' ⟨ e ⟩ ⟩.
 Proof.
   induction C; simpl; try rewrite IHC; reflexivity.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 17 lines">Show code · 17 lines</button></div></div>
+<p>Congruence: given a closing context for \(C[e]\) and \(C[e']\), compose it with \(C\) and use the equivalence of \(e\) and \(e'\).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-14">Theorem congruence Γ τ Γ' τ' e e' C :
   ctx_type C Γ τ Γ' τ' -&gt;
   ctx_equiv Γ τ e e' -&gt;
@@ -535,6 +549,7 @@ Proof.
   apply He.
   intros e0 He0. rewrite gplug_compose. apply HC'. apply HC. apply He0.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 10 lines">Show code · 10 lines</button></div></div>
+<p>Adequacy: apply the equivalence to the hole, which is a closing Boolean context.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-15">Theorem adequacy e e' : ctx_equiv nil BOOL e e' -&gt; cl_bool e e'.
 Proof.
   intros H. apply (H GHole). intros e0 He0. apply He0.
@@ -599,6 +614,7 @@ Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run
   <li><b>η rules</b>, the <em>reasoning</em> or extensionality rules: any term of the type equals an introduction form built from its eliminations.</li>
 </ul>
 <p>Each rule below is checked in the model of Discussion 7: a type is a Rocq type, a term with a free variable \(x\) is a Rocq function of \(x\). The proof of each is to compute, or to take a value apart.</p>
+<p>The section fixes three types \(A\), \(B\), \(C\) for the laws to range over.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-17">Section BetaEta.
 
 Variables A B C : Type.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
@@ -611,21 +627,26 @@ Variables A B C : Type.</textarea><div class="cell-bar"><button class="cell-run"
 <p>The alternative form \(\eta'\): two functions are equal when they agree on a fresh variable \(x\), that is \(e\, x \equiv e'\, x\) under \(\Gamma, x{:}\tau_1\). A syntactic for-all. Given β, each form of η implies the other.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-18">Lemma beta_fun (e : A -&gt; B) (e' : A) : (fun x =&gt; e x) e' = e e'.
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
+<p>η, by <code>reflexivity</code>: Rocq\u2019s own equality already identifies a function with its η-expansion.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-19">Lemma eta_fun (e : A -&gt; B) : e = fun x =&gt; e x.
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
+<p>η′, as an axiom: Rocq cannot prove that two functions agreeing everywhere are equal, so it is assumed, as in Discussion 7.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-20">Axiom funext : forall (f g : A -&gt; B), (forall x, f x = g x) -&gt; f = g.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 1 line">Show code · 1 line</button></div></div>
 
 <h3 class="own-slide">Products: intro \((e_1, e_2)\), elim \(e.1\), \(e.2\)</h3>
 <div class="display">\[
 (e_1, e_2).i \equiv^{\mathsf{ax}} e_i \ (\beta) \qquad\qquad e \equiv^{\mathsf{ax}} (e.1, e.2) \ (\eta) \qquad\qquad \frac{e.1 \equiv e'.1 \quad e.2 \equiv e'.2}{e \equiv e'} \ (\eta')
 \]</div>
+<p>β for products, by computation.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-21">Lemma beta_prod_1 (e1 : A) (e2 : B) : fst (e1, e2) = e1.
 Proof. reflexivity. Qed.
 
 Lemma beta_prod_2 (e1 : A) (e2 : B) : snd (e1, e2) = e2.
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
+<p>η for products: take the pair apart and both sides are the same.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-22">Lemma eta_prod (e : A * B) : e = (fst e, snd e).
 Proof. destruct e as [a b]. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
+<p>η′ for products: take both pairs apart and rewrite with the two equalities.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-23">Lemma eta_prod' (e e' : A * B) : fst e = fst e' -&gt; snd e = snd e' -&gt; e = e'.
 Proof.
   destruct e as [a b]. destruct e' as [a' b']. simpl.
@@ -637,6 +658,7 @@ Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" titl
 <div class="display">\[
 e \equiv^{\mathsf{ax}} () \ (\eta) \quad\text{for } \Gamma \vdash e : 1 \qquad\qquad \frac{\Gamma \vdash e, e' : 1}{e \equiv e'} \ (\eta')
 \]</div>
+<p>Both forms of η for unit: take the value apart, and there is only <code>tt</code>.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-24">Lemma eta_unit (e : unit) : e = tt.
 Proof. destruct e. reflexivity. Qed.
 
@@ -647,6 +669,7 @@ Proof. destruct e. destruct e'. reflexivity. Qed.</textarea><div class="cell-bar
 <div class="display">\[
 \mathsf{case}\ (\mathsf{inl}\ e)\ \{\mathsf{inl}\ x_1 \to e_1 \mid \mathsf{inr}\ x_2 \to e_2\} \equiv^{\mathsf{ax}} e_1[x_1 \mapsto e] \ (\beta_{\mathsf l}) \qquad \text{and } \beta_{\mathsf r} \text{ likewise}
 \]</div>
+<p>The two β rules for sums, by computation: the case on an injection picks its branch.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-25">Lemma beta_sum_l (e : A) (e1 : A -&gt; C) (e2 : B -&gt; C) :
   match inl e with inl x1 =&gt; e1 x1 | inr x2 =&gt; e2 x2 end = e1 e.
 Proof. reflexivity. Qed.
@@ -658,6 +681,7 @@ Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run
 <div class="display">\[
 e \equiv^{\mathsf{ax}} \mathsf{case}\ e\ \{\mathsf{inl}\ x_1 \to \mathsf{inl}\ x_1 \mid \mathsf{inr}\ x_2 \to \mathsf{inr}\ x_2\} \ (\text{weak } \eta)
 \]</div>
+<p>Weak η: take the sum apart, and each branch rebuilds what it was given.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-26">Lemma eta_sum_weak (e : A + B) :
   e = match e with inl x1 =&gt; inl x1 | inr x2 =&gt; inr x2 end.
 Proof. destruct e as [a | b]; reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
@@ -673,6 +697,7 @@ Proof. destruct e' as [a | b]; reflexivity. Qed.</textarea><div class="cell-bar"
 <div class="display">\[
 e[\mathsf{if}\ e'\ \mathsf{then}\ e''\ \mathsf{else}\ e'''/x] \equiv^{\mathsf{ax}} \mathsf{if}\ e'\ \mathsf{then}\ e[e''/x]\ \mathsf{else}\ e[e'''/x]
 \]</div>
+<p>The commuting conversion for Booleans: a term \(f\) applied to an if equals the if with \(f\) in both branches, by cases on the Boolean.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-28">Lemma commute_if (b : bool) (e2 e3 : A) (f : A -&gt; C) :
   f (if b then e2 else e3) = if b then f e2 else f e3.
 Proof. destruct b; reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
@@ -687,9 +712,11 @@ Proof. destruct b; reflexivity. Qed.</textarea><div class="cell-bar"><button cla
 e \equiv^{\mathsf{ax}} \mathsf{case}_0\ e\ \{\} \ (\text{weak } \eta) \qquad\qquad e[e'/x] \equiv^{\mathsf{ax}} \mathsf{case}_0\ e'\ \{\} \ (\text{strong } \eta)
 \]</div>
 <p>Read it as dead-code elimination: a term of type \(0\) in scope is a proof that this code never runs, and the whole term can go. A striking consequence: \(e\) need not even mention \(x\). With \(f : 1 \to 0\) in scope, any \(e : \tau\) is equal to \(\mathsf{case}_0\ (f\, ())\ \{\}\). So deciding this equality means deciding whether \(0\) is inhabited in the current context, which is decidable for STLC and undecidable for dependent types.</p>
+<p>Strong η for zero: there is no \(e'\) to take apart, so <code>destruct</code> finishes with no cases.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-29">Lemma eta_zero (e' : Empty_set) (f : Empty_set -&gt; C) :
   f e' = match e' with end.
 Proof. destruct e'. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
+<p>The dead-code reading: \(e\) never mentions \(g\), and is still equal to the empty case on \(g\, ()\).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-30">Lemma dead_code (g : unit -&gt; Empty_set) (e : C) : e = match g tt with end.
 Proof. destruct (g tt). Qed.
 
@@ -1011,20 +1038,6 @@ function workerPrelude(BASE, PIN) {
     fold.textContent = open ? 'Fold all code' : 'Show all code';
     for (const cell of cells) setCell(cell, open);
   });
-</script>
-
-<script>
-/* local preview only: reload when the page is rebuilt */
-(function () {
-  let seen = null;
-  setInterval(async () => {
-    try {
-      const v = await (await fetch('version.txt', { cache: 'no-store' })).text();
-      if (seen === null) seen = v;
-      else if (v !== seen) location.reload();
-    } catch (e) {}
-  }, 1000);
-})();
 </script>
 </body>
 </html>
