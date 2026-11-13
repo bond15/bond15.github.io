@@ -268,24 +268,7 @@ Fixpoint diff (xs ys : list Var) : list Var :=
 Definition fresh (x : Var) (xs : list Var) : Prop := memv x xs = false.
 Notation "x ∉ xs" := (fresh x xs) (at level 70).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 20 lines">Show code · 20 lines</button></div></div>
 
-<h2>1. Homework 1: what to be ready to do</h2>
-<h3>Question 2: a relation is a set-valued function</h3>
-<div class="display">\[
-(X\to\mathcal P(Y))\cong\mathcal P(X\times Y)
-\]</div>
-<p>Given \(f:X\to\mathcal P(Y)\), form \(R_f=\{(x,y)\mid y\in f(x)\}\). Given \(R\subseteq X\times Y\), form \(f_R(x)=\{y\mid(x,y)\in R\}\). The review task is to check that the two constructions undo each other.</p>
-
-<h3>Question 3: parse before reducing</h3>
-<ul>
-  <li>restore parentheses using application-left-associativity and the scope of each lambda;</li>
-  <li>identify each bound occurrence and each free occurrence;</li>
-  <li>perform alpha-renaming and beta-reduction without changing binding.</li>
-</ul>
-
-<h3>Question 4: respect the substitution side conditions</h3>
-<p>The original section deliberately does not solve the capture-avoiding-substitution exercise. Its goal here is narrower: recognize that the side conditions prevent a formerly free variable from becoming bound.</p>
-
-<h2>2. Syntax</h2>
+<h2>1. Syntax</h2>
 <div class="display">\[
 e ::= x \mid e_1\ e_2 \mid \lambda x.e
 \]</div>
@@ -304,7 +287,7 @@ Definition example2 : term := ƛ "x" ⇒ ƛ "y" ⇒ ⟨ "x" ⟩.
 Definition example3 : term := (ƛ "x" ⇒ ⟨ "x" ⟩) · ⟨ "y" ⟩.
 Definition example4 : term := ƛ "x" ⇒ ⟨ "x" ⟩ · ⟨ "x" ⟩.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 13 lines">Show code · 13 lines</button></div></div>
 
-<h2>3. Names and free variables</h2>
+<h2>2. Names and free variables</h2>
 <div class="rules">
   <div>\[\begin{aligned}\mathsf{Vars}(x)&=[x]\\\mathsf{Vars}(e_1e_2)&=\mathsf{Vars}(e_1){+\!+}\mathsf{Vars}(e_2)\\\mathsf{Vars}(\lambda x.e)&=x::\mathsf{Vars}(e)\end{aligned}\]</div>
   <div>\[\begin{aligned}\mathsf{FV}(x)&=\{x\}\\\mathsf{FV}(e_1e_2)&=\mathsf{FV}(e_1)\cup\mathsf{FV}(e_2)\\\mathsf{FV}(\lambda x.e)&=\mathsf{FV}(e)\setminus\{x\}\end{aligned}\]</div>
@@ -341,7 +324,7 @@ Proof. reflexivity. Qed.
 Example example10 : FV ((ƛ "x" ⇒ ⟨ "x" ⟩) · ⟨ "x" ⟩) = ["x"].
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 15 lines">Show code · 15 lines</button></div></div>
 
-<h2>4. Simultaneous swapping</h2>
+<h2>3. Simultaneous swapping</h2>
 <p>A swap \(e[x\leftrightarrow y]\) exchanges the two names everywhere, including binders. It is one structural operation, not two substitutions performed in sequence.</p>
 <div class="display">\[
 \begin{aligned}
@@ -424,7 +407,7 @@ Example example22 :
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 57 lines">Show code · 57 lines</button></div></div>
 <details class="source"><summary>Swapping examples</summary><img src="images/swapping-examples.png" alt="Four examples of simultaneous swapping in lambda terms"><img src="images/swap-not-substitution.png" alt="Why simultaneous swapping is not two successive substitutions"></details>
 
-<h2>5. Alpha-equivalence</h2>
+<h2>4. Alpha-equivalence</h2>
 <p>Variables are alpha-equivalent to themselves, and applications are alpha-equivalent componentwise. For abstractions, compare both bodies after moving their binders to the same genuinely fresh name.</p>
 <div class="rules">
   <div>\[\frac{}{x\equiv_\alpha x}\;\mathsf{Var}\]</div>
@@ -505,7 +488,7 @@ Qed.
 
 (* Navier–Stokes Lean: https://github.com/openai/NavierStokesAndEuler *)</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 65 lines">Show code · 65 lines</button></div></div>
 
-<h2>6. Mechanization connection</h2>
+<h2>5. Mechanization connection</h2>
 <p>These definitions and their proofs can be encoded in proof assistants such as Agda. The PL-adjacent news item linked that week was OpenAI's <a href="https://github.com/openai/NavierStokesAndEuler">Navier–Stokes formalization in Lean</a>.</p>
 
 
