@@ -21,12 +21,15 @@ h1 { font-size:clamp(2.2rem,5vw,4.5rem); margin:.2rem 0 .7rem; }
 .actions { margin-top:auto; padding-top:1rem; display:flex; gap:.9rem; flex-wrap:wrap; }
 a { color:#0b4f9c; font-weight:650; }
 .primary { display:inline-block; padding:.35rem .75rem; border-radius:999px; background:var(--blue); color:white; text-decoration:none; }
+.wip { max-width:52rem; margin:0 0 1rem; padding:1rem 1.1rem; border:2px solid var(--yellow); border-radius:.5rem; background:#fff8cf; color:var(--ink); }
+.wip strong { display:block; margin-bottom:.15rem; color:var(--blue); letter-spacing:.04em; }
 .disclosure { max-width:52rem; margin:1.4rem 0 2rem; padding:.8rem 1rem; border-left:.25rem solid var(--yellow); background:#fff; color:var(--muted); }
 .disclosure strong { color:var(--ink); }
 code { font-size:.9em; }
 @media (prefers-color-scheme:dark) {
   :root { --paper:#111820; --ink:#edf1f7; --muted:#aeb8c6; --line:#344151; --blue:#8cb4ff; }
   .card,.disclosure { background:#18222e; }
+  .wip { background:#332d12; }
   .primary { background:#8cb4ff; color:#0b1725; }
   a { color:#9fc1ff; }
 }
@@ -37,6 +40,8 @@ code { font-size:.9em; }
   <p class="tag">CSE 590 · Fall 2026</p>
   <h1>Midterm Review</h1>
 </header>
+
+<aside class="wip" role="status"><strong>WORK IN PROGRESS</strong>I’m assembling my individual discussion notes and unifying them here. The material is still being revised, reorganized, and cleaned up.</aside>
 
 <aside class="disclosure"><strong>AI disclosure.</strong> Generative AI tools assisted with portions of the LaTeX, Rocq code, and prose. The selection, structure, and pedagogical design of these discussion sections are my own.</aside>
 
