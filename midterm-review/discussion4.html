@@ -14,7 +14,7 @@
   document.documentElement.setAttribute('data-theme', t);
 })();
 </script>
-<title>Discussion 4: Big-step and small-step agree</title>
+<title>Big-step and small-step agree</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jscoq@0.17.1/dist/frontend/index.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;650&amp;family=Spectral:ital,wght@0,400;0,600;1,400&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
 <style>
@@ -248,22 +248,20 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
   <p class="lede">One expression, two operational views, and the proof that they compute the same answer.</p>
 </header>
 
-<h2>1. A short jsCoq orientation</h2>
-<p>Step forward with Alt+↓, run to the cursor with Alt+Enter, and watch the current goals in the panel.</p>
-<div class="source-narration"><h3 class="narration-heading">Arithmetic expressions</h3><p>CSE 590, Fall 2026.  The arithmetic fragment of IMP from Lectures 8 (9/28) and 9 (9/30).</p><h3 class="narration-heading">Getting started</h3><p>This file is written in Rocq (previously named Coq), a proof assistant: you state something, prove it, and Rocq checks every step.</p><h3 class="narration-heading">Running it in your browser (jsCoq)</h3><ul><li>Go to https://coq.vercel.app/scratchpad.html.  Nothing to install.</li><li>Paste this whole file into the editor on the left.</li><li>The first time, it takes a few seconds to download the libraries we import.</li><li>Rocq reads the file one sentence at a time.  Sentences end with a period.  To move through the file: Alt-↓      check the next sentence Alt-↑      go back one sentence Alt-Enter  check everything up to the cursor</li><li>Checked text is highlighted.  If something is wrong it turns red, and the error shows up on the right.</li><li>Inside a proof, the right panel shows the goal: what is left to prove.  Watching the goal change is the main way to follow a proof.</li><li>jsCoq draws -&gt; as an arrow, →.  Don&#x27;t mix it up with →a.</li></ul><h3 class="narration-heading">Reading the file</h3><ul><li><code>Definition</code> gives a name to something.</li><li><code>Inductive</code> defines a relation by its rules.  Each line starting with | is one inference rule: premises above the bar, conclusion below it, as on the slides.  The bar is just a comment.</li><li><code>Example</code> states a fact, and the proof goes between <code>Proof.</code> and <code>Qed.</code>.  The proof is a list of tactics: commands that build the proof one step at a time.</li></ul><h3 class="narration-heading">The tactics we use</h3><ul><li><code>apply R</code>: &quot;use rule R&quot;.  If R&#x27;s conclusion matches the goal, the goal is replaced by R&#x27;s premises.  This is building a derivation tree from the bottom up, like on the board.</li><li><code>apply R with (n0 := 5)</code>: the same, but we tell Rocq a value it can&#x27;t guess on its own, e.g. what a subexpression evaluates to.</li><li><code>reflexivity</code>: proves an equation whose two sides compute to the same thing, like 5 = 3 + 2.</li><li><code>unfold e</code>: replaces the name e with what it stands for.</li><li><code>-</code>, <code>+</code>, <code>*</code>, and <code>{ }</code>: when a rule leaves several premises to prove, each bullet (or pair of braces) handles one of them.</li><li><code>intros H</code>: the goal says &quot;if P then Q&quot;.  This assumes P, names it H, and leaves Q to prove.</li><li>[induction H as <code>...</code>]: rule induction on H.  You get one case per rule that could have built H, and in each case an induction hypothesis (IH) for every premise that is the same kind of judgment.  The [as <code>...</code>] part just names things; each | starts the names for the next rule.</li><li><code>inversion H</code>: &quot;how could H have been built?&quot;  Rocq looks at every rule whose conclusion could match H, keeps only the ones that fit, and gives you their premises as new hypotheses.</li><li><code>subst</code>: after <code>inversion</code> there are often equations like n = n3; this replaces one side with the other everywhere, so they go away.</li><li><code>rewrite E</code>: E is an equation x = y; this replaces x by y in the goal.  <code>rewrite E in H</code> does it in hypothesis H instead.</li><li><code>split</code>: the goal is &quot;A if and only if B&quot;; this splits it into two goals, one for each direction.</li></ul></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-1">Module Arithmetic.
-
-From Coq Require Import ZArith String.
-Open Scope Z_scope.
-Open Scope string_scope.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
-
-<h2>2. Arithmetic expressions and states</h2>
+<h2>1. Arithmetic expressions and states</h2>
 <div class="display">\[
 a ::= n \mid x \mid a_0+a_1 \mid a_0*a_1
 \qquad
 \sigma : \mathit{Name}\to\mathbb Z
 \]</div>
 <p>The syntax is data. A state is a total function from names to integers. The concrete notations keep object-language operations visually distinct from Rocq's metalanguage operations.</p>
-<div class="source-narration"><h3 class="narration-heading">Syntax</h3><p>AExp : a ::= n | x | a0 + a1 | a0 ∗ a1</p><p>Concrete syntax.  <code>const n</code> is the number n and <code>var x</code> is the variable x, as expressions.  ⊕ and ⊗ are + and ∗ in the language, so they can&#x27;t be confused with + and * on integers.</p><h3 class="narration-heading">States</h3><p>σ : Var → Z, total.</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-2">Definition name := string.
+<div class="source-narration"><h3 class="narration-heading">Arithmetic expressions</h3><p>CSE 590, Fall 2026.  The arithmetic fragment of IMP from Lectures 8 (9/28) and 9 (9/30).</p><h3 class="narration-heading">Syntax</h3><p>AExp : a ::= n | x | a0 + a1 | a0 ∗ a1</p><p>Concrete syntax.  <code>const n</code> is the number n and <code>var x</code> is the variable x, as expressions.  ⊕ and ⊗ are + and ∗ in the language, so they can&#x27;t be confused with + and * on integers.</p><h3 class="narration-heading">States</h3><p>σ : Var → Z, total.</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-1">Module Arithmetic.
+
+From Coq Require Import ZArith String.
+Open Scope Z_scope.
+Open Scope string_scope.
+
+Definition name := string.
 
 Inductive aexp : Type :=
 | ANum (n : Z)
@@ -282,16 +280,16 @@ Reserved Notation "⟨ a , σ ⟩ '→a' a'"
 Reserved Notation "⟨ a , σ ⟩ '→*a' a'"
   (at level 70, a at level 99, σ at level 99, a' at level 69).
 
-Definition state := name -&gt; Z.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 20 lines">Show code · 20 lines</button></div></div>
+Definition state := name -&gt; Z.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 26 lines">Show code · 26 lines</button></div></div>
 
-<h2>3. Big-step: one derivation tree</h2>
+<h2>2. Big-step: one derivation tree</h2>
 <p>The judgment ⟨(a,\sigma)⟩ ⇓ₐ (n) relates an expression and starting state directly to its final integer. Intermediate expressions do not appear.</p>
 <div class="rules">
   <div>\[\frac{}{\langle n,\sigma\rangle\Downarrow_a n}\]</div>
   <div>\[\frac{}{\langle x,\sigma\rangle\Downarrow_a \sigma(x)}\]</div>
   <div>\[\frac{\langle a_0,\sigma\rangle\Downarrow_a n_0\quad\langle a_1,\sigma\rangle\Downarrow_a n_1}{\langle a_0+a_1,\sigma\rangle\Downarrow_a n_0+n_1}\]</div>
 </div>
-<div class="source-narration"><h3 class="narration-heading">Big-step semantics</h3><p>⇓a ⊆ (AExp × State) × Z, written ⟨a, σ⟩ ⇓a n.</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-3">Inductive aeval (σ : state) : aexp -&gt; Z -&gt; Prop :=
+<div class="source-narration"><h3 class="narration-heading">Big-step semantics</h3><p>⇓a ⊆ (AExp × State) × Z, written ⟨a, σ⟩ ⇓a n.</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-2">Inductive aeval (σ : state) : aexp -&gt; Z -&gt; Prop :=
 | AE_Num (n : Z) :
 
     (*──────────────────*)
@@ -322,7 +320,7 @@ where "⟨ a , σ ⟩ '⇓a' n" := (aeval σ a n).</textarea><div class="cell-ba
 
 <h3>The worked expression</h3>
 <p>With (X=3) and (Y=2), the original expression is (((X+Y)*(X+Y))+(X*Y)). Big-step reaches (31) in one derivation tree: one rule for each subexpression.</p>
-<div class="source-narration"><h3 class="narration-heading">Example: big-step</h3><p>X = 3, Y = 2</p><p>One rule per subexpression, no intermediate expressions.</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-4">Definition X : name := "X".
+<div class="source-narration"><h3 class="narration-heading">Example: big-step</h3><p>X = 3, Y = 2</p><p>One rule per subexpression, no intermediate expressions.</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-3">Definition X : name := "X".
 Definition Y : name := "Y".
 
 Definition σ0 : state :=
@@ -351,7 +349,7 @@ Proof.
   - reflexivity.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 28 lines">Show code · 28 lines</button></div></div>
 
-<h2>4. Small-step: expose the computation</h2>
+<h2>3. Small-step: expose the computation</h2>
 <p>The judgment ⟨(a,\sigma)⟩ →ₐ (a') performs one local rewrite. Congruence rules first move the active position through the syntax; computation rules then replace a variable or combine two numbers. The multi-step relation chains those rewrites.</p>
 <div class="rules">
   <div>\[\frac{}{\langle x,\sigma\rangle\to_a \sigma(x)}\;\mathsf{Var}\]</div>
@@ -364,7 +362,7 @@ Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" titl
   <div>\[\frac{}{a\to_a^* a}\;\mathsf{Refl}\]</div>
   <div>\[\frac{a\to_a a'\qquad a'\to_a^* a''}{a\to_a^* a''}\;\mathsf{Step}\]</div>
 </div>
-<div class="source-narration"><h3 class="narration-heading">Small-step semantics</h3><p>→a ⊆ (AExp × State) × AExp, written ⟨a, σ⟩ →a a&#x27;.  Variables and constants; then left operand first, then right.</p><h3 class="narration-heading">Multi-step</h3><p>→*a; the state is carried along.</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-5">Inductive astep (σ : state) : aexp -&gt; aexp -&gt; Prop :=
+<div class="source-narration"><h3 class="narration-heading">Small-step semantics</h3><p>→a ⊆ (AExp × State) × AExp, written ⟨a, σ⟩ →a a&#x27;.  Variables and constants; then left operand first, then right.</p><h3 class="narration-heading">Multi-step</h3><p>→*a; the state is carried along.</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-4">Inductive astep (σ : state) : aexp -&gt; aexp -&gt; Prop :=
 | AS_Id (x : name) :
 
     (*──────────────────────*)
@@ -441,7 +439,7 @@ where "⟨ a , σ ⟩ '→*a' a'" := (amulti σ a a').</textarea><div class="cel
 &\to_a 31.
 \end{aligned}
 \]</div>
-<div class="source-narration"><h3 class="narration-heading">Example: the same expression, small-step</h3><p>By hand: every step names the next expression and applies the rules all the way down to the redex.  Compare with <code>e_big</code>.</p><p><code>step</code>: &quot;do the next step for me.&quot;</p><ol><li>It finds the rules: it tries the small-step rules one by one, going down into the expression until something fits.  For the first step that&#x27;s <code>AS_Plus_left</code>, <code>AS_Mult_left</code>, <code>AS_Plus_left</code>, <code>AS_Id</code>, the same chain we typed in <code>e_small_by_hand</code>.  If a choice leads nowhere, it backs up and tries another rule.</li><li>Then the goal moves on to the rest of the run, starting from the new expression.</li><li>Finally it tidies up, looking up variables in the state, so const (σ0 X) shows as const 3.</li></ol><p>Eleven steps to 31; step through and watch the goal.</p><p><code>run</code>: &quot;just finish it.&quot;  Hit <code>step</code> until there&#x27;s nothing left but a number.</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-6">Example e_small_by_hand : ⟨e, σ0⟩ →*a const 31.
+<div class="source-narration"><h3 class="narration-heading">Example: the same expression, small-step</h3><p>By hand: every step names the next expression and applies the rules all the way down to the redex.  Compare with <code>e_big</code>.</p><p><code>step</code>: &quot;do the next step for me.&quot;</p><ol><li>It finds the rules: it tries the small-step rules one by one, going down into the expression until something fits.  For the first step that&#x27;s <code>AS_Plus_left</code>, <code>AS_Mult_left</code>, <code>AS_Plus_left</code>, <code>AS_Id</code>, the same chain we typed in <code>e_small_by_hand</code>.  If a choice leads nowhere, it backs up and tries another rule.</li><li>Then the goal moves on to the rest of the run, starting from the new expression.</li><li>Finally it tidies up, looking up variables in the state, so const (σ0 X) shows as const 3.</li></ol><p>Eleven steps to 31; step through and watch the goal.</p><p><code>run</code>: &quot;just finish it.&quot;  Hit <code>step</code> until there&#x27;s nothing left but a number.</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-5">Example e_small_by_hand : ⟨e, σ0⟩ →*a const 31.
 Proof.
   unfold e.
   (* 1. X ↦ 3 *)
@@ -495,7 +493,7 @@ Ltac run := repeat step; apply AM_Refl.
 Example e_small_auto : ⟨e, σ0⟩ →*a const 31.
 Proof. unfold e. run. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 53 lines">Show code · 53 lines</button></div></div>
 
-<h2>5. Agreement</h2>
+<h2>4. Agreement</h2>
 <div class="thm"><p class="name">Theorem</p><p>For every arithmetic expression (a), state (\sigma), and integer (n):</p><div class="display">\[\langle a,\sigma\rangle\to_a^* n \quad\Longleftrightarrow\quad \langle a,\sigma\rangle\Downarrow_a n.\]</div></div>
 <p>The proof has six parts: facts about multi-step; congruence; big-to-small by rule induction; anti-reduction; small-to-big by rule induction; and the final equivalence. This is also the bridge to the corresponding Homework 3 Boolean proof.</p>
 <div class="display">\[
@@ -520,7 +518,7 @@ const 5                     const 5 ⊕ const 7</pre><p>Each line on the right c
          →*  const n0 ⊕ const n1    then the right side
          →   const n2               then add</pre><p>Example, with X = 3 and Y = 2, for (var X ⊕ var Y) ⊕ var X:</p><pre class="narration-diagram">(var X ⊕ var Y) ⊕ var X  →*  const 5 ⊕ var X     left side
                          →*  const 5 ⊕ const 3   right side
-                         →   const 8             add</pre><p>Proof: rule induction on the big-step tree, one case per big-step rule.  The IH gives us a run for each subexpression ON ITS OWN; congruence puts those runs inside the ⊕, and transitivity glues the three pieces into one run.</p><h3 class="narration-heading">4. Anti-reduction</h3><p>If ⟨a, σ⟩ →a a&#x27; and ⟨a&#x27;, σ⟩ ⇓a n, then ⟨a, σ⟩ ⇓a n. Rule induction on ⟨a, σ⟩ →a a&#x27;; in each case, invert the derivation of ⟨a&#x27;, σ⟩ ⇓a n.</p><h3 class="narration-heading">5. Small ⇒ big, by rule induction on ⟨a, σ⟩ →*a n</h3><p>The (step) rule lets a run end anywhere, so Rocq needs the end point as a separate name a&#x27;&#x27; with the equation a&#x27;&#x27; = n.</p><h3 class="narration-heading">6. The theorem</h3></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-7">Section Agreement.
+                         →   const 8             add</pre><p>Proof: rule induction on the big-step tree, one case per big-step rule.  The IH gives us a run for each subexpression ON ITS OWN; congruence puts those runs inside the ⊕, and transitivity glues the three pieces into one run.</p><h3 class="narration-heading">4. Anti-reduction</h3><p>If ⟨a, σ⟩ →a a&#x27; and ⟨a&#x27;, σ⟩ ⇓a n, then ⟨a, σ⟩ ⇓a n. Rule induction on ⟨a, σ⟩ →a a&#x27;; in each case, invert the derivation of ⟨a&#x27;, σ⟩ ⇓a n.</p><h3 class="narration-heading">5. Small ⇒ big, by rule induction on ⟨a, σ⟩ →*a n</h3><p>The (step) rule lets a run end anywhere, so Rocq needs the end point as a separate name a&#x27;&#x27; with the equation a&#x27;&#x27; = n.</p><h3 class="narration-heading">6. The theorem</h3></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-6">Section Agreement.
   Variable σ : state.
 
   (* ----------------------------------------------------------------- *)
@@ -832,9 +830,9 @@ Print Assumptions aexp_agree.
 
 End Arithmetic.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 311 lines">Show code · 311 lines</button></div></div>
 
-<h2>6. Inversion: use a derivation backwards</h2>
+<h2>5. Inversion: use a derivation backwards</h2>
 <p><code>apply</code> asks which rule can build the goal. <code>inversion H</code> asks which rule could have built evidence (H). Rocq discards constructors whose conclusions cannot match and returns the premises of every constructor that can.</p>
-<div class="source-narration"><h3 class="narration-heading">Inversion</h3><p>An inductive definition is a list of rules, and those rules are the ONLY ways to build evidence for a fact.  There are two ways to use them:</p><ul><li>Forwards, with <code>apply</code>: to PROVE a fact, pick a rule whose conclusion matches it and prove the rule&#x27;s premises.  This builds a derivation tree from the bottom up.</li><li>Backwards, with <code>inversion</code>: we are GIVEN evidence H for a fact, and ask &quot;how could H have been built?&quot;  Rocq checks every rule whose conclusion could match, keeps only the ones that fit, and in each case gives us that rule&#x27;s premises.  If no rule fits, H cannot exist.</li></ul></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-8">Module InversionDemo.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 1 line">Show code · 1 line</button></div></div>
+<div class="source-narration"><h3 class="narration-heading">Inversion</h3><p>An inductive definition is a list of rules, and those rules are the ONLY ways to build evidence for a fact.  There are two ways to use them:</p><ul><li>Forwards, with <code>apply</code>: to PROVE a fact, pick a rule whose conclusion matches it and prove the rule&#x27;s premises.  This builds a derivation tree from the bottom up.</li><li>Backwards, with <code>inversion</code>: we are GIVEN evidence H for a fact, and ask &quot;how could H have been built?&quot;  Rocq checks every rule whose conclusion could match, keeps only the ones that fit, and in each case gives us that rule&#x27;s premises.  If no rule fits, H cannot exist.</li></ul></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-7">Module InversionDemo.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 1 line">Show code · 1 line</button></div></div>
 
 <h3>Only one constructor can fit</h3>
 <p>If (H : \mathsf{IsTen}\ n), the sole constructor concludes (\mathsf{IsTen}\ 10). Inverting (H) therefore reveals (n=10).</p>
@@ -843,7 +841,7 @@ End Arithmetic.</textarea><div class="cell-bar"><button class="cell-run" type="b
 \qquad
 H:\mathsf{IsTen}(n)\Longrightarrow n=10.
 \]</div>
-<div class="source-narration"><h3 class="narration-heading">One rule: IsTen</h3><p>There is only one rule, and it is about 10.</p><p>Claim: if IsTen n, then n = 10.</p><p>Suppose we are given H : IsTen n.  How could H have been built? The only rule is <code>ten</code>, whose conclusion is IsTen 10.  So for H to exist, n must be 10.</p><p>Notice that we learn this from the EVIDENCE H, rather than by looking at n alone (is it 0? is it 1? ...).</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-9">Inductive IsTen : nat -&gt; Prop :=
+<div class="source-narration"><h3 class="narration-heading">One rule: IsTen</h3><p>There is only one rule, and it is about 10.</p><p>Claim: if IsTen n, then n = 10.</p><p>Suppose we are given H : IsTen n.  How could H have been built? The only rule is <code>ten</code>, whose conclusion is IsTen 10.  So for H to exist, n must be 10.</p><p>Notice that we learn this from the EVIDENCE H, rather than by looking at n alone (is it 0? is it 1? ...).</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-8">Inductive IsTen : nat -&gt; Prop :=
 | ten : IsTen 10.
 
 Theorem IsTen_inv : forall n, IsTen n -&gt; n = 10.
@@ -873,7 +871,7 @@ even 0
 ────── Even_plus2
 even 2
 ────── Even_plus2
-even 4</pre><p>Backwards: if even (n + 2) then even n.</p><p>Suppose we are given H : even (S (S n)).  How could H have been built?</p><ul><li>Even_0 concludes even 0, and S (S n) is not 0.  It does not fit.</li><li>Even_plus2 concludes even (S (S m)) for some m.  It fits, with m = n. So H must end in Even_plus2.  A rule only applies when its premises hold, so its premise, even n, holds too.</li></ul><p>Again, knowing what n is tells us nothing here; only the evidence H contains the fact that n is even.</p><p>No rule fits: 1 is not even.</p><p>Suppose we are given H : even 1.  How could H have been built?</p><ul><li>Even_0 concludes even 0, and 1 is not 0.</li><li>Even_plus2 concludes even (S (S m)), which is at least 2, and 1 is less than 2. No rule fits, so H cannot exist.  Inversion sees this and finishes the proof.</li></ul></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-10">Inductive even : nat -&gt; Prop :=
+even 4</pre><p>Backwards: if even (n + 2) then even n.</p><p>Suppose we are given H : even (S (S n)).  How could H have been built?</p><ul><li>Even_0 concludes even 0, and S (S n) is not 0.  It does not fit.</li><li>Even_plus2 concludes even (S (S m)) for some m.  It fits, with m = n. So H must end in Even_plus2.  A rule only applies when its premises hold, so its premise, even n, holds too.</li></ul><p>Again, knowing what n is tells us nothing here; only the evidence H contains the fact that n is even.</p><p>No rule fits: 1 is not even.</p><p>Suppose we are given H : even 1.  How could H have been built?</p><ul><li>Even_0 concludes even 0, and 1 is not 0.</li><li>Even_plus2 concludes even (S (S m)), which is at least 2, and 1 is less than 2. No rule fits, so H cannot exist.  Inversion sees this and finishes the proof.</li></ul></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-9">Inductive even : nat -&gt; Prop :=
 | Even_0 :
     (*──────────*)
        even 0
@@ -918,7 +916,7 @@ Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" titl
       \langle a_2,\sigma\rangle\Downarrow_a n_2}
      {\langle a_1+a_2,\sigma\rangle\Downarrow_a n_1+n_2}.
 \]</div>
-<div class="source-narration"><h3 class="narration-heading">Back to big-step semantics</h3><p>Anti-reduction uses exactly this move.  Here is a tiny version of our arithmetic expressions, with just numbers, variables and +, and its big-step semantics.</p><p>σ : Var → nat</p><p>⟨a, σ⟩ ⇓a n: in state σ, expression a evaluates to n.</p><p>Suppose we are given H : ⟨a1 + a2, σ⟩ ⇓a n.  How could H have been built?</p><ul><li>AE_Num is about a number, not a +.</li><li>AE_Id is about a variable, not a +.</li><li>AE_Plus is about a +.  It fits. So, just as with even (S (S n)), H must end in AE_Plus, and both of its premises hold: a1 and a2 evaluate to some m1 and m2, with n = m1 + m2.</li></ul></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-11">From Coq Require Import String.
+<div class="source-narration"><h3 class="narration-heading">Back to big-step semantics</h3><p>Anti-reduction uses exactly this move.  Here is a tiny version of our arithmetic expressions, with just numbers, variables and +, and its big-step semantics.</p><p>σ : Var → nat</p><p>⟨a, σ⟩ ⇓a n: in state σ, expression a evaluates to n.</p><p>Suppose we are given H : ⟨a1 + a2, σ⟩ ⇓a n.  How could H have been built?</p><ul><li>AE_Num is about a number, not a +.</li><li>AE_Id is about a variable, not a +.</li><li>AE_Plus is about a +.  It fits. So, just as with even (S (S n)), H must end in AE_Plus, and both of its premises hold: a1 and a2 evaluate to some m1 and m2, with n = m1 + m2.</li></ul></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-10">From Coq Require Import String.
 
 Inductive aexp : Type :=
 | ANum (n : nat)
@@ -967,7 +965,7 @@ Qed.
 
 End InversionDemo.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 48 lines">Show code · 48 lines</button></div></div>
 
-<h2>7. Full IMP and divergence</h2>
+<h2>6. Full IMP and divergence</h2>
 <p>Full IMP adds arithmetic, Booleans, commands, configurations, and a Euclidean-algorithm run in both styles.</p>
 <div class="display">\[
 \begin{aligned}
@@ -976,7 +974,7 @@ c::={}&\mathsf{skip}\mid x:=a\mid c_0;c_1\\
       \mid \mathsf{while}\ b\ \mathsf{do}\ c.
 \end{aligned}
 \]</div>
-<div class="source-narration"><h3 class="narration-heading">CSE 590 discussion: big-step and small-step IMP in Coq</h3><p>Companion to Lectures 8 (9/28) and 9 (9/30).</p><p>Plan</p><ul><li>Part 1  Concrete runs: Euclid both ways, step by step.</li><li>Part 2  Divergence: W∞ loops in small-step and has no big-step derivation (the <code>remember</code> trick).</li><li>Part 3  The agreement theorem for commands, end to end.</li></ul><p>Boolean expressions only have constants, comparisons, and negation; ∧ and ∨ are left out on purpose (HW3 Exercise 1).  The bexp lemmas of Part 3 are <code>Admitted</code>; <code>Print Assumptions</code> at the end shows exactly what the command theorem rests on.</p><h3 class="narration-heading">Syntax</h3><p>A small fixed set of variables keeps goals readable.</p><p>One binary-operator constructor stands for all of + − ∗: the slides&#x27; &quot;analogous rules for ∗ and −&quot; become a single set of rules.</p><h3 class="narration-heading">States: total functions <code>var -&gt; Z</code></h3><p>σ<code>x ↦ n</code></p><h3 class="narration-heading">Big-step semantics</h3><p>Side conditions such as <code>n = n1 + n2</code> come last, as on the slides, so that by the time Coq reaches them <code>n1</code> and <code>n2</code> are known.</p><p>⟨c, σ⟩ ⇓ τ, on configurations, as in ⇓ ⊆ (Com × State) × State.</p><h3 class="narration-heading">Small-step semantics</h3><p>Expressions: the state is carried along, so it is a parameter.</p><p>→* as rules (refl) and (step), once for every relation.</p><h3 class="narration-heading">Part 1: concrete runs</h3><p>Euclid, from Winskel Ch. 2.</p><h3 class="narration-heading">A warm-up: one assignment, small-step</h3><p>Watch <code>1 + X</code> go left operand first, then the variable lookup, then the addition, then the assignment itself.  Each <code>eapply multi_step</code> leaves the next configuration as an evar; <code>eauto with imp</code> finds the one rule that applies, and <code>simpl</code> tidies the goal.</p><p>The same, big-step: one derivation tree, no intermediate configurations.</p><h3 class="narration-heading">Euclid, big-step: the derivation on slides 10–12</h3><p>Build the outer while by hand, choosing the rules, then let <code>eauto</code> fill the expression-level leaves.</p><p>Try: <code>Print euclid_big.</code> — that term *is* the tree on slide 12.</p><p>The same choices, automated.  Big-step is syntax-directed except at <code>if</code> and <code>while</code>, where we try the rule whose guard evaluates the right way.  (Plain <code>eauto 20 with imp</code> also finds the tree, but the blind search takes ~25 s.)  On W∞ this tactic would never stop: it keeps applying while-true, which is the missing derivation in action.</p><h3 class="narration-heading">Euclid, small-step: &quot;about thirty steps&quot;</h3><p>Step the first few by hand, looking at each configuration, then finish the remaining 30.  Change <code>do 30</code> to see where it gets stuck.</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-12">Module FullIMP.
+<div class="source-narration"><h3 class="narration-heading">CSE 590 discussion: big-step and small-step IMP in Coq</h3><p>Companion to Lectures 8 (9/28) and 9 (9/30).</p><p>Plan</p><ul><li>Part 1  Concrete runs: Euclid both ways, step by step.</li><li>Part 2  Divergence: W∞ loops in small-step and has no big-step derivation (the <code>remember</code> trick).</li><li>Part 3  The agreement theorem for commands, end to end.</li></ul><p>Boolean expressions only have constants, comparisons, and negation; ∧ and ∨ are left out on purpose (HW3 Exercise 1).  The bexp lemmas of Part 3 are <code>Admitted</code>; <code>Print Assumptions</code> at the end shows exactly what the command theorem rests on.</p><h3 class="narration-heading">Syntax</h3><p>A small fixed set of variables keeps goals readable.</p><p>One binary-operator constructor stands for all of + − ∗: the slides&#x27; &quot;analogous rules for ∗ and −&quot; become a single set of rules.</p><h3 class="narration-heading">States: total functions <code>var -&gt; Z</code></h3><p>σ<code>x ↦ n</code></p><h3 class="narration-heading">Big-step semantics</h3><p>Side conditions such as <code>n = n1 + n2</code> come last, as on the slides, so that by the time Coq reaches them <code>n1</code> and <code>n2</code> are known.</p><p>⟨c, σ⟩ ⇓ τ, on configurations, as in ⇓ ⊆ (Com × State) × State.</p><h3 class="narration-heading">Small-step semantics</h3><p>Expressions: the state is carried along, so it is a parameter.</p><p>→* as rules (refl) and (step), once for every relation.</p><h3 class="narration-heading">Part 1: concrete runs</h3><p>Euclid, from Winskel Ch. 2.</p><h3 class="narration-heading">A warm-up: one assignment, small-step</h3><p>Watch <code>1 + X</code> go left operand first, then the variable lookup, then the addition, then the assignment itself.  Each <code>eapply multi_step</code> leaves the next configuration as an evar; <code>eauto with imp</code> finds the one rule that applies, and <code>simpl</code> tidies the goal.</p><p>The same, big-step: one derivation tree, no intermediate configurations.</p><h3 class="narration-heading">Euclid, big-step: the derivation on slides 10–12</h3><p>Build the outer while by hand, choosing the rules, then let <code>eauto</code> fill the expression-level leaves.</p><p>Try: <code>Print euclid_big.</code> — that term *is* the tree on slide 12.</p><p>The same choices, automated.  Big-step is syntax-directed except at <code>if</code> and <code>while</code>, where we try the rule whose guard evaluates the right way.  (Plain <code>eauto 20 with imp</code> also finds the tree, but the blind search takes ~25 s.)  On W∞ this tactic would never stop: it keeps applying while-true, which is the missing derivation in action.</p><h3 class="narration-heading">Euclid, small-step: &quot;about thirty steps&quot;</h3><p>Step the first few by hand, looking at each configuration, then finish the remaining 30.  Change <code>do 30</code> to see where it gets stuck.</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-11">Module FullIMP.
 
 From Coq Require Import ZArith Bool.
 Open Scope Z_scope.
@@ -1220,7 +1218,7 @@ Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" titl
 \qquad\text{but}\qquad
 \neg\exists\tau.\;\langle W_\infty,\sigma\rangle\Downarrow\tau.
 \]</div>
-<div class="source-narration"><h3 class="narration-heading">Part 2: divergence</h3><p>Small-step: W∞ comes back to itself in three steps, forever: while ↦ if true then (skip ; W∞) else skip ↦ skip ; W∞ ↦ W∞.</p><p>Big-step: there is *no* τ with ⟨W∞, σ⟩ ⇓ τ.</p><p>Proof by rule induction on the (hypothetical) derivation.  First try the naive <code>induction H</code> below and look at the goals: Coq&#x27;s <code>induction</code> forgets that the configuration was (Winf, s), so the cases are unprovable.  The fix is the same move as in lecture 9: generalize the index first (<code>remember</code>), then induct.</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-13">Definition Winf : com := WHILE BConst true DO CSkip END.
+<div class="source-narration"><h3 class="narration-heading">Part 2: divergence</h3><p>Small-step: W∞ comes back to itself in three steps, forever: while ↦ if true then (skip ; W∞) else skip ↦ skip ; W∞ ↦ W∞.</p><p>Big-step: there is *no* τ with ⟨W∞, σ⟩ ⇓ τ.</p><p>Proof by rule induction on the (hypothetical) derivation.  First try the naive <code>induction H</code> below and look at the goals: Coq&#x27;s <code>induction</code> forgets that the configuration was (Winf, s), so the cases are unprovable.  The fix is the same move as in lecture 9: generalize the index first (<code>remember</code>), then induct.</p></div><div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-12">Definition Winf : com := WHILE BConst true DO CSkip END.
 
 Example Winf_loops : forall s, (Winf, s) --&gt;* (Winf, s).
 Proof.
@@ -1268,7 +1266,7 @@ Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" titl
 \end{aligned}
 \]</div>
 <p><strong>What to inspect in the Rocq block:</strong> step through <code>ceval_multi</code> for the first direction, <code>cstep_antired</code> for the bridge lemma, and <code>multi_ceval</code> for the second direction. The Boolean analogues are admitted here because they are the Homework 3 part; <code>Print Assumptions big_small</code> makes that boundary explicit.</p>
-<div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-14">Lemma multi_one {A} {R : A -&gt; A -&gt; Prop} x y : R x y -&gt; multi R x y.
+<div class="code-support-label">Executable Rocq</div><div class="cell is-collapsed"><textarea class="coq" id="coq-13">Lemma multi_one {A} {R : A -&gt; A -&gt; Prop} x y : R x y -&gt; multi R x y.
 Proof. intros H. eapply multi_step; [exact H | apply multi_refl]. Qed.
 
 Lemma multi_trans {A} {R : A -&gt; A -&gt; Prop} x y z :
