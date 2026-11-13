@@ -242,6 +242,14 @@ defaults:
       path: "c9763540d0673bab"
     values:
       sitemap: false
+  - scope:
+      path: "45b7ade01c3c49d0"
+    values:
+      sitemap: false
+  - scope:
+      path: "0512290bf12343cc"
+    values:
+      sitemap: false
   # _teaching
   #- scope:
   #    path: ""
