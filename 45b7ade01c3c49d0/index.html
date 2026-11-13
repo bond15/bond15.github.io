@@ -260,45 +260,16 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 <header>
   <p class="eyebrow">CSE 590 · Fall 2026 · Discussion 8</p>
   <h1>Termination and denotations</h1>
-  <p class="lede">Lectures 15 and 16. Each piece of math is followed by its Rocq code from <code>Discussion 8/Discussion8.v</code>, in file order.</p>
+  <p class="lede">Lectures 15 and 16, as a reference. Rocq: <code>Discussion 8/Discussion8.v</code>, in file order.</p>
 </header>
-
-<h2 class="one-slide">0. The language, from Discussion 6</h2>
-<p>The simply typed λ-calculus of Discussion 6: integers, Booleans and functions, with values, substitution, evaluation contexts, and the typing rules. Nothing here is new; the blocks are folded.</p>
-<details class="question unfold">
-<summary>The rules, for reference</summary>
-<div class="display piece">\[
-\begin{aligned}
-\tau &::= \mathsf{int} \mid \mathsf{bool} \mid \tau_1 \to \tau_2 \\
-e &::= n \mid \mathsf{true} \mid \mathsf{false} \mid x \mid \lambda x{:}\tau.\, e \mid e_1\, e_2 \mid e_1 + e_2 \mid \mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \\
-v &::= n \mid \mathsf{true} \mid \mathsf{false} \mid \lambda x{:}\tau.\, e
-\end{aligned}
-\]</div>
-<hr class="slide-break">
-<div class="rules">
-  <div class="piece">\[(\lambda x{:}\tau.\, e)\, v \longrightarrow_r e[x \mapsto v]\]</div>
-  <div class="piece">\[n_1 + n_2 \longrightarrow_r n_3 \quad (n_3 = n_1 + n_2)\]</div>
-  <div class="piece">\[\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow_r e_1\]</div>
-  <div class="piece">\[\mathsf{if}\ \mathsf{false}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow_r e_2\]</div>
-  <div class="piece">\[\frac{r \longrightarrow_r r'}{E[r] \longrightarrow E[r']}\]</div>
-</div>
-<hr class="slide-break">
-<div class="rules">
-  <div class="piece">\[\frac{}{\Gamma \vdash n : \mathsf{int}}\]</div>
-  <div class="piece">\[\frac{}{\Gamma \vdash \mathsf{true} : \mathsf{bool}} \quad \frac{}{\Gamma \vdash \mathsf{false} : \mathsf{bool}}\]</div>
-  <div class="piece">\[\frac{x{:}\tau \in \Gamma}{\Gamma \vdash x : \tau}\]</div>
-  <div class="piece">\[\frac{\Gamma, x{:}\tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x{:}\tau_1.\, e : \tau_1 \to \tau_2}\]</div>
-  <div class="piece">\[\frac{\Gamma \vdash e_1 : \tau_1 \to \tau_2 \quad \Gamma \vdash e_2 : \tau_1}{\Gamma \vdash e_1\, e_2 : \tau_2}\]</div>
-  <div class="piece">\[\frac{\Gamma \vdash e_1 : \mathsf{int} \quad \Gamma \vdash e_2 : \mathsf{int}}{\Gamma \vdash e_1 + e_2 : \mathsf{int}}\]</div>
-  <div class="piece">\[\frac{\Gamma \vdash e : \mathsf{bool} \quad \Gamma \vdash e_1 : \tau \quad \Gamma \vdash e_2 : \tau}{\Gamma \vdash \mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 : \tau}\]</div>
-</div>
-</details>
-<p>The imports: integers for the numbers, strings for variable names, lists for contexts.</p>
+<details class="question">
+<summary>0. The language, from Discussion 6</summary>
+<p>Imports.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-1">From Coq Require Import ZArith String List.
 Import ListNotations.
 Open Scope Z_scope.
 Open Scope string_scope.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
-<p>The syntax: types and expressions as two inductive types, with the notation that lets a term read as on the board, <code>λ x : INT , var x ⊕ const 1</code>.</p>
+<p>Types and expressions, with notation.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-2">Definition name := string.
 
 Inductive ty : Type :=
@@ -329,7 +300,7 @@ Notation "'λ' x : τ , e" := (Lam x τ e)
 Notation "e1 · e2" := (App e1 e2) (at level 40, left associativity).
 Notation "e1 ⊕ e2" := (Plus e1 e2) (at level 50, left associativity).
 Notation "'IF' e 'THEN' e1 'ELSE' e2 'FI'" := (If e e1 e2) (at level 80).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 30 lines">Show code · 30 lines</button></div></div>
-<p>Values, and <code>val</code>, the subset type of expressions that are values: an expression together with a proof.</p>
+<p>Values, and <code>val</code>.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-3">Inductive value : exp -&gt; Prop :=
 | v_num n : value (const n)
 | v_true : value TRUE
@@ -338,7 +309,7 @@ Notation "'IF' e 'THEN' e1 'ELSE' e2 'FI'" := (If e e1 e2) (at level 80).</texta
 
 Definition val : Type := { e : exp | value e }.
 Definition exp_of (v : val) : exp := proj1_sig v.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
-<p>Substitution, which only ever substitutes closed values, and the four redex rules that do the real work.</p>
+<p>Substitution and the redex rules.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-4">Fixpoint subst (x : name) (v : exp) (e : exp) : exp :=
   match e with
   | const n =&gt; const n
@@ -363,7 +334,7 @@ Inductive redex : exp -&gt; exp -&gt; Prop :=
 | r_if_false e1 e2 : redex (IF FALSE THEN e1 ELSE e2 FI) e2.
 
 Notation "e '⟶r' e'" := (redex e e') (at level 70).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 24 lines">Show code · 24 lines</button></div></div>
-<p>Evaluation contexts, plugging into the hole, the one step rule, and runs of zero or more steps.</p>
+<p>Evaluation contexts, steps, runs.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-5">Inductive ectx : Type :=
 | Hole
 | AppL (E : ectx) (e2 : exp)
@@ -396,7 +367,7 @@ Inductive multi : exp -&gt; exp -&gt; Prop :=
 | m_refl e : e ⟶* e
 | m_step e1 e2 e3 : e1 ⟶ e2 -&gt; e2 ⟶* e3 -&gt; e1 ⟶* e3
 where "e ⟶* e'" := (multi e e').</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 32 lines">Show code · 32 lines</button></div></div>
-<p>Contexts as lists of typed variables, lookup, and the typing rules, one constructor each.</p>
+<p>Contexts, lookup, typing.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-6">Definition ctx := list (name * ty).
 
 Fixpoint lookup {A : Type} (Γ : list (name * A)) (y : name) : option A :=
@@ -433,8 +404,7 @@ where "Γ ⊢ e : τ" := (has_type Γ e τ).
 
 Notation "⊢ e : τ" := (has_type nil e τ)
   (at level 70, e at level 99, τ at level 69).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 36 lines">Show code · 36 lines</button></div></div>
-<p>Four lemmas from Discussion 6 are used below: canonical forms at function type, steps inside a context, weakening, and the substitution lemma. Two small new ones: runs compose, and a run inside a context is a run.</p>
-<p>Canonical forms at function type, and a step inside a context is a step, both from Discussion 6.</p>
+<p>Canonical forms at function type; a step inside a context.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-7">Lemma canonical_arr v τ1 τ2 :
   value v -&gt; ⊢ v : τ1 ⇒ τ2 -&gt; exists x e, v = λ x : τ1 , e.
 Proof.
@@ -465,7 +435,7 @@ Proof.
   rewrite &lt;- (plug_compose E E' r), &lt;- (plug_compose E E' r').
   apply s_ctx. apply Hr.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 30 lines">Show code · 30 lines</button></div></div>
-<p>Two facts about runs that Part 1 uses in every case: runs compose, and a run inside a context is a run.</p>
+<p>Runs compose; a run inside a context.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-8">Lemma multi_trans e1 e2 e3 : e1 ⟶* e2 -&gt; e2 ⟶* e3 -&gt; e1 ⟶* e3.
 Proof.
   intros H12 H23. induction H12 as [ | e1 e2 e3' Hs Hrest IH].
@@ -479,7 +449,7 @@ Proof.
   - apply m_refl.
   - apply (m_step _ _ _ (step_in_context E _ _ Hs)). apply IH.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 13 lines">Show code · 13 lines</button></div></div>
-<p>Weakening and the substitution lemma, from Discussion 6, with the proofs as they were.</p>
+<p>Weakening; the substitution lemma.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-9">Definition incl (Γ Γ' : ctx) : Prop :=
   forall x τ, lookup Γ x = Some τ -&gt; lookup Γ' x = Some τ.
 
@@ -555,54 +525,29 @@ Proof.
     + apply IH1. apply H1.
     + apply IH2. apply H2.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 75 lines">Show code · 75 lines</button></div></div>
-
-<h2>1. Do all STLC programs terminate?</h2>
-<p>Lecture 14 ended with a question. The fixed-point combinators \(\Omega\) and \(Y\) cannot be typed, so maybe no looping program can be written at all:</p>
-<div class="display">\[
-\textbf{Theorem (termination).}\quad \text{If } \vdash e : \tau \text{ then } e \longrightarrow^* v \text{ for some value } v.
-\]</div>
-<p>Untyped λ-calculus and IMP both fail this: \(\Omega\) and \(\mathsf{while}\ \mathsf{true}\ \mathsf{do}\ \mathsf{skip}\) run forever.</p>
-<details class="question">
-<summary>Why this means STLC is not Turing complete</summary>
-<p>Rice's theorem: in a Turing-complete language, no non-trivial semantic property of programs is decidable. But if every closed \(e : \mathsf{int}\) terminates, the property "\(e\) is equivalent to \(0\)" is decidable: run \(e\) (it stops, since the step relation is computable and the run is finite) and look at the number. It is non-trivial: \(1\) does not have it. So STLC cannot be Turing complete. In untyped λ-calculus the same test only gives a semi-decision procedure, because the run might not stop.</p>
-<p>Whether this is good or bad depends on what you want. Smart contracts, configuration languages, and the core languages of Lean and Rocq all want termination; for Rocq it is what makes the proof assistant sound as a logic.</p>
 </details>
-<p><code>terminates e</code> is the conclusion of the theorem: a value that \(e\) reaches.</p>
+
+<h2>1. Termination</h2>
+<div class="thm"><p><span class="name">Definition (terminates).</span> \(e\) terminates when \(e \longrightarrow^* v\) for some value \(v\).</p></div>
+<div class="thm"><p><span class="name">Theorem (termination).</span> If \(\vdash e : \tau\) then \(e\) terminates.</p></div>
+<div class="thm"><p><span class="name">Example.</span> With \(\mathtt{twice} = \lambda f{:}\mathsf{int} \to \mathsf{int}.\, \lambda x{:}\mathsf{int}.\, f\,(f\,x)\) and \(\mathtt{succ} = \lambda x{:}\mathsf{int}.\, x + 1\):</p>
+<div class="display">\[
+\mathtt{twice}\ \mathtt{succ}\ 2 \longrightarrow (\lambda x{:}\mathsf{int}.\, \mathtt{succ}\,(\mathtt{succ}\,x))\, 2 \longrightarrow \mathtt{succ}\,(\mathtt{succ}\,2) \longrightarrow^* 4
+\]</div></div>
+<p><code>terminates</code>, as stated.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-10">Definition terminates (e : exp) : Prop := exists v, e ⟶* v /\ value v.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 1 line">Show code · 1 line</button></div></div>
 
-<h3>Attempt 1: induction on the typing derivation</h3>
-<p>The obvious plan. The variable case is vacuous, since no variable is closed, and a λ is already a value. The application case is where it goes wrong.</p>
-<div class="pieces frames">
-<div class="display piece frame">\[
-\begin{gathered}
-\textbf{Case } e = e_1\, e_2. \qquad \vdash e_1 : \tau_1 \to \tau_2 \qquad \vdash e_2 : \tau_1 \\[6pt]
-\class{hl-blue}{\bbox[#eef1f6,2pt]{e_1 \longrightarrow^* v_1 \qquad e_2 \longrightarrow^* v_2}}
-\end{gathered}
-\]<p class="step-note">Inversion gives the two premises. The inductive hypotheses give a value for each.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\textbf{Case } e = e_1\, e_2. \qquad \vdash e_1 : \tau_1 \to \tau_2 \qquad \vdash e_2 : \tau_1 \\[6pt]
-e_1 \longrightarrow^* v_1 \qquad e_2 \longrightarrow^* v_2 \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{v_1 = \lambda x{:}\tau_1.\, e_1'}}
-\end{gathered}
-\]<p class="step-note">By preservation \(v_1\) has the function type, so by canonical forms it is a λ.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\textbf{Case } e = e_1\, e_2. \qquad \vdash e_1 : \tau_1 \to \tau_2 \qquad \vdash e_2 : \tau_1 \\[6pt]
-e_1 \longrightarrow^* v_1 \qquad e_2 \longrightarrow^* v_2 \qquad v_1 = \lambda x{:}\tau_1.\, e_1' \\[6pt]
-e_1\, e_2 \longrightarrow^* (\lambda x{:}\tau_1.\, e_1')\, e_2 \longrightarrow^* (\lambda x{:}\tau_1.\, e_1')\, v_2 \longrightarrow \class{hl-blue}{\bbox[#eef1f6,2pt]{e_1'[x \mapsto v_2]}}
-\end{gathered}
-\]<p class="step-note">Run the function, run the argument, take the β step.</p></div>
-<div class="display piece frame keep">\[
-\begin{gathered}
-\textbf{Case } e = e_1\, e_2. \qquad \vdash e_1 : \tau_1 \to \tau_2 \qquad \vdash e_2 : \tau_1 \\[6pt]
-e_1 \longrightarrow^* v_1 \qquad e_2 \longrightarrow^* v_2 \qquad v_1 = \lambda x{:}\tau_1.\, e_1' \\[6pt]
-e_1\, e_2 \longrightarrow^* (\lambda x{:}\tau_1.\, e_1')\, e_2 \longrightarrow^* (\lambda x{:}\tau_1.\, e_1')\, v_2 \longrightarrow e_1'[x \mapsto v_2] \\[6pt]
-\class{hl-blue}{\bbox[#eef1f6,2pt]{\text{Need: } e_1'[x \mapsto v_2] \text{ terminates. Nothing says so.}}}
-\end{gathered}
-\]<p class="step-note">The hypotheses are about \(e_1\) and \(e_2\). About \(e_1'[x \mapsto v_2]\), a term that came out of running them, we know only that it is well typed. Stuck.</p></div>
-</div>
-<p>"But it is well typed, so the inductive hypothesis applies" is the tempting mistake. The inductive hypothesis is for <em>subderivations</em>, and the derivation of \(e_1'[x \mapsto v_2]\) is not one: \(v_2\) is copied into every \(x\), so it can be bigger than the derivations of \(e_1\) and \(e_2\) together. No size measure rescues it.</p>
-<p>In Rocq, preservation along a run is assumed (it is Discussion 6's preservation, iterated) and the proof is stepped to the point where it stops. Run the block and read the goal: a value that \(e_1'[x \mapsto v_2]\) reaches, with nothing about \(e_1'[x \mapsto v_2]\) in the hypotheses.</p>
+<h2>2. Attempt: induction on the typing derivation</h2>
+<div class="thm"><p><span class="name">Attempt.</span> Induction on \(\vdash e : \tau\). Cases \(n\), \(\mathsf{true}\), \(\mathsf{false}\), \(\lambda x{:}\tau.\, e\): already values. Case \(x\): no closed variable. Case \(e_1\, e_2\):</p>
+<ul>
+  <li>Inversion: \(\vdash e_1 : \tau_1 \to \tau_2\) and \(\vdash e_2 : \tau_1\).</li>
+  <li>Inductive hypotheses: \(e_1 \longrightarrow^* \lambda x{:}\tau_1.\, e_1'\) (a value of function type is a λ, by preservation and canonical forms) and \(e_2 \longrightarrow^* v\) for some value \(v\).</li>
+  <li>Run: \(e_1\, e_2 \longrightarrow^* (\lambda x{:}\tau_1.\, e_1')\, v \longrightarrow e_1'[x \mapsto v]\).</li>
+  <li>Needed: \(e_1'[x \mapsto v]\) terminates. There is no hypothesis about \(e_1'[x \mapsto v]\). Stuck.</li>
+</ul></div>
+<div class="thm"><p><span class="name">Example.</span> On \(\mathtt{twice}\ \mathtt{succ}\ 2\): the hypotheses are \(\mathtt{twice}\ \mathtt{succ} \longrightarrow^* \lambda x{:}\mathsf{int}.\, \mathtt{succ}\,(\mathtt{succ}\,x)\) and \(2 \longrightarrow^* 2\). The run reaches \(\mathtt{succ}\,(\mathtt{succ}\,2)\). Needed: \(\mathtt{succ}\,(\mathtt{succ}\,2)\) terminates. Nothing in the hypotheses mentions \(\mathtt{succ}\,(\mathtt{succ}\,2)\).</p></div>
+<div class="thm"><p><span class="name">Remark.</span> "\(e_1'[x \mapsto v]\) is well typed, so apply the inductive hypothesis" is invalid: the hypothesis is for subderivations, and the derivation of \(e_1'[x \mapsto v]\) is not one. \(v\) is copied into every \(x\), so that derivation can be larger than those of \(e_1\) and \(e_2\) together.</p></div>
+<p>The attempt in Rocq, with preservation along a run assumed. The proof is aborted at the goal above.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-11">Section Attempt1.
 
   Hypothesis preservation_multi :
@@ -650,26 +595,20 @@ e_1\, e_2 \longrightarrow^* (\lambda x{:}\tau_1.\, e_1')\, e_2 \longrightarrow^*
 
 End Attempt1.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 46 lines">Show code · 46 lines</button></div></div>
 
-<h3>Strengthen the inductive hypothesis</h3>
-<p>The statement \(P\), "\(e\) reaches a value", is not an inductive invariant: it is not closed under the rules. The way out sounds backwards. Instead of \(P\), prove a harder statement \(Q\) with \(Q \Rightarrow P\). Harder to establish on the way out, but on the way in the inductive hypothesis now says \(Q\), and that is more to work with. Type safety was the same move: "doesn't go wrong" is \(P\), "well typed" is \(Q\).</p>
-<p>Where to find \(Q\): look at where the proof got stuck. We had \(v_1\) of function type and wanted \(v_1\, v_2\) to terminate. So ask for that in the statement: the value a function-typed term reaches must send good arguments to terminating applications.</p>
-
-<h3>The logical relation</h3>
-<p>Two predicates, defined together by recursion on the type. \(\mathcal{V}_\tau\) is the set of <strong>good values</strong> at \(\tau\); \(\mathcal{E}_\tau\) is the set of <strong>good expressions</strong>, the ones that reduce to a good value.</p>
-<div class="pieces">
-<div class="display piece">\[
-\mathcal{V}_{\mathsf{int}} = \{\, n \mid n \in \mathbb{Z} \,\} \qquad\qquad \mathcal{V}_{\mathsf{bool}} = \{\, \mathsf{true}, \mathsf{false} \,\}
-\]</div>
-<div class="display piece">\[
-\mathcal{V}_{\tau_1 \to \tau_2} = \{\, v \mid \forall v' \in \mathcal{V}_{\tau_1}.\ v\, v' \in \mathcal{E}_{\tau_2} \,\}
-\]</div>
-<div class="display piece">\[
-\mathcal{E}_\tau = \{\, e \mid e \longrightarrow^* v \text{ and } v \in \mathcal{V}_\tau \,\}
-\]</div>
-</div>
-<p>A good function value is one that behaves well under the elimination form: applied to a good value, it gives a good expression. Almost every logical relation treats functions this way. Base types list their canonical values. This is a <em>logical predicate</em>; "relation" is the name of the technique.</p>
-<p class="aside">In Rocq, \(\mathcal{V}_{\tau_1 \to \tau_2}\) also records that \(v\) is a value and that \(\vdash v : \tau_1 \to \tau_2\). The lecture takes both for granted, since \(\mathcal{V}_\tau\) is a set of closed values; the proof needs them written down.</p>
-<p>The two relations as one recursive definition on the type, with \(\mathcal{E}\) written out inside the function clause, and then as its own definition.</p>
+<h2>3. The logical relation</h2>
+<div class="thm"><p><span class="name">Definition (good values \(\mathcal{V}_\tau\), good expressions \(\mathcal{E}_\tau\)).</span> By recursion on \(\tau\). \(\mathcal{V}_\tau\) is a set of closed values.</p>
+<div class="display">\[
+\begin{aligned}
+\mathcal{V}_{\mathsf{int}} &= \{\, n \mid n \in \mathbb{Z} \,\} \\
+\mathcal{V}_{\mathsf{bool}} &= \{\, \mathsf{true}, \mathsf{false} \,\} \\
+\mathcal{V}_{\tau_1 \to \tau_2} &= \{\, v \mid \forall v' \in \mathcal{V}_{\tau_1}.\ v\, v' \in \mathcal{E}_{\tau_2} \,\} \\
+\mathcal{E}_\tau &= \{\, e \mid e \longrightarrow^* v \text{ and } v \in \mathcal{V}_\tau \,\}
+\end{aligned}
+\]</div></div>
+<div class="thm"><p><span class="name">Example.</span> \(\mathtt{succ} \in \mathcal{V}_{\mathsf{int} \to \mathsf{int}}\): for \(n \in \mathcal{V}_{\mathsf{int}}\), \(\mathtt{succ}\, n \longrightarrow n + 1 \in \mathcal{V}_{\mathsf{int}}\). \(\mathtt{twice} \in \mathcal{V}_{(\mathsf{int} \to \mathsf{int}) \to \mathsf{int} \to \mathsf{int}}\): for \(g \in \mathcal{V}_{\mathsf{int} \to \mathsf{int}}\), \(\mathtt{twice}\, g \longrightarrow \lambda x{:}\mathsf{int}.\, g\,(g\,x)\), and for \(n \in \mathcal{V}_{\mathsf{int}}\), \((\lambda x{:}\mathsf{int}.\, g\,(g\,x))\, n \longrightarrow g\,(g\,n)\), which reaches a number because \(g\) is good, applied twice.</p></div>
+<div class="thm"><p><span class="name">Lemma.</span> If \(v \in \mathcal{V}_\tau\) then \(v\) is a value and \(\vdash v : \tau\). (In Rocq both are part of the function clause.)</p></div>
+<div class="thm"><p><span class="name">Lemma (anti-reduction).</span> If \(e \longrightarrow e'\) and \(e' \in \mathcal{E}_\tau\) then \(e \in \mathcal{E}_\tau\). Likewise for \(e \longrightarrow^* e'\).</p></div>
+<p>\(\mathcal{V}\) and \(\mathcal{E}\); the two facts; anti-reduction.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-12">Fixpoint V (τ : ty) (v : exp) : Prop :=
   match τ with
   | INT =&gt; exists n, v = const n
@@ -680,7 +619,6 @@ End Attempt1.</textarea><div class="cell-bar"><button class="cell-run" type="but
   end.
 
 Definition E (τ : ty) (e : exp) : Prop := exists v, e ⟶* v /\ V τ v.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 10 lines">Show code · 10 lines</button></div></div>
-<p>Two facts read straight off the definition: a good value is a value, and a good value is well typed.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-13">Lemma V_value τ v : V τ v -&gt; value v.
 Proof.
   destruct τ as [ | | τ1 τ2 ]; simpl; intros H.
@@ -696,7 +634,6 @@ Proof.
   - destruct H as [H | H]; subst. apply t_true. apply t_false.
   - destruct H as [Ht _]. apply Ht.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 15 lines">Show code · 15 lines</button></div></div>
-<p><strong>Anti-reduction.</strong> If \(e' \in \mathcal{E}_\tau\) and \(e \longrightarrow e'\), then \(e \in \mathcal{E}_\tau\): it reaches the same good value, one step later. Obvious, and used in every case below.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-14">Lemma E_step_back τ e e' : e ⟶ e' -&gt; E τ e' -&gt; E τ e.
 Proof.
   intros Hs [v [Hrun Hv]].
@@ -712,58 +649,12 @@ Proof.
   - apply multi_trans with (e2 := e'). apply Hrun. apply Hrun'.
   - apply Hv.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 15 lines">Show code · 15 lines</button></div></div>
-
-<h3>Attempt 2: the stronger statement, for closed terms</h3>
-<div class="display">\[
-\text{If } \vdash e : \tau \text{ then } e \in \mathcal{E}_\tau.
-\]</div>
-<p>Shorter than before, and it implies termination, since \(\mathcal{E}_\tau\) says \(e\) reaches a value. The application case now goes through:</p>
-<div class="pieces frames">
-<div class="display piece frame">\[
-\begin{gathered}
-\textbf{Case } e = e_1\, e_2. \qquad e_1 \in \mathcal{E}_{\tau_1 \to \tau_2} \qquad e_2 \in \mathcal{E}_{\tau_1} \\[6pt]
-e_1 \longrightarrow^* v_1 \in \class{hl-blue}{\bbox[#eef1f6,2pt]{\mathcal{V}_{\tau_1 \to \tau_2}}} \qquad e_2 \longrightarrow^* v_2 \in \mathcal{V}_{\tau_1}
-\end{gathered}
-\]<p class="step-note">The inductive hypotheses now say more: \(v_1\) is a <em>good</em> function value. The contravariant side of the strengthening.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\textbf{Case } e = e_1\, e_2. \qquad e_1 \in \mathcal{E}_{\tau_1 \to \tau_2} \qquad e_2 \in \mathcal{E}_{\tau_1} \\[6pt]
-e_1 \longrightarrow^* v_1 \in \mathcal{V}_{\tau_1 \to \tau_2} \qquad e_2 \longrightarrow^* v_2 \in \mathcal{V}_{\tau_1} \\[6pt]
-\class{hl-blue}{\bbox[#eef1f6,2pt]{v_1\, v_2 \in \mathcal{E}_{\tau_2}}}
-\end{gathered}
-\]<p class="step-note">By the definition of \(\mathcal{V}_{\tau_1 \to \tau_2}\), applied to \(v_2\). This is what was missing before.</p></div>
-<div class="display piece frame keep">\[
-\begin{gathered}
-\textbf{Case } e = e_1\, e_2. \qquad e_1 \in \mathcal{E}_{\tau_1 \to \tau_2} \qquad e_2 \in \mathcal{E}_{\tau_1} \\[6pt]
-e_1 \longrightarrow^* v_1 \in \mathcal{V}_{\tau_1 \to \tau_2} \qquad e_2 \longrightarrow^* v_2 \in \mathcal{V}_{\tau_1} \\[6pt]
-v_1\, v_2 \in \mathcal{E}_{\tau_2} \qquad e_1\, e_2 \longrightarrow^* v_1\, v_2 \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{e_1\, e_2 \in \mathcal{E}_{\tau_2}}}
-\end{gathered}
-\]<p class="step-note">Anti-reduction: \(e_1\, e_2\) runs to \(v_1\, v_2\), which is good.</p></div>
-</div>
-<p>And the λ case, which used to be trivial, now fails. This is the covariant cost of strengthening: more to prove.</p>
-<div class="pieces frames">
-<div class="display piece frame">\[
-\begin{gathered}
-\textbf{Case } e = \lambda x{:}\tau_1.\, e'. \qquad x{:}\tau_1 \vdash e' : \tau_2 \\[6pt]
-\lambda x{:}\tau_1.\, e' \longrightarrow^* \lambda x{:}\tau_1.\, e' \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{\text{Need: } \lambda x{:}\tau_1.\, e' \in \mathcal{V}_{\tau_1 \to \tau_2}}}
-\end{gathered}
-\]<p class="step-note">A value, so it reaches itself. Before, that was the whole case. Now the value must be good.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\textbf{Case } e = \lambda x{:}\tau_1.\, e'. \qquad x{:}\tau_1 \vdash e' : \tau_2 \\[6pt]
-\text{Let } v_1 \in \mathcal{V}_{\tau_1}. \qquad (\lambda x{:}\tau_1.\, e')\, v_1 \longrightarrow e'[x \mapsto v_1] \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{\text{Need: } e'[x \mapsto v_1] \in \mathcal{E}_{\tau_2}}}
-\end{gathered}
-\]<p class="step-note">Take a good argument, β-reduce, and by anti-reduction it is enough to show the body with \(v_1\) substituted is good.</p></div>
-<div class="display piece frame keep">\[
-\begin{gathered}
-\textbf{Case } e = \lambda x{:}\tau_1.\, e'. \qquad x{:}\tau_1 \vdash e' : \tau_2 \\[6pt]
-\text{Let } v_1 \in \mathcal{V}_{\tau_1}. \qquad (\lambda x{:}\tau_1.\, e')\, v_1 \longrightarrow e'[x \mapsto v_1] \qquad \text{Need: } e'[x \mapsto v_1] \in \mathcal{E}_{\tau_2} \\[6pt]
-\class{hl-blue}{\bbox[#eef1f6,2pt]{\text{No inductive hypothesis for } e': \text{ it is not closed.}}}
-\end{gathered}
-\]<p class="step-note">Look familiar? The theorem is about closed terms, and \(e'\) has \(x\) free. The inductive hypothesis for it is vacuous.</p></div>
-</div>
-<p>Two failures, two lessons. The first time the hypothesis said too little about the value. The second time it said nothing about open terms, although induction on typing derivations passes through them at every λ.</p>
-<p>Attempt 2 in Rocq. The application case closes; the proof stops at the λ case, where the inductive hypothesis has nothing to say. Run the block and read the goal.</p>
+<div class="thm"><p><span class="name">Attempt (closed statement).</span> If \(\vdash e : \tau\) then \(e \in \mathcal{E}_\tau\). Induction on \(\vdash e : \tau\).</p>
+<ul>
+  <li>Case \(e_1\, e_2\): \(e_1 \longrightarrow^* \lambda x{:}\tau_1.\, e_1' \in \mathcal{V}_{\tau_1 \to \tau_2}\) and \(e_2 \longrightarrow^* v \in \mathcal{V}_{\tau_1}\). By the function clause, \((\lambda x{:}\tau_1.\, e_1')\, v \in \mathcal{E}_{\tau_2}\). By anti-reduction, \(e_1\, e_2 \in \mathcal{E}_{\tau_2}\). Closes.</li>
+  <li>Case \(\lambda x{:}\tau_1.\, e'\): it is a value, so it must be in \(\mathcal{V}_{\tau_1 \to \tau_2}\). Take \(v \in \mathcal{V}_{\tau_1}\); \((\lambda x{:}\tau_1.\, e')\, v \longrightarrow e'[x \mapsto v]\); needed \(e'[x \mapsto v] \in \mathcal{E}_{\tau_2}\). \(e'\) is open, the statement is about closed terms: no hypothesis. Stuck.</li>
+</ul></div>
+<p>The attempt in Rocq, aborted at the λ case.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-15">Theorem termination_attempt_2 e τ : ⊢ e : τ -&gt; E τ e.
 Proof.
   intros Ht.
@@ -788,17 +679,16 @@ Proof.
     clear IH.
 Abort.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 23 lines">Show code · 23 lines</button></div></div>
 
-<h3>Closing substitutions</h3>
-<p>The second fix sits on top of the first; nothing already built is thrown away. A term typed under \(\Gamma\) becomes closed when every variable of \(\Gamma\) is replaced by a value. So define the <strong>good substitutions</strong> for \(\Gamma\), by recursion on \(\Gamma\):</p>
-<div class="pieces">
-<div class="display piece">\[
-\mathcal{G}_{\cdot} = \{\, \cdot \,\} \qquad\qquad \mathcal{G}_{\Gamma, x:\tau} = \{\, (\gamma, x \mapsto v) \mid \gamma \in \mathcal{G}_\Gamma,\ v \in \mathcal{V}_\tau \,\}
-\]</div>
-<div class="display piece">\[
-\Gamma \models e \in \tau \quad:=\quad \forall \gamma \in \mathcal{G}_\Gamma.\ e[\gamma] \in \mathcal{E}_\tau
-\]</div>
-</div>
-<p>\(e[\gamma]\) is the simultaneous substitution: \(e\) with every variable in \(\gamma\) replaced. The single turnstile \(\vdash\) is syntax; the double turnstile \(\models\) is the semantic judgement. You know the notation is right when it gets short.</p>
+<h2>4. The fundamental theorem</h2>
+<div class="thm"><p><span class="name">Definition (closing substitution).</span> \(\gamma\) is a list of pairs \(x \mapsto v\); \(e[\gamma]\) applies them in order. The good substitutions for \(\Gamma\), and the semantic judgement:</p>
+<div class="display">\[
+\begin{aligned}
+\mathcal{G}_{\cdot} &= \{\, \cdot \,\} \\
+\mathcal{G}_{\Gamma, x:\tau} &= \{\, (\gamma, x \mapsto v) \mid \gamma \in \mathcal{G}_\Gamma,\ v \in \mathcal{V}_\tau \,\} \\
+\Gamma \models e \in \tau &:= \forall \gamma \in \mathcal{G}_\Gamma.\ e[\gamma] \in \mathcal{E}_\tau
+\end{aligned}
+\]</div></div>
+<p>\(e[\gamma]\), \(\mathcal{G}_\Gamma\), and dropping a variable from \(\gamma\).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-16">Definition env := list (name * exp).
 
 Fixpoint msubst (γ : env) (e : exp) : exp :=
@@ -816,8 +706,17 @@ Fixpoint drop {A : Type} (x : name) (l : list (name * A)) : list (name * A) :=
 Inductive G : ctx -&gt; env -&gt; Prop :=
 | G_nil : G nil nil
 | G_cons x τ v Γ γ : V τ v -&gt; G Γ γ -&gt; G ((x, τ) :: Γ) ((x, v) :: γ).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 17 lines">Show code · 17 lines</button></div></div>
-<p>On paper, substitutions commute and closed terms are left alone by them, and nobody writes the proofs. In Rocq they are seven short lemmas, by induction on the term or on \(\gamma\). Folded; the names say what they do.</p>
-<p>Free variables, and closed terms: terms with none.</p>
+<div class="thm"><p><span class="name">Theorem (fundamental).</span> If \(\Gamma \vdash e : \tau\) then \(\Gamma \models e \in \tau\). Induction on \(\Gamma \vdash e : \tau\); let \(\gamma \in \mathcal{G}_\Gamma\).</p>
+<ul>
+  <li>Case \(x\) with \(x{:}\tau \in \Gamma\): \(x[\gamma]\) is the value \(\gamma\) gives \(x\), which is in \(\mathcal{V}_\tau\) by the definition of \(\mathcal{G}_\Gamma\), hence in \(\mathcal{E}_\tau\).</li>
+  <li>Case \(e_1\, e_2\): \((e_1\, e_2)[\gamma] = e_1[\gamma]\ e_2[\gamma]\). Inductive hypotheses: \(e_1[\gamma] \in \mathcal{E}_{\tau_1 \to \tau_2}\), \(e_2[\gamma] \in \mathcal{E}_{\tau_1}\). Then as in the closed attempt: \(e_1[\gamma] \longrightarrow^* \lambda x{:}\tau_1.\, e_1'\), \(e_2[\gamma] \longrightarrow^* v\), \((\lambda x{:}\tau_1.\, e_1')\, v \in \mathcal{E}_{\tau_2}\) by the function clause, and anti-reduction.</li>
+  <li>Case \(\lambda x{:}\tau_1.\, e'\) with \(\Gamma, x{:}\tau_1 \vdash e' : \tau_2\): \((\lambda x{:}\tau_1.\, e')[\gamma] = \lambda x{:}\tau_1.\, e'[\gamma]\), with \(x\) not in \(\gamma\) by α-renaming. It is a value. For \(v \in \mathcal{V}_{\tau_1}\): \((\lambda x{:}\tau_1.\, e'[\gamma])\, v \longrightarrow e'[\gamma][x \mapsto v] = e'[\gamma, x \mapsto v]\), and \((\gamma, x \mapsto v) \in \mathcal{G}_{\Gamma, x:\tau_1}\), so the inductive hypothesis for \(e'\) gives \(e'[\gamma, x \mapsto v] \in \mathcal{E}_{\tau_2}\). Anti-reduction.</li>
+</ul></div>
+<div class="thm"><p><span class="name">Corollary (termination).</span> Take \(\Gamma = \cdot\), \(\gamma = \cdot\); \(e[\cdot] = e\), so \(e \in \mathcal{E}_\tau\), so \(e \longrightarrow^* v \in \mathcal{V}_\tau\), a value.</p></div>
+<div class="thm"><p><span class="name">Remark.</span> In Rocq the induction is on \(e\), inverting the typing rule at each step, so that at a λ the context can be changed from \(\Gamma, x{:}\tau_1\) to \(\Gamma\) with its old \(x\) dropped. The substitution facts used are folded below.</p></div>
+<details class="question">
+<summary>Substitution lemmas</summary>
+<p>Free variables; closed terms.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-17">Fixpoint free (x : name) (e : exp) : Prop :=
   match e with
   | const _ | TRUE | FALSE =&gt; False
@@ -828,7 +727,7 @@ Inductive G : ctx -&gt; env -&gt; Prop :=
   end.
 
 Definition closed (e : exp) : Prop := forall x, ~ free x e.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 10 lines">Show code · 10 lines</button></div></div>
-<p>A free variable of a well-typed term is in its context, so a closed well-typed term has no free variables.</p>
+<p>A closed well-typed term has no free variables.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-18">Lemma free_in_context x e Γ τ :
   free x e -&gt; Γ ⊢ e : τ -&gt; exists σ, lookup Γ x = Some σ.
 Proof.
@@ -854,7 +753,7 @@ Proof.
   destruct (free_in_context x e nil τ Hf Ht) as [σ Hσ].
   discriminate Hσ.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 25 lines">Show code · 25 lines</button></div></div>
-<p>Substituting for a variable that is not free changes nothing; substituting a closed value kills the variable; two substitutions for different variables commute.</p>
+<p>Substituting for a non-free variable does nothing; a closed value kills the variable; substitutions for different variables commute.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-19">Lemma subst_not_free x v e : ~ free x e -&gt; e [x ↦ v] = e.
 Proof.
   induction e as [ n | | | y | y τ b IH | e1 IH1 e2 IH2 | e1 IH1 e2 IH2
@@ -938,7 +837,7 @@ Proof.
   - rewrite IH1, IH2. reflexivity.
   - rewrite IH, IH1, IH2. reflexivity.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 83 lines">Show code · 83 lines</button></div></div>
-<p>A closed term is unchanged by a closing substitution, and a single substitution can be done before or after a closing substitution that does not mention its variable.</p>
+<p>A closed term is unchanged by \(\gamma\); a single substitution commutes with a \(\gamma\) not mentioning its variable.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-20">Lemma msubst_closed γ e : closed e -&gt; msubst γ e = e.
 Proof.
   revert e. induction γ as [ | [x v] γ IH ]; intros e Hc; simpl.
@@ -961,7 +860,7 @@ Proof.
     + simpl. rewrite IH by apply Hγ'.
       rewrite (swap_subst y x w v e) by assumption. reflexivity.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 22 lines">Show code · 22 lines</button></div></div>
-<p>How \(e[\gamma]\) goes through each form of \(e\): a variable becomes its value, an application substitutes into both sides, a λ substitutes into its body with the bound variable dropped from \(\gamma\).</p>
+<p>\(e[\gamma]\) through each form of \(e\).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-21">Lemma msubst_var γ x :
   closed_env γ -&gt;
   msubst γ (var x) = match lookup γ x with Some v =&gt; v | None =&gt; var x end.
@@ -1019,7 +918,7 @@ Proof.
   - reflexivity.
   - apply IH.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 57 lines">Show code · 57 lines</button></div></div>
-<p>Facts about good substitutions: their values are closed, every variable of \(\Gamma\) is sent to a good value of its type, and dropping \(x\) keeps a good substitution good.</p>
+<p>Good substitutions are closed, send each variable to a good value, and survive dropping a variable.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-22">Lemma G_closed Γ γ : G Γ γ -&gt; closed_env γ.
 Proof.
   intros HG. induction HG as [ | x τ v Γ γ Hv HG IH ].
@@ -1048,7 +947,7 @@ Proof.
     + apply IH.
     + apply G_cons. apply Hv. apply IH.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 28 lines">Show code · 28 lines</button></div></div>
-<p>Lookup after dropping and after appending; the typing of \(e[\gamma]\), by the substitution lemma once per variable; and the context swap used at a λ, where \(\Gamma, x{:}\tau_1\) is read as \(\Gamma\) with its old \(x\) dropped.</p>
+<p>Lookup after drop and append; \(e[\gamma]\) is typed under the leftover context; the context swap at a λ.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-23">Lemma lookup_drop {A : Type} (l : list (name * A)) x y :
   lookup (drop x l) y = if String.eqb y x then None else lookup l y.
 Proof.
@@ -1090,40 +989,8 @@ Proof.
     + contradiction.
   - intros H. rewrite H. reflexivity.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 41 lines">Show code · 41 lines</button></div></div>
-
-<h3>The fundamental theorem</h3>
-<div class="display">\[
-\textbf{Theorem (fundamental).}\quad \text{If } \Gamma \vdash e : \tau \text{ then } \Gamma \models e \in \tau.
-\]</div>
-<p>Sometimes the fundamental <em>lemma</em>, for modesty. By induction on the typing derivation, and now every subterm has a useful hypothesis, because every subterm is typed under some \(\Gamma\). Three cases to watch:</p>
-<div class="pieces frames top">
-<div class="display piece frame">\[
-\begin{gathered}
-\textbf{Case } e = x. \qquad x{:}\tau \in \Gamma \qquad \text{Let } \gamma \in \mathcal{G}_\Gamma. \\[6pt]
-\class{hl-blue}{\bbox[#eef1f6,2pt]{x[\gamma] = v \in \mathcal{V}_\tau}}
-\end{gathered}
-\]<p class="step-note">No longer trivial, but easy: \(\gamma\) sends \(x\) to a good value by the definition of \(\mathcal{G}\), and a good value is a good expression.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\textbf{Case } e = e_1\, e_2. \qquad \text{Let } \gamma \in \mathcal{G}_\Gamma. \qquad (e_1\, e_2)[\gamma] = e_1[\gamma]\ e_2[\gamma] \\[6pt]
-e_1[\gamma] \in \mathcal{E}_{\tau_1 \to \tau_2} \qquad e_2[\gamma] \in \mathcal{E}_{\tau_1} \qquad \text{then as in attempt 2}
-\end{gathered}
-\]<p class="step-note">Substitution goes into both sides; the inductive hypotheses apply; the rest is the application case already done.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\textbf{Case } e = \lambda x{:}\tau_1.\, e'. \qquad \Gamma, x{:}\tau_1 \vdash e' : \tau_2 \qquad \text{Let } \gamma \in \mathcal{G}_\Gamma. \\[6pt]
-(\lambda x{:}\tau_1.\, e')[\gamma] = \lambda x{:}\tau_1.\, e'[\gamma] \qquad \text{Let } v_1 \in \mathcal{V}_{\tau_1}. \qquad (\lambda x{:}\tau_1.\, e'[\gamma])\, v_1 \longrightarrow e'[\gamma][x \mapsto v_1]
-\end{gathered}
-\]<p class="step-note">Substitution goes under the λ (by α-equivalence, no clash). Take a good argument and β-reduce, as before.</p></div>
-<div class="display piece frame keep">\[
-\begin{gathered}
-\textbf{Case } e = \lambda x{:}\tau_1.\, e'. \qquad \Gamma, x{:}\tau_1 \vdash e' : \tau_2 \qquad \text{Let } \gamma \in \mathcal{G}_\Gamma. \\[6pt]
-(\lambda x{:}\tau_1.\, e')[\gamma] = \lambda x{:}\tau_1.\, e'[\gamma] \qquad \text{Let } v_1 \in \mathcal{V}_{\tau_1}. \qquad (\lambda x{:}\tau_1.\, e'[\gamma])\, v_1 \longrightarrow e'[\gamma][x \mapsto v_1] \\[6pt]
-e'[\gamma][x \mapsto v_1] = e'[\gamma'] \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{\gamma' = (\gamma, x \mapsto v_1) \in \mathcal{G}_{\Gamma, x:\tau_1}}} \qquad \text{so } e'[\gamma'] \in \mathcal{E}_{\tau_2}
-\end{gathered}
-\]<p class="step-note">The two substitutions combine into one good substitution for the extended context. That is exactly the inductive hypothesis for \(e'\). Done.</p></div>
-</div>
-<p class="page-only">In Rocq the induction is on the term \(e\), inverting the typing rule at each step, rather than on the derivation: at a λ the context has to change, from \(\Gamma, x{:}\tau_1\) to \(\Gamma\) with its old \(x\) dropped and the new one added, and induction on \(e\) leaves the context free to do that.</p>
+</details>
+<p>The theorem and the corollary. <code>Print Assumptions</code>: closed under the global context.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-24">Theorem fundamental e : forall Γ τ γ, Γ ⊢ e : τ -&gt; G Γ γ -&gt; E τ (msubst γ e).
 Proof.
   induction e as [ n | | | x | x τ1 b IH | e1 IH1 e2 IH2 | e1 IH1 e2 IH2
@@ -1221,7 +1088,6 @@ Proof.
         apply (m_step _ _ _ (s_ctx Hole _ _ (r_if_false _ _))). apply Hrun2.
       * apply Hv2.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 97 lines">Show code · 97 lines</button></div></div>
-<p>Termination is the closed case: \(\Gamma\) and \(\gamma\) empty, and \(e[\,] = e\). <code>Print Assumptions</code> confirms nothing was assumed.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-25">Theorem termination e τ : ⊢ e : τ -&gt; terminates e.
 Proof.
   intros Ht.
@@ -1231,36 +1097,29 @@ Qed.
 
 Print Assumptions termination.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
 
-<h2>2. Types as sets, terms as functions</h2>
-<p>That took a whole section. A small-step semantics is a rewrite system, so it is potentially non-terminating by construction, and termination has to be fought for. A <strong>denotational semantics</strong> interprets each term as a function, and functions are total: termination comes for free. For STLC, with no loops and no recursion, this is the easiest case of denotational semantics all semester. Compare IMP, where everything was easy until \(\mathsf{while}\).</p>
-<p>The plan, as for IMP: interpret compositionally, by recursion on the syntax, each operation of the language as an operation on the semantic side. The difference is that STLC has types, so the first question is what set a term's meaning lives in. Types become sets, contexts become sets, and terms become functions.</p>
-
-<h3>Types as sets</h3>
-<div class="pieces">
-<div class="display piece">\[
-[\![\mathsf{int}]\!] = \mathbb{Z} \qquad\qquad [\![\mathsf{bool}]\!] = \{\mathsf{true}, \mathsf{false}\}
-\]</div>
-<div class="display piece">\[
-[\![\tau_1 \to \tau_2]\!] = [\![\tau_2]\!]^{[\![\tau_1]\!]} = [\![\tau_1]\!] \to [\![\tau_2]\!] \quad \text{(the set of functions)}
-\]</div>
-</div>
-<p>The exponential notation is the cardinality: there are \(2^n\) bit strings of length \(n\), the functions from an \(n\)-element set to the Booleans.</p>
-<details class="question">
-<summary>The lecture's other types: union or disjoint union?</summary>
-<p>With products and sums, \([\![1]\!]\) is a one-element set, \([\![\tau_1 \times \tau_2]\!]\) is the Cartesian product, and \([\![0]\!]\) is the empty set. For \([\![\tau_1 + \tau_2]\!]\) the room's first answer was the union. The test: \(1 + 1\) should be the Booleans, but \(\{*\} \cup \{*\} = \{*\}\) has one element. A sum value is \(\mathsf{in}_1\) or \(\mathsf{in}_2\), and \(\mathsf{case}\) tells them apart, so the semantics needs the tag too: the <em>disjoint</em> union</p>
+<h2>5. Denotational semantics</h2>
+<div class="thm"><p><span class="name">Definition (types and contexts as sets).</span></p>
 <div class="display">\[
-A \uplus B = \{(1, a) \mid a \in A\} \cup \{(2, b) \mid b \in B\}, \qquad \{*\} \uplus \{*\} = \{(1, *), (2, *)\}.
-\]</div>
-<p>On finite sets, \(1\), \(\times\), \(+\) and \(\to\) then match their arithmetic exactly. In set theory membership and union are basic; in a typed language, disjoint union and typing are.</p>
-</details>
-
-<h3>Contexts as sets</h3>
-<p>A context is a list of typed variables, so its meaning is a product, a value for each variable:</p>
+\begin{aligned}
+[\![\mathsf{int}]\!] &= \mathbb{Z} & [\![\mathsf{bool}]\!] &= \{\mathsf{true}, \mathsf{false}\} & [\![\tau_1 \to \tau_2]\!] &= [\![\tau_1]\!] \to [\![\tau_2]\!] \\
+[\![\cdot]\!] &= \{*\} & [\![\Gamma, x{:}\tau]\!] &= [\![\Gamma]\!] \times [\![\tau]\!]
+\end{aligned}
+\]</div></div>
+<div class="thm"><p><span class="name">Definition (terms as functions).</span> For \(\Gamma \vdash e : \tau\), \([\![e]\!] : [\![\Gamma]\!] \to [\![\tau]\!]\), by recursion on the derivation:</p>
 <div class="display">\[
-[\![\cdot]\!] = \{*\} \qquad\qquad [\![\Gamma, x{:}\tau]\!] = [\![\Gamma]\!] \times [\![\tau]\!]
+\begin{aligned}
+[\![x]\!]\,\gamma &= \gamma(x) \\
+[\![n]\!]\,\gamma &= n \qquad [\![\mathsf{true}]\!]\,\gamma = \mathsf{true} \qquad [\![\mathsf{false}]\!]\,\gamma = \mathsf{false} \\
+[\![e_1 + e_2]\!]\,\gamma &= [\![e_1]\!]\,\gamma + [\![e_2]\!]\,\gamma \\
+[\![\lambda x{:}\tau_1.\, e]\!]\,\gamma &= z \mapsto [\![e]\!]\,(\gamma, x \mapsto z) \\
+[\![e_1\, e_2]\!]\,\gamma &= ([\![e_1]\!]\,\gamma)\,([\![e_2]\!]\,\gamma) \\
+[\![\mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2]\!]\,\gamma &= \begin{cases} [\![e_1]\!]\,\gamma & [\![e]\!]\,\gamma = \mathsf{true} \\ [\![e_2]\!]\,\gamma & [\![e]\!]\,\gamma = \mathsf{false} \end{cases}
+\end{aligned}
 \]</div>
-<p>An element \(\gamma \in [\![\Gamma]\!]\) gives a value for every variable in \(\Gamma\): the semantic version of a closing substitution. Shadowing is not an issue: by α-equivalence all variables are different.</p>
-<p>In Rocq, \([\![\tau]\!]\) and \([\![\Gamma]\!]\) are Rocq types, by recursion on \(\tau\) and on \(\Gamma\).</p>
+<p>A closed term is a function from \(\{*\}\): an element \([\![e]\!](*) \in [\![\tau]\!]\).</p></div>
+<div class="thm"><p><span class="name">Example.</span> \([\![\mathtt{succ}]\!](*) = n \mapsto n + 1\). \([\![\mathtt{twice}]\!](*) = g \mapsto n \mapsto g(g(n))\). \([\![\mathtt{twice}\ \mathtt{succ}\ 2]\!](*) = ([\![\mathtt{twice}]\!](*))\,([\![\mathtt{succ}]\!](*))\,(2) = 4\).</p></div>
+<div class="thm"><p><span class="name">Example (open term).</span> \(y{:}\mathsf{int}, x{:}\mathsf{int} \vdash \mathsf{if}\ \mathsf{true}\ \mathsf{then}\ x\ \mathsf{else}\ y\). An element of \([\![\Gamma]\!]\) is \(((*, 10), 20)\), innermost first: \(x = 10\), \(y = 20\). The meaning at it is \(10\).</p></div>
+<p>\([\![\tau]\!]\) and \([\![\Gamma]\!]\) as Rocq types.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-26">Fixpoint den_ty (τ : ty) : Type :=
   match τ with
   | INT =&gt; Z
@@ -1277,32 +1136,7 @@ Fixpoint den_ctx (Γ : ctx) : Type :=
   end.
 
 Notation "⟦ Γ ⟧c" := (den_ctx Γ) (at level 0).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 16 lines">Show code · 16 lines</button></div></div>
-
-<h3>Terms as functions</h3>
-<p>For \(\Gamma \vdash e : \tau\), the meaning of \(e\) is a function from values of its free variables to a value of its type:</p>
-<div class="display">\[
-[\![e]\!] : [\![\Gamma]\!] \to [\![\tau]\!]
-\]</div>
-<p>A closed term is a function from the one-element set, so it picks out one element \([\![e]\!](*) \in [\![\tau]\!]\). This is the right way to read λ-calculus notation: it <em>looks</em> like you are writing down elements, but because of the variables you are writing down functions. One clause per typing rule:</p>
-<div class="pieces">
-<div class="display piece">\[
-[\![x]\!]\,\gamma = \gamma(x)
-\]</div>
-<div class="display piece">\[
-[\![e_1\, e_2]\!]\,\gamma = ([\![e_1]\!]\,\gamma)\,([\![e_2]\!]\,\gamma)
-\]</div>
-<div class="display piece">\[
-[\![\lambda x{:}\tau_1.\, e]\!]\,\gamma = z \mapsto [\![e]\!]\,(\gamma, x \mapsto z)
-\]</div>
-<div class="display piece">\[
-[\![n]\!]\,\gamma = n \qquad [\![e_1 + e_2]\!]\,\gamma = [\![e_1]\!]\,\gamma + [\![e_2]\!]\,\gamma \qquad [\![\mathsf{true}]\!]\,\gamma = \mathsf{true}
-\]</div>
-<div class="display piece">\[
-[\![\mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2]\!]\,\gamma = \begin{cases} [\![e_1]\!]\,\gamma & [\![e]\!]\,\gamma = \mathsf{true} \\ [\![e_2]\!]\,\gamma & [\![e]\!]\,\gamma = \mathsf{false} \end{cases}
-\]</div>
-</div>
-<p>Application looks like applying a function to an argument, but it is an operation on two functions of \(\gamma\). In IMP the environment was threaded through, in and out, because assignment changed it; here variables are constants, and \(\gamma\) is simply copied to every subterm. The λ clause is <strong>currying</strong>: one argument moves from the tuple of inputs into the returned function. And "\(\mathsf{true}\) means \(\mathsf{true}\)" is as silly as it looks; denotational semantics gets silly at the base types.</p>
-<p>In Rocq, \([\![e]\!]\) is defined on a typing derivation, so the derivation is data: <code>deriv</code> is the typing relation again, in <code>Type</code>, with the variable rule pointing at \(x\)'s position in \(\Gamma\). Then \([\![e]\!]\) is a Rocq function, and <code>Compute</code> runs it.</p>
+<p>The derivation as data (<code>deriv</code>, in <code>Type</code>, variables by position), \(\gamma(x)\), and \([\![e]\!]\).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-27">Inductive member : name -&gt; ty -&gt; ctx -&gt; Type :=
 | here x τ Γ : member x τ ((x, τ) :: Γ)
 | there x τ y σ Γ : y &lt;&gt; x -&gt; member x τ Γ -&gt; member x τ ((y, σ) :: Γ).
@@ -1317,7 +1151,6 @@ Inductive deriv : ctx -&gt; exp -&gt; ty -&gt; Type :=
 | d_plus Γ e1 e2 : deriv Γ e1 INT -&gt; deriv Γ e2 INT -&gt; deriv Γ (e1 ⊕ e2) INT
 | d_if Γ e e1 e2 τ : deriv Γ e BOOL -&gt; deriv Γ e1 τ -&gt; deriv Γ e2 τ -&gt;
     deriv Γ (IF e THEN e1 ELSE e2 FI) τ.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 14 lines">Show code · 14 lines</button></div></div>
-<p>\(\gamma(x)\) reads \(x\)\u2019s value out of \(\gamma\) by following its position, and \([\![e]\!]\) is the six clauses above, one per rule.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-28">Fixpoint fetch {x τ Γ} (m : member x τ Γ) : ⟦ Γ ⟧c -&gt; ⟦ τ ⟧ :=
   match m with
   | here _ _ _ =&gt; fun γ =&gt; snd γ
@@ -1335,20 +1168,38 @@ Fixpoint den {Γ e τ} (d : deriv Γ e τ) : ⟦ Γ ⟧c -&gt; ⟦ τ ⟧ :=
   | d_plus _ _ _ d1 d2 =&gt; fun γ =&gt; den d1 γ + den d2 γ
   | d_if _ _ _ _ _ d0 d1 d2 =&gt; fun γ =&gt; if den d0 γ then den d1 γ else den d2 γ
   end.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 17 lines">Show code · 17 lines</button></div></div>
-<p>Two closed examples, then an open one. For \(y{:}\mathsf{int}, x{:}\mathsf{int} \vdash \mathsf{if}\ \mathsf{true}\ \mathsf{then}\ x\ \mathsf{else}\ y\), an element of \([\![\Gamma]\!]\) is \(((*, 10), 20)\): the innermost pair is \(x\), the outer one \(y\), in the order the context lists them.</p>
+<p>\(\mathtt{succ}\), \(\mathtt{twice}\), and \(\mathtt{twice}\ \mathtt{succ}\ 2\), computed.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-29">Definition succ : exp := λ "x" : INT , var "x" ⊕ const 1.
 
-Definition d_succ : deriv nil succ (INT ⇒ INT) :=
+Definition d_succ_in (Γ : ctx) : deriv Γ succ (INT ⇒ INT) :=
   d_lam _ _ _ _ _ (d_plus _ _ _ (d_var _ _ _ (here _ _ _)) (d_num _ 1)).
+
+Definition d_succ : deriv nil succ (INT ⇒ INT) := d_succ_in nil.
 
 Check (den d_succ tt).
 Compute (den d_succ tt 41).
 
-Definition d_succ_two : deriv nil (succ · const 2) INT :=
-  d_app _ _ _ _ _ d_succ (d_num _ 2).
+Definition twice : exp :=
+  λ "f" : INT ⇒ INT , λ "x" : INT , var "f" · (var "f" · var "x").
 
-Compute (den d_succ_two tt).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 12 lines">Show code · 12 lines</button></div></div>
-<p>The open term and its derivation; <code>there</code> steps past \(y\) to reach \(x\). Running it on \(((*, 10), 20)\) gives \(10\), the value of \(x\).</p>
+Definition d_twice : deriv nil twice ((INT ⇒ INT) ⇒ INT ⇒ INT) :=
+  d_lam _ _ _ _ _ (d_lam _ _ _ _ _
+    (d_app _ _ _ _ _
+      (d_var _ _ _ (there _ _ _ _ _ (proj1 (String.eqb_neq "x" "f") eq_refl) (here _ _ _)))
+      (d_app _ _ _ _ _
+        (d_var _ _ _ (there _ _ _ _ _ (proj1 (String.eqb_neq "x" "f") eq_refl) (here _ _ _)))
+        (d_var _ _ _ (here _ _ _))))).
+
+Check (den d_twice tt).
+Compute (den d_twice tt (den d_succ tt) 2).
+
+Definition twice_succ_two : exp := twice · succ · const 2.
+
+Definition d_twice_succ_two : deriv nil twice_succ_two INT :=
+  d_app _ _ _ _ _ (d_app _ _ _ _ _ d_twice d_succ) (d_num _ 2).
+
+Compute (den d_twice_succ_two tt).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 30 lines">Show code · 30 lines</button></div></div>
+<p>The open term.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-30">Definition d_open : deriv (("y", INT) :: ("x", INT) :: nil)
                           (IF TRUE THEN var "x" ELSE var "y" FI) INT :=
   d_if _ _ _ _ _ (d_true _)
@@ -1357,27 +1208,18 @@ Compute (den d_succ_two tt).</textarea><div class="cell-bar"><button class="cell
 
 Compute (den d_open (tt, 10, 20)).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 7 lines">Show code · 7 lines</button></div></div>
 
-<h2>3. Soundness and adequacy</h2>
-<p>Look at the two semantics side by side. The denotations at each type look like the closed values of that type, except at function type, where a closed value is a λ with some body and a denotation is a mathematical function. Operationally the meaning of a term is the value it reduces to; denotationally the element is built directly, by a total function, so there is no question whether it exists. The operational semantics only runs closed terms; the denotational one treats open terms as the general case.</p>
-<p>What is the relationship? Two theorems, proved about every denotational semantics.</p>
-
-<h3>Soundness</h3>
-<div class="display">\[
-\textbf{Theorem (soundness).}\quad \text{If } e \longrightarrow^* v \text{ then } [\![e]\!](*) = [\![v]\!](*).
-\]</div>
-<p>The meaning is an invariant of reduction. An operational purist reads the denotational semantics as a device that turns reductions into equalities. By induction on the run, from the one-step lemma: if \(e \longrightarrow e'\) then \([\![e]\!] = [\![e']\!]\), one case per step rule. Two of the cases:</p>
-<div class="pieces frames top">
-<div class="display piece frame">\[
-[\![\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2]\!]\,\gamma \;=\; \class{hl-blue}{\bbox[#eef1f6,2pt]{[\![e_1]\!]\,\gamma}}
-\]<p class="step-note">Two functions are equal when they agree on every \(\gamma\). Unfold the if clause: \([\![\mathsf{true}]\!]\,\gamma = \mathsf{true}\), so the first branch.</p></div>
-<div class="display piece frame">\[
-[\![E[\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2]]\!]\,\gamma \;=\; ([\![E]\!]\,\gamma)\,([\![\mathsf{if}\ \mathsf{true}\ \ldots]\!]\,\gamma) \;=\; ([\![E]\!]\,\gamma)\,([\![e_1]\!]\,\gamma) \;=\; [\![E[e_1]]\!]\,\gamma
-\]<p class="step-note">The step happens inside a context \(E\). <strong>Compositionality</strong>: \([\![E[e]]\!]\,\gamma = ([\![E]\!]\,\gamma)([\![e]\!]\,\gamma)\), so the context can be ignored. Every case uses it.</p></div>
-<div class="display piece frame keep">\[
-[\![(\lambda x{:}\tau.\, e)\, v]\!]\,\gamma \;=\; [\![e]\!]\,(\gamma, x \mapsto [\![v]\!]\,\gamma) \;\overset{?}{=}\; [\![e[x \mapsto v]]\!]\,\gamma
-\]<p class="step-note">The β case: unfold application and λ. The last step is compositionality again, for substitution: \([\![e[x \mapsto v]]\!]\,\gamma = [\![e]\!]\,(\gamma, x \mapsto [\![v]\!]\,\gamma)\), by induction on \(e\). The context form is a special case, since a context is a term with a variable for the hole.</p></div>
-</div>
-<p>The operational rules become basic facts about sets: \([\![(v_1, v_2).1]\!]\,\gamma = \pi_1([\![v_1]\!]\,\gamma, [\![v_2]\!]\,\gamma) = [\![v_1]\!]\,\gamma\). In Rocq the if and plus cases are a <code>reflexivity</code>; the β case is checked on the example, where both sides of \((\lambda x{:}\mathsf{int}.\, x + 1)\, 2 \longrightarrow 2 + 1\) compute to \(3\).</p>
+<h2>6. Soundness and adequacy</h2>
+<div class="thm"><p><span class="name">Theorem (soundness).</span> If \(e \longrightarrow^* v\) then \([\![e]\!] = [\![v]\!]\). By induction on the run, from the one-step lemma.</p></div>
+<div class="thm"><p><span class="name">Lemma (one step).</span> If \(e \longrightarrow e'\) then \([\![e]\!] = [\![e']\!]\). Functions are equal when equal at every \(\gamma\); one case per rule.</p>
+<ul>
+  <li>\(\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \longrightarrow e_1\): \([\![\mathsf{if}\ \mathsf{true}\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2]\!]\,\gamma = [\![e_1]\!]\,\gamma\), by the \(\mathsf{if}\) clause, since \([\![\mathsf{true}]\!]\,\gamma = \mathsf{true}\).</li>
+  <li>\(n_1 + n_2 \longrightarrow n_3\): both sides are the integer \(n_1 + n_2\).</li>
+  <li>\((\lambda x{:}\tau.\, e)\, v \longrightarrow e[x \mapsto v]\): \([\![(\lambda x{:}\tau.\, e)\, v]\!]\,\gamma = [\![e]\!]\,(\gamma, x \mapsto [\![v]\!]\,\gamma) = [\![e[x \mapsto v]]\!]\,\gamma\), the last step by compositionality.</li>
+  <li>\(E[r] \longrightarrow E[r']\): \([\![E[r]]\!]\,\gamma = ([\![E]\!]\,\gamma)([\![r]\!]\,\gamma) = ([\![E]\!]\,\gamma)([\![r']\!]\,\gamma) = [\![E[r']]\!]\,\gamma\), by compositionality for contexts and the redex case.</li>
+</ul></div>
+<div class="thm"><p><span class="name">Lemma (compositionality).</span> \([\![e[x \mapsto v]]\!]\,\gamma = [\![e]\!]\,(\gamma, x \mapsto [\![v]\!]\,\gamma)\), by induction on \(e\). For a context, \([\![E[e]]\!]\,\gamma = ([\![E]\!]\,\gamma)([\![e]\!]\,\gamma)\): a context is a term with a variable for the hole.</p></div>
+<div class="thm"><p><span class="name">Example.</span> \(\mathtt{twice}\ \mathtt{succ}\ 2 \longrightarrow (\lambda x{:}\mathsf{int}.\, \mathtt{succ}\,(\mathtt{succ}\,x))\, 2\), and \([\![\mathtt{twice}\ \mathtt{succ}\ 2]\!](*) = 4 = [\![(\lambda x{:}\mathsf{int}.\, \mathtt{succ}\,(\mathtt{succ}\,x))\, 2]\!](*)\).</p></div>
+<p>The \(\mathsf{if}\) and \(+\) cases, by <code>reflexivity</code>; the step on the example, and both meanings computed.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-31">Lemma den_if_true Γ e1 e2 τ (d1 : deriv Γ e1 τ) (d2 : deriv Γ e2 τ) γ :
   den (d_if _ _ _ _ _ (d_true _) d1 d2) γ = den d1 γ.
 Proof. reflexivity. Qed.
@@ -1385,20 +1227,34 @@ Proof. reflexivity. Qed.
 Lemma den_plus Γ n1 n2 γ :
   den (d_plus Γ _ _ (d_num _ n1) (d_num _ n2)) γ = den (d_num Γ (n1 + n2)) γ.
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 7 lines">Show code · 7 lines</button></div></div>
-<p>The β case on the example: both sides of \((\lambda x{:}\mathsf{int}.\, x + 1)\, 2 \longrightarrow 2 + 1\) mean 3.</p>
-<div class="cell is-collapsed"><textarea class="coq" id="coq-32">Definition d_two_plus_one : deriv nil (const 2 ⊕ const 1) INT :=
-  d_plus _ _ _ (d_num _ 2) (d_num _ 1).
+<div class="cell is-collapsed"><textarea class="coq" id="coq-32">Definition after_step : exp := (λ "x" : INT , succ · (succ · var "x")) · const 2.
 
-Example beta_sound : den d_succ_two tt = den d_two_plus_one tt.
-Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
+Example twice_step : twice_succ_two ⟶ after_step.
+Proof.
+  apply (s_ctx (AppL Hole (const 2))). apply r_beta. apply v_lam.
+Qed.
 
-<h3>Adequacy</h3>
-<p>Soundness goes the wrong way to give termination. The converse is not called completeness but <strong>adequacy</strong>, because in general it holds only at the simple types: with loops it fails at higher types, for computability reasons. Here it is at the Booleans, where a denotation <em>is</em> a value:</p>
+Definition d_after_step : deriv nil after_step INT :=
+  d_app _ _ _ _ _
+    (d_lam _ _ _ _ _
+      (d_app _ _ _ _ _ (d_succ_in _)
+        (d_app _ _ _ _ _ (d_succ_in _) (d_var _ _ _ (here _ _ _)))))
+    (d_num _ 2).
+
+Example beta_sound : den d_twice_succ_two tt = den d_after_step tt.
+Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 16 lines">Show code · 16 lines</button></div></div>
+<div class="thm"><p><span class="name">Theorem (adequacy).</span> If \(\vdash e : \mathsf{bool}\) then \(e \longrightarrow^* [\![e]\!](*)\). Likewise at \(\mathsf{int}\), and at every type without \(\to\) in it. Not as stated at \(\tau_1 \to \tau_2\): \(e\) runs to a λ, not to a function.</p></div>
+<div class="thm"><p><span class="name">Definition (binary logical relation).</span> \(v \approx^{\mathcal{V}}_\tau x\) between a closed value and \(x \in [\![\tau]\!]\); \(e \approx^{\mathcal{E}}_\tau x\) between a closed expression and \(x\).</p>
 <div class="display">\[
-\textbf{Theorem (adequacy at } \mathsf{bool}\textbf{).}\quad \text{If } \vdash e : \mathsf{bool} \text{ then } e \longrightarrow^* [\![e]\!](*).
-\]</div>
-<p>The same statement holds at \(\mathsf{int}\), and at every type without a function in it. It cannot hold at \(\tau_1 \to \tau_2\): \(e\) reduces to a λ, not to a mathematical function. Adequacy at \(\mathsf{bool}\) alone proves every Boolean program terminates, and it makes the denotational semantics a tool: compute the meaning, with whatever mathematical shortcuts you like, instead of running the call-by-value steps.</p>
-<p>The statement in Rocq, with the Boolean denotation turned back into a term. The proof is left out; it is the fundamental theorem of the relation defined next.</p>
+\begin{aligned}
+n \approx^{\mathcal{V}}_{\mathsf{int}} m &\iff n = m \\
+b \approx^{\mathcal{V}}_{\mathsf{bool}} b' &\iff b = b' \\
+v \approx^{\mathcal{V}}_{\tau_1 \to \tau_2} f &\iff \forall v' \approx^{\mathcal{V}}_{\tau_1} x.\ v\, v' \approx^{\mathcal{E}}_{\tau_2} f(x) \\
+e \approx^{\mathcal{E}}_\tau x &\iff e \longrightarrow^* v \text{ and } v \approx^{\mathcal{V}}_\tau x
+\end{aligned}
+\]</div></div>
+<div class="thm"><p><span class="name">Theorem (fundamental, binary).</span> If \(\Gamma \vdash e : \tau\) and \(\gamma\) relates each variable's value to its denotation, then \(e[\gamma] \approx^{\mathcal{E}}_\tau [\![e]\!]\,\gamma\). Proof as in section 4. Adequacy is the case \(\Gamma = \cdot\), \(\tau = \mathsf{bool}\).</p></div>
+<p>Adequacy stated (proof not in this file) and the relation.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-33">Definition exp_of_bool (b : bool) : exp := if b then TRUE else FALSE.
 
 Theorem adequacy_bool e (d : deriv nil e BOOL) : e ⟶* exp_of_bool (den d tt).
@@ -1407,19 +1263,6 @@ Proof.
      the binary version of Part 1's.  Its definition is below; the
      proof is the fundamental theorem again, and is not in this file. *)
 Admitted.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
-<p>How to prove it? Induction on the typing derivation of a Boolean term runs into subterms of every type, open ones included. You know what time it is. The logical relation is now <em>binary</em>, between a closed value and an element of \([\![\tau]\!]\):</p>
-<div class="pieces">
-<div class="display piece">\[
-n \approx^{\mathcal{V}}_{\mathsf{int}} m \iff n = m \qquad\qquad b \approx^{\mathcal{V}}_{\mathsf{bool}} b' \iff b = b'
-\]</div>
-<div class="display piece">\[
-v \approx^{\mathcal{V}}_{\tau_1 \to \tau_2} f \iff \forall v' \approx^{\mathcal{V}}_{\tau_1} x.\ v\, v' \approx^{\mathcal{E}}_{\tau_2} f(x)
-\]</div>
-<div class="display piece">\[
-e \approx^{\mathcal{E}}_\tau x \iff e \longrightarrow^* v \text{ and } v \approx^{\mathcal{V}}_\tau x
-\]</div>
-</div>
-<p>At \(\mathsf{int}\) and \(\mathsf{bool}\) the value and the denotation are the same thing, which is why "\(n = m\)" makes sense. The function clause is Part 1's, with the denotation \(f\) riding along. The fundamental theorem for this relation, "if \(\Gamma \vdash e : \tau\) then \(e[\gamma] \approx^{\mathcal{E}}_\tau [\![e]\!]\,\gamma\) for related \(\gamma\)", is proved exactly as in Part 1, and adequacy is its closed Boolean case. In Rocq the relation is defined and the theorem is stated; the proof is Part 1 again.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-34">Fixpoint Vd (τ : ty) : exp -&gt; ⟦ τ ⟧ -&gt; Prop :=
   match τ return exp -&gt; ⟦ τ ⟧ -&gt; Prop with
   | INT =&gt; fun v n =&gt; v = const n
@@ -1431,6 +1274,7 @@ e \approx^{\mathcal{E}}_\tau x \iff e \longrightarrow^* v \text{ and } v \approx
 
 Definition Ed (τ : ty) (e : exp) (x : ⟦ τ ⟧) : Prop :=
   exists v, e ⟶* v /\ Vd τ v x.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 11 lines">Show code · 11 lines</button></div></div>
+<div class="thm"><p><span class="name">Remark (Rice).</span> Termination makes "\(\vdash e : \mathsf{int}\) computes \(0\)" decidable and non-trivial, so STLC is not Turing complete.</p></div>
 
 
 </div>

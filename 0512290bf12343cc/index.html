@@ -259,18 +259,17 @@ body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !importa
 
 <header>
   <p class="eyebrow">CSE 590 · Fall 2026 · Discussion 9</p>
-  <h1>When is one program equal to another?</h1>
-  <p class="lede">Lectures 17 and 18. Each piece of math is followed by its Rocq code from <code>Discussion 9/Discussion9.v</code>, in file order.</p>
+  <h1>Program equivalence</h1>
+  <p class="lede">Lectures 17 and 18, as a reference. Rocq: <code>Discussion 9/Discussion9.v</code>, in file order.</p>
 </header>
-
-<h2 class="one-slide">0. The language, from Discussion 6</h2>
-<p>The simply typed λ-calculus of Discussion 6 again: integers, Booleans and functions, with values, substitution, evaluation contexts, and the typing rules. The blocks are folded; nothing in them is new.</p>
-<p>The imports: integers, strings for variable names, lists for contexts.</p>
+<details class="question">
+<summary>0. The language, from Discussion 6</summary>
+<p>Imports.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-1">From Coq Require Import ZArith String List.
 Import ListNotations.
 Open Scope Z_scope.
 Open Scope string_scope.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
-<p>The syntax: types and expressions, with the notation that lets a term read as on the board.</p>
+<p>Types and expressions, with notation.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-2">Definition name := string.
 
 Inductive ty : Type :=
@@ -301,7 +300,7 @@ Notation "'λ' x : τ , e" := (Lam x τ e)
 Notation "e1 · e2" := (App e1 e2) (at level 40, left associativity).
 Notation "e1 ⊕ e2" := (Plus e1 e2) (at level 50, left associativity).
 Notation "'IF' e 'THEN' e1 'ELSE' e2 'FI'" := (If e e1 e2) (at level 80).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 30 lines">Show code · 30 lines</button></div></div>
-<p>Values, and the subset type <code>val</code> of expressions that are values.</p>
+<p>Values, and <code>val</code>.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-3">Inductive value : exp -&gt; Prop :=
 | v_num n : value (const n)
 | v_true : value TRUE
@@ -310,7 +309,7 @@ Notation "'IF' e 'THEN' e1 'ELSE' e2 'FI'" := (If e e1 e2) (at level 80).</texta
 
 Definition val : Type := { e : exp | value e }.
 Definition exp_of (v : val) : exp := proj1_sig v.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
-<p>Substitution and the four redex rules.</p>
+<p>Substitution and the redex rules.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-4">Fixpoint subst (x : name) (v : exp) (e : exp) : exp :=
   match e with
   | const n =&gt; const n
@@ -335,7 +334,7 @@ Inductive redex : exp -&gt; exp -&gt; Prop :=
 | r_if_false e1 e2 : redex (IF FALSE THEN e1 ELSE e2 FI) e2.
 
 Notation "e '⟶r' e'" := (redex e e') (at level 70).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 24 lines">Show code · 24 lines</button></div></div>
-<p>Evaluation contexts, plugging, the step rule, and runs.</p>
+<p>Evaluation contexts, steps, runs.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-5">Inductive ectx : Type :=
 | Hole
 | AppL (E : ectx) (e2 : exp)
@@ -368,7 +367,7 @@ Inductive multi : exp -&gt; exp -&gt; Prop :=
 | m_refl e : e ⟶* e
 | m_step e1 e2 e3 : e1 ⟶ e2 -&gt; e2 ⟶* e3 -&gt; e1 ⟶* e3
 where "e ⟶* e'" := (multi e e').</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 32 lines">Show code · 32 lines</button></div></div>
-<p>Contexts, lookup, and the typing rules.</p>
+<p>Contexts, lookup, typing.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-6">Definition ctx := list (name * ty).
 
 Fixpoint lookup {A : Type} (Γ : list (name * A)) (y : name) : option A :=
@@ -405,20 +404,17 @@ where "Γ ⊢ e : τ" := (has_type Γ e τ).
 
 Notation "⊢ e : τ" := (has_type nil e τ)
   (at level 70, e at level 99, τ at level 69).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 36 lines">Show code · 36 lines</button></div></div>
+</details>
 
 <h2>1. Contextual equivalence</h2>
-<p>When should two programs count as the same? Intensionally, when they are the same code; that is too strict to be useful. Extensionally, when nobody can tell them apart: a compiler could swap one for the other and the program would behave the same. Running time does not count. Halting does, so for a Turing-complete language the question is undecidable.</p>
-
-<h3>Closed Booleans first</h3>
-<p>For closed programs of type \(\mathsf{bool}\) there is a ground truth, what happens when you run them:</p>
+<div class="thm"><p><span class="name">Definition (closed Boolean equivalence).</span> For \(\vdash e : \mathsf{bool}\) and \(\vdash e' : \mathsf{bool}\):</p>
 <div class="display">\[
 e \equiv^{\mathsf{cl}}_{\mathsf{bool}} e' \quad:=\quad (e \longrightarrow^* \mathsf{true} \text{ and } e' \longrightarrow^* \mathsf{true}) \text{ or } (e \longrightarrow^* \mathsf{false} \text{ and } e' \longrightarrow^* \mathsf{false})
-\]</div>
-<p>So \(\mathsf{true} \equiv^{\mathsf{cl}}_{\mathsf{bool}} (\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5\): one is a value, the other reaches it in a step.</p>
-<p>The closed Boolean equivalence, as a disjunction: both run to true, or both to false.</p>
+\]</div></div>
+<div class="thm"><p><span class="name">Example.</span> \(\mathsf{true} \equiv^{\mathsf{cl}}_{\mathsf{bool}} (\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5\): the left is \(\mathsf{true}\), the right steps to \(\mathsf{true}\) by β.</p></div>
+<p>The definition and the example.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-7">Definition cl_bool (e e' : exp) : Prop :=
   (e ⟶* TRUE /\ e' ⟶* TRUE) \/ (e ⟶* FALSE /\ e' ⟶* FALSE).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
-<p>The example: \(\mathsf{true}\) reaches itself in no steps, and the application reaches it in one β step.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-8">Example cl_bool_ex : cl_bool TRUE ((λ "x" : INT , TRUE) · const 5).
 Proof.
   left. split.
@@ -427,18 +423,17 @@ Proof.
     + apply (s_ctx Hole). apply r_beta. apply v_num.
     + apply m_refl.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 8 lines">Show code · 8 lines</button></div></div>
-
-<h3>Contexts</h3>
-<p>A compiler optimizes subterms, which are open and of any type. Reduce their equivalence to the Boolean case by putting them inside a larger program. A <strong>context</strong> \(C\) is a term with one hole, anywhere, including under a binder:</p>
+<div class="thm"><p><span class="name">Definition (context).</span> A term with one hole, anywhere:</p>
 <div class="display">\[
 \begin{aligned}
-C ::={}& [\,] \mid \lambda x{:}\tau.\, C \mid C\, e \mid e\, C \mid C + e \mid e + C \\
-&\mid \mathsf{if}\ C\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \mid \mathsf{if}\ e\ \mathsf{then}\ C\ \mathsf{else}\ e_2 \mid \mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ C
+C ::= {} & [\,] \mid \lambda x{:}\tau.\, C \mid C\, e \mid e\, C \mid C + e \mid e + C \\
+& \mid \mathsf{if}\ C\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 \mid \mathsf{if}\ e\ \mathsf{then}\ C\ \mathsf{else}\ e_2 \mid \mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ C
 \end{aligned}
 \]</div>
-<p>\(C[e]\) puts \(e\) in the hole, <em>capturing</em>: \((\lambda x{:}\tau.\, [\,])[x] = \lambda x{:}\tau.\, x\). Two differences from an evaluation context \(E\): the hole may sit under a λ, and the other positions hold any \(e\), not just values. A value is a semantic notion, about how terms run; a context is pure syntax.</p>
-<p>Contexts are typed. \(C : (\Gamma \vdash \tau) \Rightarrow (\Gamma' \vdash \tau')\) means: for every \(e\), if \(\Gamma \vdash e : \tau\) then \(\Gamma' \vdash C[e] : \tau'\). The type of the hole matters, because it dictates what the context can do with what it is given: a Boolean can be tested by an \(\mathsf{if}\), a function can only be applied.</p>
-<p>Contexts as an inductive type, one constructor per place the hole can be, and plugging, which puts \(e\) in the hole with no renaming.</p>
+<p>\(C[e]\) puts \(e\) in the hole, without renaming. Unlike an evaluation context: the hole may sit under a λ, and the other positions hold any \(e\), not only values.</p></div>
+<div class="thm"><p><span class="name">Example (capture).</span> \((\lambda x{:}\mathsf{int}.\, [\,])[x] = \lambda x{:}\mathsf{int}.\, x\). The free \(x\) is bound by the context.</p></div>
+<div class="thm"><p><span class="name">Definition (typed context).</span> \(C : (\Gamma \vdash \tau) \Rightarrow (\Gamma' \vdash \tau')\) when for every \(e\), \(\Gamma \vdash e : \tau\) implies \(\Gamma' \vdash C[e] : \tau'\).</p></div>
+<p>Contexts, plugging, the capture example, typed contexts.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-9">Inductive gctx : Type :=
 | GHole
 | GLam (x : name) (τ : ty) (C : gctx)
@@ -462,65 +457,27 @@ Fixpoint gplug (C : gctx) (e : exp) : exp :=
   | GIfL e0 C e2 =&gt; IF e0 THEN gplug C e ELSE e2 FI
   | GIfR e0 e1 C =&gt; IF e0 THEN e1 ELSE gplug C e FI
   end.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 23 lines">Show code · 23 lines</button></div></div>
-<p>Plugging captures: check it on \((\lambda x{:}\mathsf{int}.\, [\,])[x]\).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-10">Notation "C ⟨ e ⟩" := (gplug C e) (at level 2, e at level 99).
 
 Example capture : (GLam "x" INT GHole) ⟨ var "x" ⟩ = λ "x" : INT , var "x".
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
-<p>A typed context, as the property it has: it sends well-typed terms of one type to well-typed terms of the other.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-11">Definition ctx_type (C : gctx) (Γ : ctx) (τ : ty) (Γ' : ctx) (τ' : ty) : Prop :=
   forall e, Γ ⊢ e : τ -&gt; Γ' ⊢ C ⟨ e ⟩ : τ'.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
-
-<h3>The definition</h3>
+<div class="thm"><p><span class="name">Definition (contextual equivalence).</span> For \(\Gamma \vdash e : \tau\) and \(\Gamma \vdash e' : \tau\):</p>
 <div class="display">\[
-e \equiv^{\mathsf{ctx}}_{\Gamma \vdash \tau} e' \quad:=\quad \forall C : (\Gamma \vdash \tau) \Rightarrow (\cdot \vdash \mathsf{bool}).\ C[e] \equiv^{\mathsf{cl}}_{\mathsf{bool}} C[e']
+e \equiv^{\mathsf{ctx}}_{\Gamma \vdash \tau} e' \quad:=\quad \forall C : (\Gamma \vdash \tau) \Rightarrow (\cdot \vdash \mathsf{bool}).\ \ C[e] \equiv^{\mathsf{cl}}_{\mathsf{bool}} C[e']
 \]</div>
-<p>Closed Booleans play the role of C's <code>main</code>: the only programs we ever actually run. Everything else is equal when, for the purpose of producing Booleans, it always does the same thing. This is the gold standard of extensional program equivalence, also called <em>observational</em> equivalence. With effects one often closes at type \(1\) instead, because the effects already tell everything apart.</p>
-<p>The definition: for every closing Boolean context, the two results are closed-equivalent.</p>
+<p>Also called observational equivalence. Closed \(\mathsf{bool}\) is the observation; with effects, closing at \(1\) is also used.</p></div>
+<p>The definition.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-12">Definition ctx_equiv (Γ : ctx) (τ : ty) (e e' : exp) : Prop :=
   forall C, ctx_type C Γ τ nil BOOL -&gt; cl_bool (C ⟨ e ⟩) (C ⟨ e' ⟩).</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
 
-<h3>Proving one</h3>
-<p>Are \(\mathsf{true}\) and \((\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5\) contextually equivalent? Directly from the definition, the proof is by induction over all contexts: a case for every constructor of \(C\). Painful, for something that is one reduction step. So first a general principle:</p>
-<div class="display">\[
-\textbf{Conjecture.}\quad \text{If } e \longrightarrow^* e' \text{ then } e \equiv^{\mathsf{ctx}}_{\cdot \vdash \mathsf{bool}} e'.
-\]</div>
-<p>Section 2 proves it. Now an open example, where no step applies because we do not reduce under λ:</p>
-<div class="pieces frames">
-<div class="display piece frame">\[
-\lambda y{:}\mathsf{int}.\, \mathsf{true} \;\overset{?}{\equiv^{\mathsf{ctx}}_{\cdot \vdash \mathsf{int} \to \mathsf{bool}}}\; \lambda y{:}\mathsf{int}.\, (\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5
-\]<p class="step-note">The same two terms, each under a λ. The conjecture does not apply: neither side steps.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\lambda y{:}\mathsf{int}.\, \mathsf{true} \;\overset{?}{\equiv^{\mathsf{ctx}}}\; \lambda y{:}\mathsf{int}.\, (\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5 \\[6pt]
-\text{Let } C : (\cdot \vdash \mathsf{int} \to \mathsf{bool}) \Rightarrow (\cdot \vdash \mathsf{bool}). \quad \text{Want } C[\lambda y.\, \mathsf{true}] \equiv^{\mathsf{cl}}_{\mathsf{bool}} C[\lambda y.\, (\lambda x.\, \mathsf{true})\, 5].
-\end{gathered}
-\]<p class="step-note">Unfold the definition: take any closing context for the function type.</p></div>
-<div class="display piece frame">\[
-\begin{gathered}
-\lambda y{:}\mathsf{int}.\, \mathsf{true} \;\overset{?}{\equiv^{\mathsf{ctx}}}\; \lambda y{:}\mathsf{int}.\, (\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5 \\[6pt]
-\text{Let } C : (\cdot \vdash \mathsf{int} \to \mathsf{bool}) \Rightarrow (\cdot \vdash \mathsf{bool}). \quad \text{Want } C[\lambda y.\, \mathsf{true}] \equiv^{\mathsf{cl}}_{\mathsf{bool}} C[\lambda y.\, (\lambda x.\, \mathsf{true})\, 5]. \\[6pt]
-\text{Know: } \mathsf{true} \equiv^{\mathsf{ctx}}_{\cdot \vdash \mathsf{bool}} (\lambda x.\, \mathsf{true})\, 5. \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{\text{Take } C' = C[\lambda y{:}\mathsf{int}.\, [\,]].}}
-\end{gathered}
-\]<p class="step-note">The bodies are equivalent, by the conjecture. Build a context for them: \(C\) with a λ in its hole.</p></div>
-<div class="display piece frame keep">\[
-\begin{gathered}
-\lambda y{:}\mathsf{int}.\, \mathsf{true} \;\equiv^{\mathsf{ctx}}\; \lambda y{:}\mathsf{int}.\, (\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5 \\[6pt]
-\text{Let } C : (\cdot \vdash \mathsf{int} \to \mathsf{bool}) \Rightarrow (\cdot \vdash \mathsf{bool}). \quad \text{Want } C[\lambda y.\, \mathsf{true}] \equiv^{\mathsf{cl}}_{\mathsf{bool}} C[\lambda y.\, (\lambda x.\, \mathsf{true})\, 5]. \\[6pt]
-\text{Know: } \mathsf{true} \equiv^{\mathsf{ctx}}_{\cdot \vdash \mathsf{bool}} (\lambda x.\, \mathsf{true})\, 5. \qquad \text{Take } C' = C[\lambda y{:}\mathsf{int}.\, [\,]]. \\[6pt]
-C'[\mathsf{true}] \equiv^{\mathsf{cl}}_{\mathsf{bool}} C'[(\lambda x.\, \mathsf{true})\, 5], \quad \text{and these are } C[\lambda y.\, \mathsf{true}] \text{ and } C[\lambda y.\, (\lambda x.\, \mathsf{true})\, 5]. \ \square
-\end{gathered}
-\]<p class="step-note">\(C'\) is a closing Boolean context for the bodies, so it gives them the same answer; and \(C'[e]\) is exactly \(C[\lambda y.\, e]\).</p></div>
-</div>
-
-<h3>Congruence and adequacy</h3>
-<p>That argument is a general principle. <strong>Congruence</strong>: equivalent terms stay equivalent inside any context. <strong>Adequacy</strong>: at closed Booleans, contextual equivalence implies the closed equivalence, by taking the context to be the hole.</p>
-<div class="rules">
-  <div class="piece">\[\frac{e \equiv^{\mathsf{ctx}}_{\Gamma \vdash \tau} e' \qquad C : (\Gamma \vdash \tau) \Rightarrow (\Gamma' \vdash \tau')}{C[e] \equiv^{\mathsf{ctx}}_{\Gamma' \vdash \tau'} C[e']}\ \text{(congruence)}\]</div>
-  <div class="piece">\[\frac{e \equiv^{\mathsf{ctx}}_{\cdot \vdash \mathsf{bool}} e'}{e \equiv^{\mathsf{cl}}_{\mathsf{bool}} e'}\ \text{(adequacy)}\]</div>
-</div>
-<p>In Rocq, congruence is the composition of contexts, and adequacy is three lines.</p>
-<p>A context inside a context, and plugging into the composite is plugging twice.</p>
+<h2>2. Congruence and adequacy</h2>
+<div class="thm"><p><span class="name">Lemma (congruence).</span> If \(C : (\Gamma \vdash \tau) \Rightarrow (\Gamma' \vdash \tau')\) and \(e \equiv^{\mathsf{ctx}}_{\Gamma \vdash \tau} e'\) then \(C[e] \equiv^{\mathsf{ctx}}_{\Gamma' \vdash \tau'} C[e']\). Proof: given \(C' : (\Gamma' \vdash \tau') \Rightarrow (\cdot \vdash \mathsf{bool})\), the context \(C'[C[\,]]\) is \((\Gamma \vdash \tau) \Rightarrow (\cdot \vdash \mathsf{bool})\), and \(C'[C[e]] = (C'[C[\,]])[e]\).</p></div>
+<div class="thm"><p><span class="name">Lemma (adequacy).</span> If \(e \equiv^{\mathsf{ctx}}_{\cdot \vdash \mathsf{bool}} e'\) then \(e \equiv^{\mathsf{cl}}_{\mathsf{bool}} e'\). Proof: take \(C = [\,]\).</p></div>
+<div class="thm"><p><span class="name">Example.</span> \(\lambda y{:}\mathsf{int}.\, \mathsf{true} \equiv^{\mathsf{ctx}}_{\cdot \vdash \mathsf{int} \to \mathsf{bool}} \lambda y{:}\mathsf{int}.\, (\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5\). No step applies: no reduction under λ. By congruence with \(C = \lambda y{:}\mathsf{int}.\, [\,]\), it suffices that \(\mathsf{true} \equiv^{\mathsf{ctx}}_{y:\mathsf{int} \vdash \mathsf{bool}} (\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5\), which section 3 gives.</p></div>
+<div class="thm"><p><span class="name">Theorem (greatest adequate congruence).</span> If \(R\) is a family of relations on well-typed terms that is adequate (\(e\, R\, e'\) at \(\cdot \vdash \mathsf{bool}\) implies \(e \equiv^{\mathsf{cl}}_{\mathsf{bool}} e'\)) and a congruence (closed under every typed context), then \(e\, R\, e'\) implies \(e \equiv^{\mathsf{ctx}} e'\). Proof: for \(C : (\Gamma \vdash \tau) \Rightarrow (\cdot \vdash \mathsf{bool})\), \(C[e]\, R\, C[e']\) by congruence, so \(C[e] \equiv^{\mathsf{cl}}_{\mathsf{bool}} C[e']\) by adequacy. This is how every contextual equivalence is proved: never from the definition.</p></div>
+<p>Composition of contexts, \((C \circ C')[e] = C[C'[e]]\); then congruence and adequacy.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-13">Fixpoint gcompose (C C' : gctx) : gctx :=
   match C with
   | GHole =&gt; C'
@@ -538,7 +495,6 @@ Lemma gplug_compose C C' e : (gcompose C C') ⟨ e ⟩ = C ⟨ C' ⟨ e ⟩ ⟩.
 Proof.
   induction C; simpl; try rewrite IHC; reflexivity.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 17 lines">Show code · 17 lines</button></div></div>
-<p>Congruence: given a closing context for \(C[e]\) and \(C[e']\), compose it with \(C\) and use the equivalence of \(e\) and \(e'\).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-14">Theorem congruence Γ τ Γ' τ' e e' C :
   ctx_type C Γ τ Γ' τ' -&gt;
   ctx_equiv Γ τ e e' -&gt;
@@ -549,127 +505,104 @@ Proof.
   apply He.
   intros e0 He0. rewrite gplug_compose. apply HC'. apply HC. apply He0.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 10 lines">Show code · 10 lines</button></div></div>
-<p>Adequacy: apply the equivalence to the hole, which is a closing Boolean context.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-15">Theorem adequacy e e' : ctx_equiv nil BOOL e e' -&gt; cl_bool e e'.
 Proof.
   intros H. apply (H GHole). intros e0 He0. apply He0.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
-<p>These two properties characterize it:</p>
-<div class="display">\[
-\textbf{Theorem.}\quad \equiv^{\mathsf{ctx}} \text{ is the greatest adequate congruence relation.}
-\]</div>
-<p>Greatest: if \(R\) is any family of relations on well-typed terms that is adequate and a congruence, then \(e\, R\, e'\) implies \(e \equiv^{\mathsf{ctx}} e'\). Some authors take this as the definition. It is also the strategy: never prove contextual equivalence directly. Find a relation that is convenient to prove, show it is an adequate congruence, and contextual equivalence follows.</p>
 
-<h2>2. Denotational equivalence</h2>
-<p>A relation we already have, from Discussion 8:</p>
-<div class="display">\[
-e \equiv^{\mathsf{den}}_{\Gamma \vdash \tau} e' \quad:=\quad [\![e]\!]_{\Gamma \vdash \tau} = [\![e']\!]_{\Gamma \vdash \tau}
-\]</div>
-<div class="display">\[
-\textbf{Theorem.}\quad \equiv^{\mathsf{den}} \text{ is an adequate congruence. Hence } e \equiv^{\mathsf{den}} e' \text{ implies } e \equiv^{\mathsf{ctx}} e'.
-\]</div>
-<div class="pieces frames top">
-<div class="piece frame"><p><b>Adequacy.</b> Let \(\cdot \vdash e, e' : \mathsf{bool}\) with \([\![e]\!] = [\![e']\!]\). These are functions \(\{*\} \to \{\mathsf{true}, \mathsf{false}\}\).</p><p class="step-note">Equal denotations of two closed Booleans.</p></div>
-<div class="piece frame"><p><b>Adequacy.</b> Let \(\cdot \vdash e, e' : \mathsf{bool}\) with \([\![e]\!] = [\![e']\!]\). These are functions \(\{*\} \to \{\mathsf{true}, \mathsf{false}\}\).</p>
-<div class="display">\[
-[\![e]\!](*) = \mathsf{true} \iff e \longrightarrow^* \mathsf{true} \qquad [\![e]\!](*) = \mathsf{false} \iff e \longrightarrow^* \mathsf{false}
-\]</div><p class="step-note">Discussion 8's adequacy at \(\mathsf{bool}\), both ways: a closed Boolean reduces to its meaning, and it reduces to only one thing.</p></div>
-<div class="piece frame keep"><p><b>Adequacy.</b> Let \(\cdot \vdash e, e' : \mathsf{bool}\) with \([\![e]\!] = [\![e']\!]\). These are functions \(\{*\} \to \{\mathsf{true}, \mathsf{false}\}\).</p>
-<div class="display">\[
-[\![e]\!](*) = \mathsf{true} \iff e \longrightarrow^* \mathsf{true} \qquad [\![e]\!](*) = \mathsf{false} \iff e \longrightarrow^* \mathsf{false}
-\]</div>
-<p>So \(e\) and \(e'\) reduce to the same Boolean, and every closed Boolean reduces to one of the two. \(\square\)</p><p class="step-note">The hard-fought theorem pays off: the logical relation of Discussion 8 bought this line.</p></div>
-</div>
-<div class="pieces frames top">
-<div class="piece frame"><p><b>Congruence.</b> Let \([\![e]\!] = [\![e']\!]\) and \(C : (\Gamma \vdash \tau) \Rightarrow (\Gamma' \vdash \tau')\). Want \([\![C[e]]\!] = [\![C[e']]\!]\).</p><p class="step-note">One case per kind of context? No: one lemma covers them all.</p></div>
-<div class="piece frame"><p><b>Congruence.</b> Let \([\![e]\!] = [\![e']\!]\) and \(C : (\Gamma \vdash \tau) \Rightarrow (\Gamma' \vdash \tau')\). Want \([\![C[e]]\!] = [\![C[e']]\!]\).</p>
-<div class="display">\[
-\textbf{Compositionality.}\quad [\![C[e]]\!] = [\![C]\!]\,([\![e]\!]) \qquad\text{where } [\![C]\!] : ([\![\Gamma]\!] \to [\![\tau]\!]) \to ([\![\Gamma']\!] \to [\![\tau']\!])
-\]</div><p class="step-note">The third version of compositionality, after the ones for evaluation contexts and for substitution, and the most general: the meaning of a context is a function of the meaning of what fills it.</p></div>
-<div class="piece frame keep"><p><b>Congruence.</b> Let \([\![e]\!] = [\![e']\!]\) and \(C : (\Gamma \vdash \tau) \Rightarrow (\Gamma' \vdash \tau')\). Want \([\![C[e]]\!] = [\![C[e']]\!]\).</p>
-<div class="display">\[
-\textbf{Compositionality.}\quad [\![C[e]]\!] = [\![C]\!]\,([\![e]\!]) \qquad\text{where } [\![C]\!] : ([\![\Gamma]\!] \to [\![\tau]\!]) \to ([\![\Gamma']\!] \to [\![\tau']\!])
-\]</div>
-<div class="display">\[
-[\![C[e]]\!] = [\![C]\!]\,([\![e]\!]) = [\![C]\!]\,([\![e']\!]) = [\![C[e']]\!]. \ \square
-\]</div><p class="step-note">Substitute equals for equals. Compositionality is the fact that every clause of \([\![\cdot]\!]\) is a function of the meanings of the subterms, packaged once.</p></div>
-</div>
-<p>This is the practical payoff of a denotational semantics. Contextual equivalence is defined indirectly, through every context; denotational equivalence is an equation between functions, and all of mathematics is available to prove it. The first example: \([\![\mathsf{true}]\!](*) = \mathsf{true}\) and \([\![(\lambda x.\, \mathsf{true})\, 5]\!](*) = [\![\mathsf{true}]\!](*, x \mapsto 5) = \mathsf{true}\), so the two are contextually equivalent. In Rocq the two meanings are equal by computation.</p>
+<h2>3. Denotational equivalence</h2>
+<div class="thm"><p><span class="name">Definition.</span> For \(\Gamma \vdash e : \tau\) and \(\Gamma \vdash e' : \tau\), with \([\![e]\!] : [\![\Gamma]\!] \to [\![\tau]\!]\) from Discussion 8: \(e \equiv^{\mathsf{den}}_{\Gamma \vdash \tau} e' := [\![e]\!] = [\![e']\!]\).</p></div>
+<div class="thm"><p><span class="name">Lemma (compositionality for contexts).</span> For \(C : (\Gamma \vdash \tau) \Rightarrow (\Gamma' \vdash \tau')\) there is \([\![C]\!] : ([\![\Gamma]\!] \to [\![\tau]\!]) \to ([\![\Gamma']\!] \to [\![\tau']\!])\) with \([\![C[e]]\!] = [\![C]\!]\,[\![e]\!]\). By induction on \(C\); the λ case is \([\![\lambda x{:}\tau_1.\, C]\!]\,g = \gamma \mapsto z \mapsto [\![C]\!]\,g\,(\gamma, x \mapsto z)\).</p></div>
+<div class="thm"><p><span class="name">Theorem.</span> \(\equiv^{\mathsf{den}}\) is an adequate congruence, so \(e \equiv^{\mathsf{den}} e'\) implies \(e \equiv^{\mathsf{ctx}} e'\). Congruence: \([\![e]\!] = [\![e']\!]\) gives \([\![C]\!]\,[\![e]\!] = [\![C]\!]\,[\![e']\!]\). Adequacy: at \(\cdot \vdash \mathsf{bool}\), \(e \longrightarrow^* [\![e]\!](*) = [\![e']\!](*)\) and \(e' \longrightarrow^* [\![e']\!](*)\), by adequacy from Discussion 8.</p></div>
+<div class="thm"><p><span class="name">Example.</span> \([\![\mathsf{true}]\!](*) = \mathsf{true}\) and \([\![(\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5]\!](*) = (z \mapsto \mathsf{true})(5) = \mathsf{true}\). So \(\mathsf{true} \equiv^{\mathsf{ctx}}_{\cdot \vdash \mathsf{bool}} (\lambda x{:}\mathsf{int}.\, \mathsf{true})\, 5\), and likewise under \(y{:}\mathsf{int}\), where both meanings are \(\gamma \mapsto \mathsf{true}\).</p></div>
+<div class="thm"><p><span class="name">Corollary.</span> If \(e \longrightarrow^* e'\) then \(e \equiv^{\mathsf{ctx}} e'\): by soundness, \([\![e]\!] = [\![e']\!]\).</p></div>
+<div class="thm"><p><span class="name">Theorem (completeness, pure STLC).</span> With only \(\to\), \(\times\), \(+\), \(1\), \(0\) and \(\mathsf{bool}\), \(e \equiv^{\mathsf{ctx}} e'\) implies \(e \equiv^{\mathsf{den}} e'\): every \([\![\tau]\!]\) is finite and every element is the meaning of a term. Fails with \(\mathbb{N}\) and recursion: \([\![\mathsf{nat} \to \mathsf{nat}]\!]\) contains functions no term names and no context separates.</p></div>
+<p>Both meanings in Rocq, equal by computation.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-16">Definition den_true : unit -&gt; bool := fun _ =&gt; true.
 Definition den_app : unit -&gt; bool := fun _ =&gt; (fun (x : Z) =&gt; true) 5.
 
 Example den_equal : den_true = den_app.
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
-<p>The conjecture follows the same way: if \(e \longrightarrow^* e'\) then \([\![e]\!] = [\![e']\!]\) by soundness, hence \(e \equiv^{\mathsf{ctx}} e'\).</p>
-<details class="question">
-<summary>Is denotational equivalence complete for contextual equivalence?</summary>
-<p>Does \(e \equiv^{\mathsf{ctx}} e'\) imply \([\![e]\!] = [\![e']\!]\)? For the pure simply typed λ-calculus, yes: every type denotes a finite set, so an open term can be checked on every input, and the outputs compared through adequacy. Not in general: with inductive types or non-termination the denotations contain uncomputable functions that no context can tell apart, and the two relations differ. Soundness is the property a useful denotational semantics must have; completeness is a bonus.</p>
-</details>
 
-<h2>3. β and η at every type</h2>
-<p>Two descriptions of equivalence so far: the definition, which says what it means, and the denotational one, which is how to prove things. Neither says <em>which</em> equations hold. The third description is axiomatic: an inductively defined relation \(e \equiv^{\mathsf{ax}}_{\Gamma \vdash \tau} e'\), a syntactic list of the equations.</p>
-<p>Three kinds of rule. First, the equivalence relation rules, reflexivity, symmetry, transitivity. Second, one congruence rule per constructor: the operations of the language respect equality, something proved for the other two relations and simply declared here. Those are the boring ones. The interesting rules come in two families, for each type:</p>
+<h2>4. Axiomatic equivalence</h2>
+<div class="thm"><p><span class="name">Definition.</span> \(\Gamma \vdash e \equiv^{\mathsf{ax}} e' : \tau\) is the least relation closed under: reflexivity, symmetry, transitivity; one congruence rule per constructor (\(e_1 \equiv^{\mathsf{ax}} e_1'\) and \(e_2 \equiv^{\mathsf{ax}} e_2'\) give \(e_1\, e_2 \equiv^{\mathsf{ax}} e_1'\, e_2'\), and so on); and for each type a β law and an η law, below.</p>
 <ul>
-  <li><b>β rules</b>, the <em>computation</em> rules: an introduction form inside an elimination form simplifies.</li>
-  <li><b>η rules</b>, the <em>reasoning</em> or extensionality rules: any term of the type equals an introduction form built from its eliminations.</li>
-</ul>
-<p>Each rule below is checked in the model of Discussion 7: a type is a Rocq type, a term with a free variable \(x\) is a Rocq function of \(x\). The proof of each is to compute, or to take a value apart.</p>
-<p>The section fixes three types \(A\), \(B\), \(C\) for the laws to range over.</p>
+  <li>β: an introduction form inside an elimination form simplifies. Computation.</li>
+  <li>η: a term of the type equals the introduction form built from its eliminations. Reasoning; no step rule looks like it.</li>
+</ul></div>
+<div class="thm"><p><span class="name">Definition (functions).</span> Intro \(\lambda x{:}\tau.\, e\), elim \(e\, e'\).</p>
+<div class="display">\[
+\begin{gathered}
+(\lambda x{:}\tau.\, e)\, e' \equiv^{\mathsf{ax}} e[x \mapsto e'] \ (\beta) \qquad e \equiv^{\mathsf{ax}} \lambda x{:}\tau_1.\, e\, x \ (\eta) \\[.4em]
+\frac{\Gamma, x{:}\tau_1 \vdash e\, x \equiv^{\mathsf{ax}} e'\, x : \tau_2}{\Gamma \vdash e \equiv^{\mathsf{ax}} e' : \tau_1 \to \tau_2} \ (\eta')
+\end{gathered}
+\]</div>
+<p>β is the step rule on open terms with any argument \(e'\), not only a value. η′ (extensionality) follows from η and congruence.</p></div>
+<div class="thm"><p><span class="name">Definition (products).</span> Intro \((e_1, e_2)\), elim \(e.1\), \(e.2\).</p>
+<div class="display">\[
+\begin{gathered}
+(e_1, e_2).1 \equiv^{\mathsf{ax}} e_1 \qquad (e_1, e_2).2 \equiv^{\mathsf{ax}} e_2 \ (\beta) \qquad e \equiv^{\mathsf{ax}} (e.1, e.2) \ (\eta) \\[.4em]
+\frac{e.1 \equiv^{\mathsf{ax}} e'.1 \quad e.2 \equiv^{\mathsf{ax}} e'.2}{e \equiv^{\mathsf{ax}} e'} \ (\eta')
+\end{gathered}
+\]</div></div>
+<div class="thm"><p><span class="name">Definition (unit).</span> Intro \(()\), no elim. No β. \(e \equiv^{\mathsf{ax}} () \ (\eta)\); equivalently \(e \equiv^{\mathsf{ax}} e'\) for any two terms of type \(1\).</p></div>
+<div class="thm"><p><span class="name">Definition (sums).</span> Intro \(\mathsf{inl}\ e\), \(\mathsf{inr}\ e\); elim \(\mathsf{case}\ e\ \{\mathsf{inl}\ x_1 \to e_1 \mid \mathsf{inr}\ x_2 \to e_2\}\).</p>
+<div class="display">\[
+\begin{gathered}
+\mathsf{case}\ (\mathsf{inl}\ e)\ \{\mathsf{inl}\ x_1 \to e_1 \mid \mathsf{inr}\ x_2 \to e_2\} \equiv^{\mathsf{ax}} e_1[x_1 \mapsto e] \ (\beta) \\
+\mathsf{case}\ (\mathsf{inr}\ e)\ \{\mathsf{inl}\ x_1 \to e_1 \mid \mathsf{inr}\ x_2 \to e_2\} \equiv^{\mathsf{ax}} e_2[x_2 \mapsto e] \ (\beta)
+\end{gathered}
+\]</div>
+<div class="display">\[
+e \equiv^{\mathsf{ax}} \mathsf{case}\ e\ \{\mathsf{inl}\ x_1 \to \mathsf{inl}\ x_1 \mid \mathsf{inr}\ x_2 \to \mathsf{inr}\ x_2\} \ (\text{weak } \eta)
+\]</div>
+<div class="display">\[
+\begin{gathered}
+\Gamma \vdash e' : \tau_1 + \tau_2 \qquad \Gamma, x{:}\tau_1 + \tau_2 \vdash e : \tau \\
+\Gamma \vdash e[x \mapsto e'] \equiv^{\mathsf{ax}} \mathsf{case}\ e'\ \{\mathsf{inl}\ x_1 \to e[x \mapsto \mathsf{inl}\ x_1] \mid \mathsf{inr}\ x_2 \to e[x \mapsto \mathsf{inr}\ x_2]\} : \tau \ (\text{strong } \eta)
+\end{gathered}
+\]</div>
+<p>Strong η is the second line, under the two typing premises on the first. Weak η is strong η at \(e = x\). Strong η is weak η plus the commuting conversions. The side condition keeps \(e'\) from mentioning anything bound inside \(e\).</p></div>
+<div class="thm"><p><span class="name">Definition (zero).</span> No intro; elim \(\mathsf{case}\ e\ \{\}\). No β. Weak η: \(e \equiv^{\mathsf{ax}} \mathsf{case}\ e\ \{\}\) for \(e : 0\). Strong η: for \(\Gamma \vdash e' : 0\) and \(\Gamma, x{:}0 \vdash e : \tau\), \(e[x \mapsto e'] \equiv^{\mathsf{ax}} \mathsf{case}\ e'\ \{\}\).</p></div>
+<div class="thm"><p><span class="name">Example (commuting conversion).</span> \(\mathsf{bool} = 1 + 1\), \(\mathsf{if}\) is its \(\mathsf{case}\). Strong η with \(e' = b\):</p>
+<div class="display">\[
+e[x \mapsto \mathsf{if}\ b\ \mathsf{then}\ e_2\ \mathsf{else}\ e_3] \equiv^{\mathsf{ax}} \mathsf{if}\ b\ \mathsf{then}\ e[x \mapsto e_2]\ \mathsf{else}\ e[x \mapsto e_3]
+\]</div>
+<p>In each branch the value of \(x\) is known, so each branch simplifies further.</p></div>
+<div class="thm"><p><span class="name">Example (dead code).</span> With \(f{:}1 \to 0\) in \(\Gamma\) and any \(\Gamma \vdash e : \tau\): \(e = e[x \mapsto f\,()]\) for a fresh \(x\), so \(e \equiv^{\mathsf{ax}} \mathsf{case}\ (f\,())\ \{\}\). Every term under a hypothesis of type \(0\) equals the empty case, whether or not it uses the hypothesis.</p></div>
+
+<h2>5. The laws in the model</h2>
+<div class="thm"><p><span class="name">Lemma.</span> Every β and η law holds in the model of Discussion 7: a type is a Rocq type, a term with a free variable \(x\) is a Rocq function of \(x\), \(e[x \mapsto e']\) is application. Each proof is <code>reflexivity</code> (β, η for functions) or <code>destruct</code> on the value (η for products, unit, sums, zero). η′ for functions is assumed (<code>funext</code>).</p></div>
+<p>Three types for the laws to range over.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-17">Section BetaEta.
 
 Variables A B C : Type.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
-
-<h3 class="own-slide">Functions: intro \(\lambda\), elim application</h3>
-<div class="display">\[
-(\lambda x{:}\tau.\, e)\, e' \equiv^{\mathsf{ax}} e[x \mapsto e'] \ (\beta) \qquad\qquad e \equiv^{\mathsf{ax}} \lambda x{:}\tau_1.\, e\, x \ (\eta) \quad\text{for } \Gamma \vdash e : \tau_1 \to \tau_2
-\]</div>
-<p>Two differences from the step rule \(E[(\lambda x{:}\tau.\, e)\, v] \longrightarrow E[e[x \mapsto v]]\). The axiom applies to open terms, which a compiler optimizing a function body needs. And the argument is any \(e'\), not a value: the step rule fixed an evaluation order to be deterministic, the axiom is the most general principle, and it had better be at least as general as the rule, since every step is an equivalence. The η rule says nothing about evaluation; it emerges from the definition of contextual equivalence.</p>
-<p>The alternative form \(\eta'\): two functions are equal when they agree on a fresh variable \(x\), that is \(e\, x \equiv e'\, x\) under \(\Gamma, x{:}\tau_1\). A syntactic for-all. Given β, each form of η implies the other.</p>
+<p>Functions: β, η, η′.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-18">Lemma beta_fun (e : A -&gt; B) (e' : A) : (fun x =&gt; e x) e' = e e'.
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
-<p>η, by <code>reflexivity</code>: Rocq\u2019s own equality already identifies a function with its η-expansion.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-19">Lemma eta_fun (e : A -&gt; B) : e = fun x =&gt; e x.
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
-<p>η′, as an axiom: Rocq cannot prove that two functions agreeing everywhere are equal, so it is assumed, as in Discussion 7.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-20">Axiom funext : forall (f g : A -&gt; B), (forall x, f x = g x) -&gt; f = g.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 1 line">Show code · 1 line</button></div></div>
-
-<h3 class="own-slide">Products: intro \((e_1, e_2)\), elim \(e.1\), \(e.2\)</h3>
-<div class="display">\[
-(e_1, e_2).i \equiv^{\mathsf{ax}} e_i \ (\beta) \qquad\qquad e \equiv^{\mathsf{ax}} (e.1, e.2) \ (\eta) \qquad\qquad \frac{e.1 \equiv e'.1 \quad e.2 \equiv e'.2}{e \equiv e'} \ (\eta')
-\]</div>
-<p>β for products, by computation.</p>
+<p>Products: β, η, η′.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-21">Lemma beta_prod_1 (e1 : A) (e2 : B) : fst (e1, e2) = e1.
 Proof. reflexivity. Qed.
 
 Lemma beta_prod_2 (e1 : A) (e2 : B) : snd (e1, e2) = e2.
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
-<p>η for products: take the pair apart and both sides are the same.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-22">Lemma eta_prod (e : A * B) : e = (fst e, snd e).
 Proof. destruct e as [a b]. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 2 lines">Show code · 2 lines</button></div></div>
-<p>η′ for products: take both pairs apart and rewrite with the two equalities.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-23">Lemma eta_prod' (e e' : A * B) : fst e = fst e' -&gt; snd e = snd e' -&gt; e = e'.
 Proof.
   destruct e as [a b]. destruct e' as [a' b']. simpl.
   intros H1 H2. rewrite H1, H2. reflexivity.
 Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
-
-<h3 class="own-slide">Unit: intro \(()\), no elim</h3>
-<p>No elimination, so no β: nothing to put an introduction inside. There is an η: every term of type \(1\) is \(()\), so any two are equal. The one-element set, in one rule.</p>
-<div class="display">\[
-e \equiv^{\mathsf{ax}} () \ (\eta) \quad\text{for } \Gamma \vdash e : 1 \qquad\qquad \frac{\Gamma \vdash e, e' : 1}{e \equiv e'} \ (\eta')
-\]</div>
-<p>Both forms of η for unit: take the value apart, and there is only <code>tt</code>.</p>
+<p>Unit: η, both forms.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-24">Lemma eta_unit (e : unit) : e = tt.
 Proof. destruct e. reflexivity. Qed.
 
 Lemma eta_unit' (e e' : unit) : e = e'.
 Proof. destruct e. destruct e'. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 5 lines">Show code · 5 lines</button></div></div>
-
-<h3 class="own-slide">Sums: intro \(\mathsf{inl}\), \(\mathsf{inr}\), elim \(\mathsf{case}\)</h3>
-<div class="display">\[
-\mathsf{case}\ (\mathsf{inl}\ e)\ \{\mathsf{inl}\ x_1 \to e_1 \mid \mathsf{inr}\ x_2 \to e_2\} \equiv^{\mathsf{ax}} e_1[x_1 \mapsto e] \ (\beta_{\mathsf l}) \qquad \text{and } \beta_{\mathsf r} \text{ likewise}
-\]</div>
-<p>The two β rules for sums, by computation: the case on an injection picks its branch.</p>
+<p>Sums: β, weak η, strong η; the commuting conversion for \(\mathsf{if}\).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-25">Lemma beta_sum_l (e : A) (e1 : A -&gt; C) (e2 : B -&gt; C) :
   match inl e with inl x1 =&gt; e1 x1 | inr x2 =&gt; e2 x2 end = e1 e.
 Proof. reflexivity. Qed.
@@ -677,60 +610,31 @@ Proof. reflexivity. Qed.
 Lemma beta_sum_r (e : B) (e1 : A -&gt; C) (e2 : B -&gt; C) :
   match inr e with inl x1 =&gt; e1 x1 | inr x2 =&gt; e2 x2 end = e2 e.
 Proof. reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 7 lines">Show code · 7 lines</button></div></div>
-<p>The η rule is where sums differ. The pattern says "\(e\) equals an introduction form", but which one, \(\mathsf{inl}\) or \(\mathsf{inr}\)? The best we can do by the pattern is rebuild \(e\) by a case. True, but weak:</p>
-<div class="display">\[
-e \equiv^{\mathsf{ax}} \mathsf{case}\ e\ \{\mathsf{inl}\ x_1 \to \mathsf{inl}\ x_1 \mid \mathsf{inr}\ x_2 \to \mathsf{inr}\ x_2\} \ (\text{weak } \eta)
-\]</div>
-<p>Weak η: take the sum apart, and each branch rebuilds what it was given.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-26">Lemma eta_sum_weak (e : A + B) :
   e = match e with inl x1 =&gt; inl x1 | inr x2 =&gt; inr x2 end.
 Proof. destruct e as [a | b]; reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
-<p>The <strong>strong</strong> η says more: not only a term <em>of</em> sum type, but any term <em>containing</em> one can be rewritten to pattern match on it first. For \(\Gamma \vdash e' : \tau_1 + \tau_2\) and \(\Gamma, x{:}\tau_1 + \tau_2 \vdash e : \tau\),</p>
-<div class="display">\[
-e[e'/x] \equiv^{\mathsf{ax}} \mathsf{case}\ e'\ \{\mathsf{inl}\ x_1 \to e[\mathsf{inl}\ x_1/x] \mid \mathsf{inr}\ x_2 \to e[\mathsf{inr}\ x_2/x]\} \ (\text{strong } \eta)
-\]</div>
-<p>Weak η is the case \(e = x\). In the model, \(e\) with its free \(x\) is a function \(f\), \(e[e'/x]\) is \(f\, e'\), and the rule is one <code>destruct</code>. Note the side condition in the typing: \(e'\) depends only on \(\Gamma\), so nothing bound inside \(e\) can be captured.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-27">Lemma eta_sum_strong (e' : A + B) (f : A + B -&gt; C) :
   f e' = match e' with inl x1 =&gt; f (inl x1) | inr x2 =&gt; f (inr x2) end.
 Proof. destruct e' as [a | b]; reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
-<p>What strong η buys is the <strong>commuting conversion</strong>: an \(\mathsf{if}\) (or a \(\mathsf{case}\)) sitting inside a term moves out, with the surrounding term pushed into both branches. Weak η plus the commuting conversions is strong η. Compilers do this all the time: in each branch the value is known, so more optimization is possible.</p>
-<div class="display">\[
-e[\mathsf{if}\ e'\ \mathsf{then}\ e''\ \mathsf{else}\ e'''/x] \equiv^{\mathsf{ax}} \mathsf{if}\ e'\ \mathsf{then}\ e[e''/x]\ \mathsf{else}\ e[e'''/x]
-\]</div>
-<p>The commuting conversion for Booleans: a term \(f\) applied to an if equals the if with \(f\) in both branches, by cases on the Boolean.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-28">Lemma commute_if (b : bool) (e2 e3 : A) (f : A -&gt; C) :
   f (if b then e2 else e3) = if b then f e2 else f e3.
 Proof. destruct b; reflexivity. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
-<details class="question">
-<summary>Why are sums different? Polarity</summary>
-<p>Functions, products and unit are <em>negative</em> types: they are used through projections and application, and introduced by saying what to do under each use (sometimes called co-pattern matching). Sums and zero are <em>positive</em>: introduced by constructors and used by pattern matching. Negative types all get the same η pattern; positive types get the stronger one. Both the weak and the strong rule are sound for contextual equivalence; the strong one proves more, and if what you want is to prove contextual equivalences, more is better.</p>
-</details>
-
-<h3 class="own-slide">Zero: no intro, elim \(\mathsf{case}_0\)</h3>
-<p>Dual to unit: no introduction, so no β. The η is the strong one again. For \(\Gamma \vdash e' : 0\) and \(\Gamma, x{:}0 \vdash e : \tau\),</p>
-<div class="display">\[
-e \equiv^{\mathsf{ax}} \mathsf{case}_0\ e\ \{\} \ (\text{weak } \eta) \qquad\qquad e[e'/x] \equiv^{\mathsf{ax}} \mathsf{case}_0\ e'\ \{\} \ (\text{strong } \eta)
-\]</div>
-<p>Read it as dead-code elimination: a term of type \(0\) in scope is a proof that this code never runs, and the whole term can go. A striking consequence: \(e\) need not even mention \(x\). With \(f : 1 \to 0\) in scope, any \(e : \tau\) is equal to \(\mathsf{case}_0\ (f\, ())\ \{\}\). So deciding this equality means deciding whether \(0\) is inhabited in the current context, which is decidable for STLC and undecidable for dependent types.</p>
-<p>Strong η for zero: there is no \(e'\) to take apart, so <code>destruct</code> finishes with no cases.</p>
+<p>Zero: strong η; dead code.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-29">Lemma eta_zero (e' : Empty_set) (f : Empty_set -&gt; C) :
   f e' = match e' with end.
 Proof. destruct e'. Qed.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 3 lines">Show code · 3 lines</button></div></div>
-<p>The dead-code reading: \(e\) never mentions \(g\), and is still equal to the empty case on \(g\, ()\).</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-30">Lemma dead_code (g : unit -&gt; Empty_set) (e : C) : e = match g tt with end.
 Proof. destruct (g tt). Qed.
 
 End BetaEta.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
-<p>Why have \(0\) at all? Rarely to write a program of type \(0\). Polymorphic code instantiated at \(0\) or \(1\) gets a trivial interface; in theorem proving \(0\) is falsehood; and subtyping wants a bottom type. Like having zero among the numbers: the algebra works out.</p>
+<div class="thm"><p><span class="name">Remark (polarity).</span> Functions, products, unit: negative, used by application and projection, η says the term is the intro form of its eliminations. Sums, zero: positive, used by pattern matching, η says a term using them may match first. One η pattern per polarity.</p></div>
+<div class="thm"><p><span class="name">Theorem (soundness).</span> \(e \equiv^{\mathsf{ax}} e'\) implies \(e \equiv^{\mathsf{den}} e'\) implies \(e \equiv^{\mathsf{ctx}} e'\). The first by the lemma above and induction on the derivation; the second by section 3.</p></div>
+<div class="thm"><p><span class="name">Theorem (completeness, pure STLC).</span> \(e \equiv^{\mathsf{ctx}} e'\) implies \(e \equiv^{\mathsf{ax}} e'\). Fails with \(\mathbb{N}\) and primitive recursion: \(\equiv^{\mathsf{ax}}\) is recursively enumerable and \(\equiv^{\mathsf{ctx}}\) is not. Deciding \(\equiv^{\mathsf{ax}}\) includes deciding whether \(0\) is inhabited under \(\Gamma\) (dead code): decidable here, undecidable with dependent types.</p></div>
+<p>The first example in the model. <code>Print Assumptions</code>: strong η for sums uses no axiom.</p>
 <div class="cell is-collapsed"><textarea class="coq" id="coq-31">Example first_example : (fun (x : Z) =&gt; true) 5 = true.
 Proof. reflexivity. Qed.
 
 Print Assumptions eta_sum_strong.</textarea><div class="cell-bar"><button class="cell-run" type="button" title="Check everything up to the end of this block">▶ Run</button><button class="cell-toggle" type="button" aria-expanded="false" data-label="Show code · 4 lines">Show code · 4 lines</button></div></div>
-
-<h3>Soundness and completeness of the axioms</h3>
-<p><b>Soundness.</b> \(e \equiv^{\mathsf{ax}} e'\) implies \(e \equiv^{\mathsf{den}} e'\), which implies \(e \equiv^{\mathsf{ctx}} e'\). The proof is the list of lemmas above: every axiom is an equation in the model. The \(0\) cases hold because an element of the empty set is impossible.</p>
-<p><b>Completeness.</b> \(e \equiv^{\mathsf{ctx}} e'\) implies \(e \equiv^{\mathsf{ax}} e'\): however a contextual equivalence was proved, there is a syntactic proof of it from β and η. True for STLC because every type is finite. It breaks as soon as natural numbers with primitive recursion are added: a syntactic proof system would make program equivalence semi-decidable, hence decidable, which it is not. So this is a property of small languages. For a compiler writer the practical reading is the lecture's: β reduction and η expansion are the only equations about functions you will ever need.</p>
-<p class="aside">Lecture 18 continued into subtyping, with records and the Liskov principle. That material is on the Lecture 20 page.</p>
 
 
 </div>
