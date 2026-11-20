@@ -250,6 +250,10 @@ defaults:
       path: "0512290bf12343cc"
     values:
       sitemap: false
+  - scope:
+      path: "14fd01900c524595"
+    values:
+      sitemap: false
   # _teaching
   #- scope:
   #    path: ""

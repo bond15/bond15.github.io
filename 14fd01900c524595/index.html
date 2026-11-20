@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<script>
+/* Pick the theme before anything paints: the saved choice, else the OS setting. */
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('jscoq-page-theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark')
+    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<title>Discussion 10: Type inference</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;650&amp;family=Spectral:ital,wght@0,400;0,600;1,400&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+/* Layout: one reading column, course-handout style; each inference rule is its own block that wraps on phones. */
+:root {
+  --bg: #fbfbf8;
+  --fg: #1d2330;
+  --muted: #5a6273;
+  --navy: #00274c;
+  --maize: #e0a800;
+  --panel: #eef1f6;
+  --line: #d6dbe4;
+  --head: var(--navy);
+  --code-bg: #f3f5f9;
+  --kw: #7a2e8c;
+  --str: #2f6b2f;
+  --num: #a14a00;
+  --font-display: "Commissioner", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Spectral", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+:root[data-theme="dark"] {
+  --bg: #0f1724; --fg: #e4e8ef; --muted: #9aa4b5; --navy: #8fb4e3; --maize: #ffcb05;
+  --panel: #172234; --line: #2a3850; --head: #ffcb05; --code-bg: #121c2c; --kw: #d7a6f0; --str: #9fd39f; --num: #f2b073; color-scheme: dark;
+}
+#document { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 1.05rem; line-height: 1.6; padding-inline: 16px; padding-block: 1.5rem 4rem; }
+#document .CodeMirror { font-size: .8rem; height: auto; }
+#document textarea.coq { width: 100%; }
+header { border-bottom: 3px solid var(--maize); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.eyebrow { font-family: var(--font-display); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1, h2, h3 { font-family: var(--font-display); color: var(--head); text-wrap: balance; line-height: 1.25; }
+h1 { font-size: 1.7rem; margin: .3rem 0 .4rem; font-weight: 650; }
+h2 { font-size: 1.3rem; margin: 2.6rem 0 .6rem; font-weight: 650; padding-top: .4rem; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 1.6rem 0 .4rem; font-weight: 650; }
+p, li { max-width: 65ch; }
+.lede { color: var(--muted); margin: 0; }
+code { font-family: var(--font-mono); font-size: .82em; background: var(--panel); padding: .05em .3em; border-radius: 3px; overflow-wrap: anywhere; }
+.rules { display: flex; flex-wrap: wrap; gap: .4rem 2rem; justify-content: center; align-items: flex-end; margin: .8rem 0 1rem; }
+.rules > div { min-width: 0; max-width: 100%; overflow-x: auto; }
+.display { overflow-x: auto; max-width: 100%; margin: .8rem 0; }
+mjx-container[display="true"] { margin: .4em 0 !important; }
+.thm { background: var(--panel); border-left: 3px solid var(--navy); padding: .7rem 1rem; margin: 1rem 0; }
+.thm p { margin: .3rem 0; }
+.thm .name { font-family: var(--font-display); font-weight: 650; color: var(--navy); }
+.proof { margin: .4rem 0 1rem; }
+.proof em:first-child { font-style: italic; }
+ul { padding-left: 1.2rem; }
+li { margin: .25rem 0; }
+
+/* a growing trace under the checker: plain lines, no box */
+#document .trace { margin: .4rem 0 0; text-align: left; }
+#document .trace p { margin: .1rem 0; line-height: 1.35; }
+#document .trace code { background: none; border: 0; padding: 0; }
+#document .trace p.d { margin-left: 1.5rem; }
+
+/* derivation trees on slides: large */
+#document.presenting .frames.tree .display { font-size: 1.25em; }
+
+#document code { color: var(--fg); }
+/* jsCoq's own stylesheet paints the document white; use the page tokens instead */
+body.jscoq-main, body.jscoq-main #code-wrapper, body.jscoq-main #ide-wrapper #document { background: var(--bg) !important; color: var(--fg) !important; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+#theme-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+#theme-toggle:hover, #fold-toggle:hover, #present-toggle:hover, #panel-toggle:hover { border-color: var(--navy); }
+#fold-toggle, #present-toggle, #panel-toggle { flex: none; font-family: var(--font-display); font-size: .8rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+.topbar .switches { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+/* displayed math scrolls sideways if it must, never up and down */
+.display, .rules > div { overflow-y: hidden; }
+#document .iso-diagram { color: var(--fg); margin: .6rem auto; max-width: 30rem; }
+#document p.aside { font-size: .85em; color: var(--muted); }
+/* math marked with \\class{hl-blue}{\\bbox[...]{...}}: the step note's soft blue behind it */
+mjx-container .hl-blue { color: var(--fg); }
+mjx-container .hl-blue rect { fill: var(--panel) !important; stroke: var(--line) !important; stroke-width: 20 !important; }
+#document:not(.presenting) mjx-container .hl-blue rect { fill: none !important; stroke: none !important; }
+#document pre.lang { background: var(--code-bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: .6rem .9rem; margin: .6rem 0 .9rem; overflow-x: auto; font-family: var(--font-mono); font-size: .78rem; line-height: 1.45; }
+#document pre.lang code { background: none; padding: 0; font-size: inherit; white-space: pre; }
+#document .iso-diagram svg { display: block; width: 100%; height: auto; }
+/* a program, one line per piece, left aligned */
+#document .display.prog { margin: .15rem 0; padding-left: 1.5rem; }
+#document .display.prog + :not(.display.prog) { margin-top: .9rem; }
+#document .display.prog mjx-container[display="true"] { text-align: left !important; margin: .3em 0 !important; }
+.rules.ch { margin: .2rem 0; align-items: center; }
+/* a tree built in stages: the page shows the last stage; slides show one at a time, in one place */
+#document .frames > .frame:not(.keep) { display: none; }
+/* staged trees get wide: a touch smaller */
+#document .frames .display { font-size: .9em; }
+#document.presenting .frames { display: grid; }
+#document.presenting .frames > .frame { display: block; grid-area: 1 / 1; align-self: end; }
+/* frames that grow downward (code with narration under it) stay pinned to the top */
+#document.presenting .frames.top > .frame { align-self: start; }
+/* what each stage did, in one sentence: only in slide mode */
+#document .step-note { display: none; }
+/* a note inside an ordinary piece shows only while that piece is the latest revealed */
+#document.presenting .pieces:not(.frames) > .piece:not(.current) .step-note { display: none !important; }
+#document.presenting .frames > .frame:not(.current) .step-note { display: none !important; }
+#document.presenting .step-note { display: block; text-align: left; font-size: .8em; line-height: 1.4; min-height: 4.2em;
+  margin: .6rem auto 0; max-width: 34em; padding: .5rem .8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+/* opacity, not visibility: a stage's own visible parts must not show through */
+#document.presenting .frames > .frame.off-frame, #document.presenting .frames > .frame.off-step { opacity: 0; }
+.rules.ch > .ch-name { margin-left: -1.2rem; font-size: .9em; overflow: visible; }
+/* the rule correspondence as a table: typing rule | logic rule | name, labeled on top */
+#document .ch-table { display: grid; grid-template-columns: max-content max-content max-content; justify-content: safe center; align-items: center; column-gap: 1.2rem; row-gap: .3rem; margin: .8rem 0 1rem; overflow-x: auto; }
+#document .ch-table .piece { min-width: auto; max-width: none; overflow: visible; }
+#document .ch-table > .rules.ch { display: contents; }
+#document .ch-table .ch-name { margin-left: 0; justify-self: start; }
+#document .ch-table .ch-label { order: -1; text-align: center; font-family: var(--font-display); font-weight: 650; color: var(--head); padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
+#document .ch-table .ch-label span { display: block; font-family: var(--font-body); font-weight: 400; font-size: .8em; color: var(--muted); }
+#document .ch-table .ch-label.ipl { grid-column: 2 / span 2; }
+/* a two-column table: rule | clause.  Rule cells (.cell) are always shown; the clauses (.piece) appear one per press */
+#document .ch-table.two { grid-template-columns: max-content minmax(0, 1fr); justify-content: start; column-gap: 1.6rem; overflow-x: visible; }
+#document .ch-table.two .piece { min-width: 0; }
+/* narrow windows (or the goals panel open on a small projector): rule above its clause */
+@media (max-width: 1100px) {
+  #document .ch-table.two { grid-template-columns: minmax(0, 1fr); }
+  #document .ch-table.two .ch-label.clause { grid-column: 1; }
+  #document .ch-table.two .ch-label { display: none; }
+}
+#document.presenting pre.lang { font-size: 1rem; }
+#document .ch-table.two .ch-label.clause { grid-column: 2; }
+#document .ch-table .cell { min-width: auto; }
+#document .ch-table pre.lang { margin: .2rem 0; }
+#document .ch-table .cell .display, #document .ch-table .cell mjx-container[display="true"] { margin: .2em 0 !important; }
+/* folded code cells: the first two lines show, faded out, until opened */
+.cell { margin: .8rem 0 1.2rem; }
+.cell.is-collapsed .CodeMirror { max-height: 3.3em !important; overflow: hidden; cursor: pointer; }
+.cell.is-collapsed .CodeMirror::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2.2em; background: linear-gradient(to bottom, transparent, var(--code-bg)); pointer-events: none; z-index: 10; }
+.cell-bar { display: flex; align-items: center; gap: 1rem; margin-top: .25rem; }
+.cell-run { font-family: var(--font-display); font-size: .78rem; font-weight: 650; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .15rem .7rem; cursor: pointer; }
+.cell-run:hover { border-color: var(--navy); }
+.cell-run:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+.cell-toggle { display: block; font-family: var(--font-display); font-size: .78rem; color: var(--navy); background: none; border: 0; padding: .15rem 0; cursor: pointer; }
+.cell-toggle:hover { text-decoration: underline; }
+.cell-toggle:focus-visible, #fold-toggle:focus-visible, #present-toggle:focus-visible, #panel-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+#theme-toggle:focus-visible { outline: 2px solid var(--maize); outline-offset: 2px; }
+
+/* ---- jsCoq in the page's colors ------------------------------------
+   Three hues only, taken from the page: blue for the language (commands
+   bold, keywords plain, tactics a second, greener blue), amber for
+   literals and bullets, gray for comments.  Everything else is plain
+   text.  All at least about 5:1 on the code background, for projectors. */
+:root {
+  --syn-cmd: #0b4f9c; --syn-tactic: #0b6378; --syn-amber: #8a5a00; --syn-comment: #5c6370;
+  --ok-bg: #e7ecf4; --pending-bg: #fbefc4; --failed-bg: #f5d3d3;
+}
+:root[data-theme="dark"] {
+  --syn-cmd: #8cb4ff; --syn-tactic: #6cc4d6; --syn-amber: #f2c14e; --syn-comment: #9aa3b3;
+  --ok-bg: #19273b; --pending-bg: #3b3313; --failed-bg: #4a1f26;
+}
+/* editors */
+/* a question with its answer folded underneath */
+#document details.question { border: 1px solid var(--line); border-radius: 8px; padding: .6rem 1rem; margin: 1rem 0; background: var(--bg); }
+#document details.question > summary { cursor: pointer; font-family: var(--font-display); font-weight: 650; color: var(--head); }
+#document details.question[open] > summary { margin-bottom: .4rem; }
+/* nested-sets diagram */
+.venn { margin: 1rem 0; }
+.venn svg { display: block; width: 100%; max-width: 600px; height: auto; margin: 0 auto; }
+.venn .v-all { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+.venn .v-safe { fill: var(--ok-bg); stroke: var(--navy); stroke-width: 1.5; }
+.venn .v-typed { fill: var(--pending-bg); stroke: var(--maize); stroke-width: 2; }
+.venn .v-label { fill: var(--fg); font-family: var(--font-display); font-weight: 650; font-size: 20px; }
+.venn .v-ex { fill: var(--fg); font-family: var(--font-body); font-style: italic; font-size: 18px; }
+#document .cite { font-size: .85rem; color: var(--muted); }
+#document ul.refs { font-size: .88rem; color: var(--muted); padding-left: 1.1rem; }
+#document ul.refs li { margin: .3rem 0; }
+#document table.ref { border-collapse: collapse; margin: .8rem 0 1rem; font-size: .95rem; }
+#document table.ref th, #document table.ref td { border-bottom: 1px solid var(--line); padding: .3rem .9rem .3rem 0; text-align: left; }
+#document table.ref th { font-family: var(--font-display); font-weight: 650; color: var(--head); }
+/* step rules that do the real work */
+.rules > div.work { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 6px; padding: 0 .7rem; }
+.work-key { background: var(--pending-bg); border: 1px solid var(--maize); border-radius: 4px; padding: 0 .3rem; }
+/* math marked new with \\class{hl-new}{...}: maize marker behind the text */
+mjx-container .hl-new { color: var(--fg); }
+mjx-container .hl-new rect { fill: var(--pending-bg) !important; stroke: var(--maize) !important; stroke-width: 20 !important; }
+.cm-s-d6.CodeMirror { background: var(--code-bg) !important; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; }
+.cm-s-d6 .CodeMirror-gutters { background: var(--code-bg) !important; border-right: 1px solid var(--line) !important; }
+.cm-s-d6 .CodeMirror-linenumber { color: var(--muted) !important; }
+.cm-s-d6 .CodeMirror-cursor { border-left-color: var(--fg) !important; }
+.cm-s-d6 .CodeMirror-selected, .cm-s-d6.CodeMirror-focused .CodeMirror-selected { background: var(--line) !important; }
+.cm-s-d6 span[class*="cm-"] { color: var(--fg) !important; font-weight: 400; font-style: normal; }
+.cm-s-d6 span.cm-builtin { color: var(--syn-cmd) !important; font-weight: 700; }
+.cm-s-d6 span.cm-keyword { color: var(--syn-cmd) !important; }
+.cm-s-d6 span.cm-tactic { color: var(--syn-tactic) !important; font-weight: 600; }
+.cm-s-d6 span.cm-terminator { color: var(--syn-tactic) !important; font-weight: 700; }
+.cm-s-d6 span.cm-comment { color: var(--syn-comment) !important; font-style: italic; }
+.cm-s-d6 span.cm-string, .cm-s-d6 span.cm-number { color: var(--syn-amber) !important; }
+.cm-s-d6 span.cm-coq-bullet { color: var(--syn-amber) !important; font-weight: 700; }
+.cm-s-d6 span.cm-coq-focus { color: var(--muted) !important; }
+.cm-s-d6 span.CodeMirror-matchingbracket { color: var(--fg) !important; outline: 1px solid var(--maize); text-shadow: none; }
+/* how far Coq has checked */
+.cm-s-d6 .coq-eval-ok { background-color: var(--ok-bg) !important; }
+.cm-s-d6 .coq-eval-ok.coq-highlight { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-pending { background-color: var(--pending-bg) !important; }
+.cm-s-d6 .coq-eval-failed { background-color: var(--failed-bg) !important; }
+/* the goals / messages panel */
+body.jscoq-main #panel-wrapper { background: var(--bg) !important; color: var(--fg) !important; border-left: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel { border-top: 1px solid var(--line) !important; }
+body.jscoq-main #panel-wrapper .flex-panel > .caption { background: var(--panel) !important; color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper #toolbar { border-bottom: 1px solid var(--line) !important; }
+body.jscoq-main #vsep, body.jscoq-main #hsep { background: var(--line) !important; }
+body.jscoq-main #panel-wrapper a, body.jscoq-main #panel-wrapper a:visited { color: var(--navy) !important; }
+body.jscoq-main #panel-wrapper #goal-panel p.system { color: var(--muted) !important; }
+body.jscoq-main #panel-wrapper [class*="constr."], body.jscoq-main #panel-wrapper [class*="module."],
+body.jscoq-main #panel-wrapper [class*="tactic."] { color: var(--fg) !important; }
+body.jscoq-main #panel-wrapper .constr\.keyword, body.jscoq-main #panel-wrapper .module\.keyword,
+body.jscoq-main #panel-wrapper .tactic\.keyword { color: var(--syn-cmd) !important; }
+
+/* slide mode: one slide of the page at a time, at projector size */
+#document hr.slide-break { display: none; }
+#document.presenting .off-step { visibility: hidden; }
+/* collapsed table borders ignore visibility */
+#document.presenting tr.off-step > td, #document.presenting tr.off-step > th { border-color: transparent; }
+#document .slide-only { display: none; }
+/* notebook-only text (e.g. the narration a slide carries in its step notes) */
+#document.presenting .page-only { display: none; }
+#document.presenting .off-slide { display: none !important; }
+#document.presenting { font-size: 1.4rem; line-height: 1.5; padding-block: 1rem 5rem; }
+#document.presenting .CodeMirror { font-size: 1.05rem; }
+#document.presenting .topbar .eyebrow { display: none; }
+#document.presenting h1 { font-size: 1.8em; }
+#document.presenting h2 { font-size: 1.5em; margin-top: .4rem; border-top: 0; }
+#document.presenting h3 { font-size: 1.2em; margin-top: .4rem; }
+#document.presenting .topbar button { font-size: .8rem; }
+#document.presenting table.ref { font-size: .85em; }
+#document.presenting details:not(.unfold) .display, #document.presenting details:not(.unfold) .rules { font-size: .72em; }
+#document.presenting details.unfold { border: 0; padding: 0; margin: 0; background: none; }
+#document.presenting details.unfold > summary { display: none; }
+#document.presenting .slide-only { display: block; }
+#document.presenting #slide-context { font-family: var(--font-display); font-weight: 650; font-size: .8rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 .4rem; }
+#document.presenting #slide-context:empty { display: none; }
+#slide-nav { position: fixed; left: 16px; bottom: 14px; z-index: 50; display: none; gap: .4rem; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .3rem .5rem; font-family: var(--font-display); font-size: .9rem; color: var(--fg); }
+#document.presenting ~ #slide-nav, #slide-nav.on { display: flex; }
+#slide-nav button { font: inherit; }
+#slide-nav .count { min-width: 4.5em; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body class="jscoq-main">
+<div id="ide-wrapper" class="toggled">
+<div id="code-wrapper">
+<div id="document">
+<div class="topbar">
+<div class="switches">
+<button id="present-toggle" type="button">▶ Present</button>
+<button id="theme-toggle" type="button"></button>
+<script>(function(){var b=document.getElementById("theme-toggle");var l=function(t){b.textContent=t==="dark"?"☀ Light mode":"☾ Dark mode";};l(document.documentElement.getAttribute("data-theme"));b.addEventListener("click",function(){var t=document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",t);try{localStorage.setItem("jscoq-page-theme",t);}catch(e){}l(t);});})();</script>
+</div>
+</div>
+<p id="slide-context" class="slide-only"></p>
+
+<header>
+  <p class="eyebrow">CSE 590 · Fall 2026 · Discussion 10</p>
+  <h1>Type inference</h1>
+</header>
+
+<h2>1. The problem</h2>
+<div class="thm"><p><span class="name">Example (untyped).</span> One identity function:</p>
+<div class="display">\[
+\lambda x.\, x
+\]</div></div>
+<div class="thm"><p><span class="name">Example (STLC).</span> One identity function per type:</p>
+<div class="display">\[
+\begin{aligned}
+\lambda x{:}\mathsf{bool}.\, x &: \mathsf{bool} \to \mathsf{bool} \\
+\lambda x{:}\mathsf{bool} \to \mathsf{bool}.\, x &: (\mathsf{bool} \to \mathsf{bool}) \to (\mathsf{bool} \to \mathsf{bool}) \\
+&\ \ \vdots
+\end{aligned}
+\]</div></div>
+<div class="thm"><p><span class="name">Goal.</span> Write \(\lambda x.\, x\) and let the checker find the type: \(\alpha \to \alpha\), with each type above an instance of it (section 4).</p></div>
+<div class="thm"><p><span class="name">Definition.</span> Drop the annotation, and add type variables:</p>
+<div class="display">\[
+\begin{aligned}
+\tau &::= \mathsf{bool} \mid \tau_1 \to \tau_2 \mid \alpha \\
+e &::= x \mid \lambda x.\, e \mid e_1\, e_2 \mid \mathsf{true} \mid \mathsf{false} \mid \mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2
+\end{aligned}
+\]</div>
+<p>\(\alpha, \beta\) are type variables.</p></div>
+
+<h2>2. Write the checker</h2>
+<h3>Your checker</h3>
+<div class="pieces frames top">
+<div class="piece frame"><pre class="lang"><code>typeof : context → term → type
+
+</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>typeof : context → term → type
+
+typeof Γ x                       = Γ(x)</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx:τ₁. e)              = τ₁ → typeof (Γ, x:τ₁) e</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx:τ₁. e)              = τ₁ → typeof (Γ, x:τ₁) e
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx:τ₁. e)              = τ₁ → typeof (Γ, x:τ₁) e
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx:τ₁. e)              = τ₁ → typeof (Γ, x:τ₁) e
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx:τ₁. e)              = τ₁ → typeof (Γ, x:τ₁) e
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+<b class="work-key">typeof Γ (λx:τ₁. e)              = τ₁ → typeof (Γ, x:τ₁) e</b>
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx<b class="work-key"><s>:τ₁</s></b>. e)              = τ₁ → typeof (Γ, x:τ₁) e
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = <b class="work-key">?</b> → typeof (Γ, x:<b class="work-key">?</b>) e
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>What type do we put here?</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | <b class="work-key">α</b>
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = <b class="work-key">α</b> → typeof (Γ, x:<b class="work-key">α</b>) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>A fresh type variable.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>What breaks?</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>What breaks?</p><p>Consider <code>λx. if x then false else true</code>.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>What breaks?</p><p>Consider <code>λx. if x then false else true</code>.</p><p class="d"><code>typeof ∅ (λx. if x then false else true)</code></p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → <b class="work-key">typeof (Γ, x:α) e</b>          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>What breaks?</p><p>Consider <code>λx. if x then false else true</code>.</p><p class="d"><code>typeof ∅ (λx. if x then false else true)</code></p><p>We hit the function case, which picks a fresh type variable for <code>x</code>:</p><p class="d"><code>= α → typeof (x : α) (if x then false else true)</code></p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if <b class="work-key">typeof Γ e</b> = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>What breaks?</p><p>Consider <code>λx. if x then false else true</code>.</p><p class="d"><code>typeof ∅ (λx. if x then false else true)</code></p><p>We hit the function case, which picks a fresh type variable for <code>x</code>:</p><p class="d"><code>= α → typeof (x : α) (if x then false else true)</code></p><p>Now we hit the if case:</p><p class="d"><code>typeof (x : α) (if x then false else true)</code></p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>What breaks?</p><p>Consider <code>λx. if x then false else true</code>.</p><p class="d"><code>typeof ∅ (λx. if x then false else true)</code></p><p>We hit the function case, which picks a fresh type variable for <code>x</code>:</p><p class="d"><code>= α → typeof (x : α) (if x then false else true)</code></p><p>Now we hit the if case:</p><p class="d"><code>typeof (x : α) (if x then false else true)</code></p><p>So we have to check the condition, <code>x</code>:</p><p class="d"><code>typeof (x : α) x = α</code></p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>What breaks?</p><p>Consider <code>λx. if x then false else true</code>.</p><p class="d"><code>typeof ∅ (λx. if x then false else true)</code></p><p>We hit the function case, which picks a fresh type variable for <code>x</code>:</p><p class="d"><code>= α → typeof (x : α) (if x then false else true)</code></p><p>Now we hit the if case:</p><p class="d"><code>typeof (x : α) (if x then false else true)</code></p><p>So we have to check the condition, <code>x</code>:</p><p class="d"><code>typeof (x : α) x = α</code></p><p><code>α</code> is not <code>bool</code>. We picked an arbitrary type variable, but here we should have constrained it: <code>α = bool</code>.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>Now a different example: <code>λx. x true</code>.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>Now a different example: <code>λx. x true</code>.</p><p class="d"><code>typeof ∅ (λx. x true)</code></p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → <b class="work-key">typeof (Γ, x:α) e</b>          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>Now a different example: <code>λx. x true</code>.</p><p class="d"><code>typeof ∅ (λx. x true)</code></p><p>The function case picks a fresh type variable for <code>x</code>:</p><p class="d"><code>= α → typeof (x : α) (x true)</code></p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = <b class="work-key">typeof Γ e₁</b> in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>Now a different example: <code>λx. x true</code>.</p><p class="d"><code>typeof ∅ (λx. x true)</code></p><p>The function case picks a fresh type variable for <code>x</code>:</p><p class="d"><code>= α → typeof (x : α) (x true)</code></p><p>Now we hit the application case:</p><p class="d"><code>typeof (x : α) (x true)</code></p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>Now a different example: <code>λx. x true</code>.</p><p class="d"><code>typeof ∅ (λx. x true)</code></p><p>The function case picks a fresh type variable for <code>x</code>:</p><p class="d"><code>= α → typeof (x : α) (x true)</code></p><p>Now we hit the application case:</p><p class="d"><code>typeof (x : α) (x true)</code></p><p>So we have to check the first expression, <code>x</code>:</p><p class="d"><code>typeof (x : α) x = α</code></p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>Now a different example: <code>λx. x true</code>.</p><p class="d"><code>typeof ∅ (λx. x true)</code></p><p>The function case picks a fresh type variable for <code>x</code>:</p><p class="d"><code>= α → typeof (x : α) (x true)</code></p><p>Now we hit the application case:</p><p class="d"><code>typeof (x : α) (x true)</code></p><p>So we have to check the first expression, <code>x</code>:</p><p class="d"><code>typeof (x : α) x = α</code></p><p><code>α</code> is not a function type. Here we should have constrained it to be a function type.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>Our problem: we picked a fresh type variable <code>α</code>, which is completely unconstrained.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>Our problem: we picked a fresh type variable <code>α</code>, which is completely unconstrained.</p><p>We saw two instances where this was a problem.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>Our problem: we picked a fresh type variable <code>α</code>, which is completely unconstrained.</p><p>We saw two instances where this was a problem.</p><p>In the first example, <code>α</code> should have been <code>bool</code>.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>Our problem: we picked a fresh type variable <code>α</code>, which is completely unconstrained.</p><p>We saw two instances where this was a problem.</p><p>In the first example, <code>α</code> should have been <code>bool</code>.</p><p>In the second, <code>α</code> should have been a function type, from <code>bool</code> to something.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>Our problem: we picked a fresh type variable <code>α</code>, which is completely unconstrained.</p><p>We saw two instances where this was a problem.</p><p>In the first example, <code>α</code> should have been <code>bool</code>.</p><p>In the second, <code>α</code> should have been a function type, from <code>bool</code> to something.</p><p>So let's add constraints.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → <b class="work-key">type × constraints</b>
+
+typeof Γ x                       = Γ(x)
+typeof Γ (λx. e)                 = α → typeof (Γ, x:α) e          α fresh
+typeof Γ (e₁ e₂)                 = let τ₁ → τ₂ = typeof Γ e₁ in
+                                   if typeof Γ e₂ = τ₁ then τ₂ else fail
+typeof Γ true                    = bool
+typeof Γ false                   = bool
+typeof Γ (if e then e₁ else e₂)  = if typeof Γ e = bool and typeof Γ e₁ = typeof Γ e₂
+                                   then typeof Γ e₁ else fail</code></pre><div class="trace"><p>Modify the type signature: return a type and constraints.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → <b class="work-key">type × constraints</b>
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = 
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = </code></pre><div class="trace"><p>Modify the type signature: return a type and constraints.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = 
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e</code></pre><div class="trace"><p>Now the if case. Type check the subterms, as before.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = 
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁</code></pre><div class="trace"><p>Now the if case. Type check the subterms, as before.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = 
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in</code></pre><div class="trace"><p>Now the if case. Type check the subterms, as before.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = 
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (<b class="work-key">?</b>, <b class="work-key">?</b>)</code></pre><div class="trace"><p>Now the if case. Type check the subterms, as before.</p><p>What should we return in this case?</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = 
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (?, {<b class="work-key">τ = bool</b>})</code></pre><div class="trace"><p>Now the if case. Type check the subterms, as before.</p><p>What should we return in this case?</p><p>We know the expression <code>e</code> should be a boolean, so we add that constraint.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = 
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (?, {τ = bool, <b class="work-key">τ₁ = τ₂</b>})</code></pre><div class="trace"><p>Now the if case. Type check the subterms, as before.</p><p>What should we return in this case?</p><p>We know the expression <code>e</code> should be a boolean, so we add that constraint.</p><p>We also know the branches <code>e₁</code> and <code>e₂</code> should have the same type, so we add that constraint.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = 
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (<b class="work-key">τ₁</b>, {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>Now the if case. Type check the subterms, as before.</p><p>What should we return in this case?</p><p>We know the expression <code>e</code> should be a boolean, so we add that constraint.</p><p>We also know the branches <code>e₁</code> and <code>e₂</code> should have the same type, so we add that constraint.</p><p>The expression returns either <code>τ₁</code> or <code>τ₂</code>.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = 
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (τ₁, <b class="work-key">C ∪ C₁ ∪ C₂ ∪</b> {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>Now the if case. Type check the subterms, as before.</p><p>What should we return in this case?</p><p>We know the expression <code>e</code> should be a boolean, so we add that constraint.</p><p>We also know the branches <code>e₁</code> and <code>e₂</code> should have the same type, so we add that constraint.</p><p>The expression returns either <code>τ₁</code> or <code>τ₂</code>.</p><p>We also propagate the existing constraints.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = let (τ₁, C₁) = typeof Γ e₁
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (τ₁, C ∪ C₁ ∪ C₂ ∪ {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>Now the application case. Type check the subterms.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = let (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (τ₁, C ∪ C₁ ∪ C₂ ∪ {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>Now the application case. Type check the subterms.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = let (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (<b class="work-key">?</b>, <b class="work-key">?</b>)
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (τ₁, C ∪ C₁ ∪ C₂ ∪ {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>Now the application case. Type check the subterms.</p><p>What should we return in this case?</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = let (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (?, {<b class="work-key">τ₁ = τ₂ → β</b>})         β fresh
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (τ₁, C ∪ C₁ ∪ C₂ ∪ {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>Now the application case. Type check the subterms.</p><p>What should we return in this case?</p><p><code>e₁</code> should be a function from the type of <code>e₂</code> to something: a fresh <code>β</code>. Add that constraint.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = let (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (<b class="work-key">β</b>, {τ₁ = τ₂ → β})         β fresh
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (τ₁, C ∪ C₁ ∪ C₂ ∪ {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>Now the application case. Type check the subterms.</p><p>What should we return in this case?</p><p><code>e₁</code> should be a function from the type of <code>e₂</code> to something: a fresh <code>β</code>. Add that constraint.</p><p>The application returns <code>β</code>.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = 
+typeof Γ (e₁ e₂)                 = let (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (β, <b class="work-key">C₁ ∪ C₂ ∪</b> {τ₁ = τ₂ → β})         β fresh
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (τ₁, C ∪ C₁ ∪ C₂ ∪ {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>Now the application case. Type check the subterms.</p><p>What should we return in this case?</p><p><code>e₁</code> should be a function from the type of <code>e₂</code> to something: a fresh <code>β</code>. Add that constraint.</p><p>The application returns <code>β</code>.</p><p>We also propagate the existing constraints.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = let (τ, C) = typeof (Γ, x:α) e in              α fresh
+typeof Γ (e₁ e₂)                 = let (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (β, C₁ ∪ C₂ ∪ {τ₁ = τ₂ → β})         β fresh
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (τ₁, C ∪ C₁ ∪ C₂ ∪ {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>Now the λ case. Pick a fresh <code>α</code> for <code>x</code>, and type check the body.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = let (τ, C) = typeof (Γ, x:α) e in              α fresh
+                                   (<b class="work-key">?</b>, <b class="work-key">?</b>)
+typeof Γ (e₁ e₂)                 = let (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (β, C₁ ∪ C₂ ∪ {τ₁ = τ₂ → β})         β fresh
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (τ₁, C ∪ C₁ ∪ C₂ ∪ {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>Now the λ case. Pick a fresh <code>α</code> for <code>x</code>, and type check the body.</p><p>What should we return in this case?</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = let (τ, C) = typeof (Γ, x:α) e in              α fresh
+                                   (<b class="work-key">α → τ</b>, ?)
+typeof Γ (e₁ e₂)                 = let (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (β, C₁ ∪ C₂ ∪ {τ₁ = τ₂ → β})         β fresh
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (τ₁, C ∪ C₁ ∪ C₂ ∪ {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>Now the λ case. Pick a fresh <code>α</code> for <code>x</code>, and type check the body.</p><p>What should we return in this case?</p><p>A function type, from <code>α</code> to the type of the body.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = 
+typeof Γ (λx. e)                 = let (τ, C) = typeof (Γ, x:α) e in              α fresh
+                                   (α → τ, <b class="work-key">C</b>)
+typeof Γ (e₁ e₂)                 = let (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (β, C₁ ∪ C₂ ∪ {τ₁ = τ₂ → β})         β fresh
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (τ₁, C ∪ C₁ ∪ C₂ ∪ {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>Now the λ case. Pick a fresh <code>α</code> for <code>x</code>, and type check the body.</p><p>What should we return in this case?</p><p>A function type, from <code>α</code> to the type of the body.</p><p>No new constraints. We propagate the body's constraints.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = (Γ(x), ∅)
+typeof Γ (λx. e)                 = let (τ, C) = typeof (Γ, x:α) e in              α fresh
+                                   (α → τ, C)
+typeof Γ (e₁ e₂)                 = let (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (β, C₁ ∪ C₂ ∪ {τ₁ = τ₂ → β})         β fresh
+typeof Γ true                    = 
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (τ₁, C ∪ C₁ ∪ C₂ ∪ {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>The remaining cases have no constraints.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = (Γ(x), ∅)
+typeof Γ (λx. e)                 = let (τ, C) = typeof (Γ, x:α) e in              α fresh
+                                   (α → τ, C)
+typeof Γ (e₁ e₂)                 = let (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (β, C₁ ∪ C₂ ∪ {τ₁ = τ₂ → β})         β fresh
+typeof Γ true                    = (bool, ∅)
+typeof Γ false                   = 
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (τ₁, C ∪ C₁ ∪ C₂ ∪ {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>The remaining cases have no constraints.</p></div></div>
+<div class="piece frame keep"><pre class="lang"><code>τ ::= bool | τ₁ → τ₂ | α
+
+typeof : context → term → type × constraints
+
+typeof Γ x                       = (Γ(x), ∅)
+typeof Γ (λx. e)                 = let (τ, C) = typeof (Γ, x:α) e in              α fresh
+                                   (α → τ, C)
+typeof Γ (e₁ e₂)                 = let (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (β, C₁ ∪ C₂ ∪ {τ₁ = τ₂ → β})         β fresh
+typeof Γ true                    = (bool, ∅)
+typeof Γ false                   = (bool, ∅)
+typeof Γ (if e then e₁ else e₂)  = let (τ, C)   = typeof Γ e
+                                       (τ₁, C₁) = typeof Γ e₁
+                                       (τ₂, C₂) = typeof Γ e₂ in
+                                   (τ₁, C ∪ C₁ ∪ C₂ ∪ {τ = bool, τ₁ = τ₂})</code></pre><div class="trace"><p>The remaining cases have no constraints.</p></div></div>
+</div>
+
+<h3>As rules</h3>
+<div class="thm"><p><span class="name">Definition.</span> A constraint set \(C\) is a list of equations \(\tau = \tau'\).</p></div>
+<div class="thm"><p><span class="name">Definition.</span> \(\Gamma \vdash e : \tau \mid C\): \(e\) has type \(\tau\) under \(\Gamma\) if the equations in \(C\) hold. One rule per clause:</p></div>
+<div class="pieces ch-table two">
+<div class="rules ch ch-labels"><div class="cell ch-label">rule</div><div class="cell ch-label clause">clause of <code>typeof</code></div></div>
+<div class="rules ch"><div class="cell piece">\[\frac{x : \tau \in \Gamma}{\Gamma \vdash x : \tau \mid \emptyset}\]</div><div class="piece"><pre class="lang"><code>typeof Γ x = (Γ(x), ∅)</code></pre></div></div>
+<div class="rules ch"><div class="cell piece">\[\frac{\Gamma, x : \alpha \vdash e : \tau \mid C \qquad \alpha \text{ fresh}}{\Gamma \vdash \lambda x.\, e : \alpha \to \tau \mid C}\]</div><div class="piece"><pre class="lang"><code>typeof Γ (λx. e)</code></pre></div></div>
+<div class="rules ch"><div class="cell piece">\[\frac{\Gamma \vdash e_1 : \tau_1 \mid C_1 \qquad \Gamma \vdash e_2 : \tau_2 \mid C_2 \qquad \beta \text{ fresh}}{\Gamma \vdash e_1\, e_2 : \beta \mid C_1 \cup C_2 \cup \{\tau_1 = \tau_2 \to \beta\}}\]</div><div class="piece"><pre class="lang"><code>typeof Γ (e₁ e₂)</code></pre></div></div>
+<div class="rules ch"><div class="cell piece">\[\frac{}{\Gamma \vdash \mathsf{true} : \mathsf{bool} \mid \emptyset} \qquad \frac{}{\Gamma \vdash \mathsf{false} : \mathsf{bool} \mid \emptyset}\]</div><div class="piece"><pre class="lang"><code>typeof Γ true, typeof Γ false</code></pre></div></div>
+<div class="rules ch"><div class="cell piece">\[\frac{\Gamma \vdash e : \tau \mid C \qquad \Gamma \vdash e_1 : \tau_1 \mid C_1 \qquad \Gamma \vdash e_2 : \tau_2 \mid C_2}{\Gamma \vdash \mathsf{if}\ e\ \mathsf{then}\ e_1\ \mathsf{else}\ e_2 : \tau_1 \mid C \cup C_1 \cup C_2 \cup \{\tau = \mathsf{bool},\ \tau_1 = \tau_2\}}\]</div><div class="piece"><pre class="lang"><code>typeof Γ (if e then e₁ else e₂)</code></pre></div></div>
+</div>
+
+<h3>Run it: λx. if x then false else true</h3>
+<div class="pieces frames top tree">
+<div class="display piece frame">\[
+\class{hl-blue}{\bbox[#eef1f6,2pt]{ \vdash \lambda x.\, \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \,?\, \mid \,?\,}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{x{:}\alpha \vdash \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \,?\, \mid \,?\,}}}{ \vdash \lambda x.\, \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{x{:}\alpha \vdash x : \,?\, \mid \,?\,}} \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{x{:}\alpha \vdash \mathsf{false} : \,?\, \mid \,?\,}} \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{x{:}\alpha \vdash \mathsf{true} : \,?\, \mid \,?\,}}}{x{:}\alpha \vdash \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{if}}}{ \vdash \lambda x.\, \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{x{:}\alpha \in x{:}\alpha}}}{x{:}\alpha \vdash x : \class{hl-blue}{\bbox[#eef1f6,2pt]{\alpha}} \mid \class{hl-blue}{\bbox[#eef1f6,2pt]{\emptyset}}}{\scriptstyle \text{var}} \qquad x{:}\alpha \vdash \mathsf{false} : \,?\, \mid \,?\, \qquad x{:}\alpha \vdash \mathsf{true} : \,?\, \mid \,?\,}{x{:}\alpha \vdash \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{if}}}{ \vdash \lambda x.\, \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\dfrac{x{:}\alpha \in x{:}\alpha}{x{:}\alpha \vdash x : \alpha \mid \emptyset}{\scriptstyle \text{var}} \qquad \dfrac{}{x{:}\alpha \vdash \mathsf{false} : \class{hl-blue}{\bbox[#eef1f6,2pt]{\mathsf{bool}}} \mid \class{hl-blue}{\bbox[#eef1f6,2pt]{\emptyset}}}{\scriptstyle \text{false}} \qquad x{:}\alpha \vdash \mathsf{true} : \,?\, \mid \,?\,}{x{:}\alpha \vdash \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{if}}}{ \vdash \lambda x.\, \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\dfrac{x{:}\alpha \in x{:}\alpha}{x{:}\alpha \vdash x : \alpha \mid \emptyset}{\scriptstyle \text{var}} \qquad \dfrac{}{x{:}\alpha \vdash \mathsf{false} : \mathsf{bool} \mid \emptyset}{\scriptstyle \text{false}} \qquad \dfrac{}{x{:}\alpha \vdash \mathsf{true} : \class{hl-blue}{\bbox[#eef1f6,2pt]{\mathsf{bool}}} \mid \class{hl-blue}{\bbox[#eef1f6,2pt]{\emptyset}}}{\scriptstyle \text{true}}}{x{:}\alpha \vdash \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{if}}}{ \vdash \lambda x.\, \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\dfrac{x{:}\alpha \in x{:}\alpha}{x{:}\alpha \vdash x : \alpha \mid \emptyset}{\scriptstyle \text{var}} \qquad \dfrac{}{x{:}\alpha \vdash \mathsf{false} : \mathsf{bool} \mid \emptyset}{\scriptstyle \text{false}} \qquad \dfrac{}{x{:}\alpha \vdash \mathsf{true} : \mathsf{bool} \mid \emptyset}{\scriptstyle \text{true}}}{x{:}\alpha \vdash \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \class{hl-blue}{\bbox[#eef1f6,2pt]{\mathsf{bool}}} \mid \class{hl-blue}{\bbox[#eef1f6,2pt]{\{\alpha = \mathsf{bool},\ \mathsf{bool} = \mathsf{bool}\}}}}{\scriptstyle \text{if}}}{ \vdash \lambda x.\, \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\dfrac{x{:}\alpha \in x{:}\alpha}{x{:}\alpha \vdash x : \alpha \mid \emptyset}{\scriptstyle \text{var}} \qquad \dfrac{}{x{:}\alpha \vdash \mathsf{false} : \mathsf{bool} \mid \emptyset}{\scriptstyle \text{false}} \qquad \dfrac{}{x{:}\alpha \vdash \mathsf{true} : \mathsf{bool} \mid \emptyset}{\scriptstyle \text{true}}}{x{:}\alpha \vdash \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \mathsf{bool} \mid \{\alpha = \mathsf{bool},\ \mathsf{bool} = \mathsf{bool}\}}{\scriptstyle \text{if}}}{ \vdash \lambda x.\, \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \class{hl-blue}{\bbox[#eef1f6,2pt]{\alpha \to \mathsf{bool}}} \mid \class{hl-blue}{\bbox[#eef1f6,2pt]{\{\alpha = \mathsf{bool},\ \mathsf{bool} = \mathsf{bool}\}}}}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\dfrac{\dfrac{x{:}\alpha \in x{:}\alpha}{x{:}\alpha \vdash x : \alpha \mid \emptyset}{\scriptstyle \text{var}} \qquad \dfrac{}{x{:}\alpha \vdash \mathsf{false} : \mathsf{bool} \mid \emptyset}{\scriptstyle \text{false}} \qquad \dfrac{}{x{:}\alpha \vdash \mathsf{true} : \mathsf{bool} \mid \emptyset}{\scriptstyle \text{true}}}{x{:}\alpha \vdash \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \mathsf{bool} \mid \{\alpha = \mathsf{bool},\ \mathsf{bool} = \mathsf{bool}\}}{\scriptstyle \text{if}}}{ \vdash \lambda x.\, \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \alpha \to \mathsf{bool} \mid \{\alpha = \mathsf{bool},\ \mathsf{bool} = \mathsf{bool}\}}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+</div>
+
+<h3>Run it: λx. x true</h3>
+<div class="pieces frames top tree">
+<div class="display piece frame">\[
+\class{hl-blue}{\bbox[#eef1f6,2pt]{ \vdash \lambda x.\, x\ \mathsf{true} : \,?\, \mid \,?\,}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{x{:}\alpha \vdash x\ \mathsf{true} : \,?\, \mid \,?\,}}}{ \vdash \lambda x.\, x\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{x{:}\alpha \vdash x : \,?\, \mid \,?\,}} \qquad \class{hl-blue}{\bbox[#eef1f6,2pt]{x{:}\alpha \vdash \mathsf{true} : \,?\, \mid \,?\,}}}{x{:}\alpha \vdash x\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{app, β fresh}}}{ \vdash \lambda x.\, x\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\dfrac{\class{hl-blue}{\bbox[#eef1f6,2pt]{x{:}\alpha \in x{:}\alpha}}}{x{:}\alpha \vdash x : \class{hl-blue}{\bbox[#eef1f6,2pt]{\alpha}} \mid \class{hl-blue}{\bbox[#eef1f6,2pt]{\emptyset}}}{\scriptstyle \text{var}} \qquad x{:}\alpha \vdash \mathsf{true} : \,?\, \mid \,?\,}{x{:}\alpha \vdash x\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{app, β fresh}}}{ \vdash \lambda x.\, x\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\dfrac{x{:}\alpha \in x{:}\alpha}{x{:}\alpha \vdash x : \alpha \mid \emptyset}{\scriptstyle \text{var}} \qquad \dfrac{}{x{:}\alpha \vdash \mathsf{true} : \class{hl-blue}{\bbox[#eef1f6,2pt]{\mathsf{bool}}} \mid \class{hl-blue}{\bbox[#eef1f6,2pt]{\emptyset}}}{\scriptstyle \text{true}}}{x{:}\alpha \vdash x\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{app, β fresh}}}{ \vdash \lambda x.\, x\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\dfrac{x{:}\alpha \in x{:}\alpha}{x{:}\alpha \vdash x : \alpha \mid \emptyset}{\scriptstyle \text{var}} \qquad \dfrac{}{x{:}\alpha \vdash \mathsf{true} : \mathsf{bool} \mid \emptyset}{\scriptstyle \text{true}}}{x{:}\alpha \vdash x\ \mathsf{true} : \class{hl-blue}{\bbox[#eef1f6,2pt]{\beta}} \mid \class{hl-blue}{\bbox[#eef1f6,2pt]{\{\alpha = \mathsf{bool} \to \beta\}}}}{\scriptstyle \text{app, β fresh}}}{ \vdash \lambda x.\, x\ \mathsf{true} : \,?\, \mid \,?\,}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+<div class="display piece frame">\[
+\dfrac{\dfrac{\dfrac{x{:}\alpha \in x{:}\alpha}{x{:}\alpha \vdash x : \alpha \mid \emptyset}{\scriptstyle \text{var}} \qquad \dfrac{}{x{:}\alpha \vdash \mathsf{true} : \mathsf{bool} \mid \emptyset}{\scriptstyle \text{true}}}{x{:}\alpha \vdash x\ \mathsf{true} : \beta \mid \{\alpha = \mathsf{bool} \to \beta\}}{\scriptstyle \text{app, β fresh}}}{ \vdash \lambda x.\, x\ \mathsf{true} : \class{hl-blue}{\bbox[#eef1f6,2pt]{\alpha \to \beta}} \mid \class{hl-blue}{\bbox[#eef1f6,2pt]{\{\alpha = \mathsf{bool} \to \beta\}}}}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+<div class="display piece frame keep">\[
+\dfrac{\dfrac{\dfrac{x{:}\alpha \in x{:}\alpha}{x{:}\alpha \vdash x : \alpha \mid \emptyset}{\scriptstyle \text{var}} \qquad \dfrac{}{x{:}\alpha \vdash \mathsf{true} : \mathsf{bool} \mid \emptyset}{\scriptstyle \text{true}}}{x{:}\alpha \vdash x\ \mathsf{true} : \beta \mid \{\alpha = \mathsf{bool} \to \beta\}}{\scriptstyle \text{app, β fresh}}}{ \vdash \lambda x.\, x\ \mathsf{true} : \alpha \to \beta \mid \{\alpha = \mathsf{bool} \to \beta\}}{\scriptstyle \text{λ, α fresh}}
+\]</div>
+</div>
+
+<h2>3. Solve them</h2>
+<div class="thm"><p><span class="name">Where we are.</span> From the two runs:</p>
+<div class="display">\[
+\begin{aligned}
+&\vdash \lambda x.\, \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \alpha \to \mathsf{bool} \mid \{\alpha = \mathsf{bool},\ \mathsf{bool} = \mathsf{bool}\} \\
+&\vdash \lambda x.\, x\ \mathsf{true} : \alpha \to \beta \mid \{\alpha = \mathsf{bool} \to \beta\}
+\end{aligned}
+\]</div>
+<p>A type, and constraints on its type variables. Now what?</p></div>
+<p><b>First example.</b> \(\mathsf{bool} = \mathsf{bool}\) is obvious information. Discard it:</p>
+<div class="display">\[
+\vdash \lambda x.\, \mathsf{if}\ x\ \mathsf{then}\ \mathsf{false}\ \mathsf{else}\ \mathsf{true} : \alpha \to \mathsf{bool} \mid \{\alpha = \mathsf{bool}\}
+\]</div>
+<p>The expression has type \(\alpha \to \mathsf{bool}\) where \(\alpha = \mathsf{bool}\). So it should just be \(\mathsf{bool} \to \mathsf{bool}\).</p>
+<p><b>Second example.</b> The expression has type \(\alpha \to \beta\) where \(\alpha = \mathsf{bool} \to \beta\). So it should just be \((\mathsf{bool} \to \beta) \to \beta\).</p>
+
+<p>This process is called <b>unification</b>: take the candidate type our algorithm inferred, and use the constraints to refine it. If the constraints are contradictory, the program does not type check.</p>
+
+<h3>What does a solution look like?</h3>
+<p>"\(\alpha = \mathsf{bool}\), so replace \(\alpha\) by \(\mathsf{bool}\)": a substitution.</p>
+<div class="thm"><p><span class="name">Definition.</span> A type substitution (or instantiation) is a finitely supported function</p><div class="display">\[ S : \text{type variables} \to \text{types} \]</div></div>
+<div class="thm"><p><span class="name">Example.</span> \(S = \alpha \mapsto \mathsf{bool},\ \beta_1 \mapsto \beta_2 \to \beta_3\), with domain \(\alpha, \beta_1\).</p></div>
+<p><b>Definition (\(\tau[S]\), apply \(S\) to \(\tau\)).</b></p>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\begin{aligned}
+\mathsf{bool}[S] &= \mathsf{bool}
+\end{aligned}
+\]</div>
+<div class="display piece frame">\[
+\begin{aligned}
+\mathsf{bool}[S] &= \mathsf{bool} \\
+\alpha[S] &= \begin{cases} S(\alpha) & \text{if } \alpha \text{ is in the domain of } S \\ \alpha & \text{otherwise} \end{cases}
+\end{aligned}
+\]</div>
+<div class="display piece frame keep">\[
+\begin{aligned}
+\mathsf{bool}[S] &= \mathsf{bool} \\
+\alpha[S] &= \begin{cases} S(\alpha) & \text{if } \alpha \text{ is in the domain of } S \\ \alpha & \text{otherwise} \end{cases} \\
+(\tau_1 \to \tau_2)[S] &= \tau_1[S] \to \tau_2[S]
+\end{aligned}
+\]</div>
+</div>
+<div class="thm"><p><span class="name">Example.</span> \((\alpha \to \mathsf{bool})[\alpha \mapsto \mathsf{bool}] = \mathsf{bool} \to \mathsf{bool}\).</p></div>
+<div class="thm"><p><span class="name">Example.</span> \((\alpha \to \beta)[\alpha \mapsto \mathsf{bool} \to \beta] = (\mathsf{bool} \to \beta) \to \beta\).</p></div>
+
+<h3>Define unify</h3>
+<div class="pieces frames top">
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution</code></pre><div class="trace"><p>What is the type of <code>unify</code>? It takes the constraints and returns a substitution, or fails.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution</code></pre><div class="trace"><p>Nothing left to solve: the empty substitution.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C</code></pre><div class="trace"><p>Obvious information, like <code>bool = bool</code>: discard it.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = </code></pre><div class="trace"><p>A variable equals something, like <code>α = bool</code> or <code>α = bool → β</code>. Now we know what <code>α</code> is.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ <b class="work-key">[α ↦ τ]</b></code></pre><div class="trace"><p>Record it in the answer: <code>α ↦ τ</code>.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (<b class="work-key">C[α ↦ τ]</b>) ∘ [α ↦ τ]</code></pre><div class="trace"><p><code>α</code> may appear in the other constraints too. Replace it there: <code>C[α ↦ τ]</code>.</p><p>For example, <code>{β = α → α}[α ↦ bool] = {β = bool → bool}</code>.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = <b class="work-key">unify (C[α ↦ τ])</b> ∘ [α ↦ τ]</code></pre><div class="trace"><p>Then solve what is left, and put the two substitutions together.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      <b class="work-key">if α does not occur in τ</b></code></pre><div class="trace"><p>But <code>α = α → β</code>, from <code>λx. x x</code>, would need an infinite type. Check that <code>α</code> does not occur in <code>τ</code>: the occurs check.</p></div></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)</code></pre><div class="trace"><p>Two function types: the inputs are equal, and the outputs are equal.</p></div></div>
+<div class="piece frame keep"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)
+unify (C, anything else)        = fail</code></pre><div class="trace"><p>Anything else is contradictory, like <code>bool = bool → β</code>: fail. The program does not type check.</p></div></div>
+</div>
+<div class="thm"><p><span class="name">Definition.</span> \(S\) unifies \(C\) if \(\tau[S] = \tau'[S]\) for every equation \(\tau = \tau'\) in \(C\).</p></div>
+
+<h3>Run unify: λx. if x then false else true</h3>
+<div class="pieces frames top">
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)
+unify (C, anything else)        = fail</code></pre><pre class="lang"><code>typeof ∅ (λx. if x then false else true)  =  (α → bool, {α = bool, bool = bool})</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)
+unify (C, anything else)        = fail</code></pre><pre class="lang"><code>typeof ∅ (λx. if x then false else true)  =  (α → bool, {α = bool, bool = bool})
+
+unify {α = bool, bool = bool}</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+<b class="work-key">unify (C, τ = τ)                = unify C</b>
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)
+unify (C, anything else)        = fail</code></pre><pre class="lang"><code>typeof ∅ (λx. if x then false else true)  =  (α → bool, {α = bool, bool = bool})
+
+unify {α = bool, bool = bool}
+  = unify {α = bool}                         -- discard bool = bool</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+<b class="work-key">unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ</b>
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)
+unify (C, anything else)        = fail</code></pre><pre class="lang"><code>typeof ∅ (λx. if x then false else true)  =  (α → bool, {α = bool, bool = bool})
+
+unify {α = bool, bool = bool}
+  = unify {α = bool}                         -- discard bool = bool
+  = unify ∅ ∘ [α ↦ bool]                     -- α = bool</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+<b class="work-key">unify ∅                         = []                                  -- the empty substitution</b>
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)
+unify (C, anything else)        = fail</code></pre><pre class="lang"><code>typeof ∅ (λx. if x then false else true)  =  (α → bool, {α = bool, bool = bool})
+
+unify {α = bool, bool = bool}
+  = unify {α = bool}                         -- discard bool = bool
+  = unify ∅ ∘ [α ↦ bool]                     -- α = bool
+  = [α ↦ bool]</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)
+unify (C, anything else)        = fail</code></pre><pre class="lang"><code>typeof ∅ (λx. if x then false else true)  =  (α → bool, {α = bool, bool = bool})
+
+unify {α = bool, bool = bool}
+  = unify {α = bool}                         -- discard bool = bool
+  = unify ∅ ∘ [α ↦ bool]                     -- α = bool
+  = [α ↦ bool]
+
+(α → bool)[α ↦ bool]  =  bool → bool</code></pre></div>
+<div class="piece frame keep"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)
+unify (C, anything else)        = fail</code></pre><pre class="lang"><code>typeof ∅ (λx. if x then false else true)  =  (α → bool, {α = bool, bool = bool})
+
+unify {α = bool, bool = bool}
+  = unify {α = bool}                         -- discard bool = bool
+  = unify ∅ ∘ [α ↦ bool]                     -- α = bool
+  = [α ↦ bool]
+
+(α → bool)[α ↦ bool]  =  bool → bool
+
+Therefore  ⊢ λx. if x then false else true : bool → bool</code></pre></div>
+</div>
+
+<h3>Run unify: λx. x true</h3>
+<div class="pieces frames top">
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)
+unify (C, anything else)        = fail</code></pre><pre class="lang"><code>typeof ∅ (λx. x true)  =  (α → β, {α = bool → β})</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)
+unify (C, anything else)        = fail</code></pre><pre class="lang"><code>typeof ∅ (λx. x true)  =  (α → β, {α = bool → β})
+
+unify {α = bool → β}</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+<b class="work-key">unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ</b>
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)
+unify (C, anything else)        = fail</code></pre><pre class="lang"><code>typeof ∅ (λx. x true)  =  (α → β, {α = bool → β})
+
+unify {α = bool → β}
+  = unify ∅ ∘ [α ↦ bool → β]                 -- α = bool → β</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+<b class="work-key">unify ∅                         = []                                  -- the empty substitution</b>
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)
+unify (C, anything else)        = fail</code></pre><pre class="lang"><code>typeof ∅ (λx. x true)  =  (α → β, {α = bool → β})
+
+unify {α = bool → β}
+  = unify ∅ ∘ [α ↦ bool → β]                 -- α = bool → β
+  = [α ↦ bool → β]</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)
+unify (C, anything else)        = fail</code></pre><pre class="lang"><code>typeof ∅ (λx. x true)  =  (α → β, {α = bool → β})
+
+unify {α = bool → β}
+  = unify ∅ ∘ [α ↦ bool → β]                 -- α = bool → β
+  = [α ↦ bool → β]
+
+(α → β)[α ↦ bool → β]  =  (bool → β) → β</code></pre></div>
+<div class="piece frame keep"><pre class="lang"><code>unify : constraints → substitution
+
+unify ∅                         = []                                  -- the empty substitution
+unify (C, τ = τ)                = unify C
+unify (C, α = τ)                = unify (C[α ↦ τ]) ∘ [α ↦ τ]      if α does not occur in τ
+unify (C, τ₁ → τ₂ = σ₁ → σ₂)    = unify (C, τ₁ = σ₁, τ₂ = σ₂)
+unify (C, anything else)        = fail</code></pre><pre class="lang"><code>typeof ∅ (λx. x true)  =  (α → β, {α = bool → β})
+
+unify {α = bool → β}
+  = unify ∅ ∘ [α ↦ bool → β]                 -- α = bool → β
+  = [α ↦ bool → β]
+
+(α → β)[α ↦ bool → β]  =  (bool → β) → β
+
+Therefore  ⊢ λx. x true : (bool → β) → β</code></pre></div>
+</div>
+
+<h2>4. What we get</h2>
+<h3>Examples</h3>
+<div class="pieces frames top">
+<div class="piece frame"><pre class="lang"><code>λx. x</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>λx. x
+
+typeof ∅ (λx. x)  =  (α → α, ∅)</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>λx. x
+
+typeof ∅ (λx. x)  =  (α → α, ∅)
+unify ∅           =  []</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>λx. x
+
+typeof ∅ (λx. x)  =  (α → α, ∅)
+unify ∅           =  []
+(α → α)[]         =  α → α</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>λx. x
+
+typeof ∅ (λx. x)  =  (α → α, ∅)
+unify ∅           =  []
+(α → α)[]         =  α → α
+
+Therefore  ⊢ λx. x : α → α</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>(λx. x) true</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>(λx. x) true
+
+typeof ∅ ((λx. x) true)   =  (β, {α → α = bool → β})</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>(λx. x) true
+
+typeof ∅ ((λx. x) true)   =  (β, {α → α = bool → β})
+unify {α → α = bool → β}  =  [α ↦ bool, β ↦ bool]</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>(λx. x) true
+
+typeof ∅ ((λx. x) true)   =  (β, {α → α = bool → β})
+unify {α → α = bool → β}  =  [α ↦ bool, β ↦ bool]
+β[α ↦ bool, β ↦ bool]     =  bool</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>(λx. x) true
+
+typeof ∅ ((λx. x) true)   =  (β, {α → α = bool → β})
+unify {α → α = bool → β}  =  [α ↦ bool, β ↦ bool]
+β[α ↦ bool, β ↦ bool]     =  bool
+
+Therefore  ⊢ (λx. x) true : bool</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>(λx. x) (λx. false)</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>(λx. x) (λx. false)
+
+typeof ∅ ((λx. x) (λx. false))  =  (β, {α → α = (γ → bool) → β})</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>(λx. x) (λx. false)
+
+typeof ∅ ((λx. x) (λx. false))  =  (β, {α → α = (γ → bool) → β})
+unify {α → α = (γ → bool) → β}  =  [α ↦ γ → bool, β ↦ γ → bool]</code></pre></div>
+<div class="piece frame"><pre class="lang"><code>(λx. x) (λx. false)
+
+typeof ∅ ((λx. x) (λx. false))  =  (β, {α → α = (γ → bool) → β})
+unify {α → α = (γ → bool) → β}  =  [α ↦ γ → bool, β ↦ γ → bool]
+β[α ↦ γ → bool, β ↦ γ → bool]   =  γ → bool</code></pre></div>
+<div class="piece frame keep"><pre class="lang"><code>(λx. x) (λx. false)
+
+typeof ∅ ((λx. x) (λx. false))  =  (β, {α → α = (γ → bool) → β})
+unify {α → α = (γ → bool) → β}  =  [α ↦ γ → bool, β ↦ γ → bool]
+β[α ↦ γ → bool, β ↦ γ → bool]   =  γ → bool
+
+Therefore  ⊢ (λx. x) (λx. false) : γ → bool</code></pre></div>
+</div>
+
+<h3>Principal types</h3>
+<p><b>Example.</b> \(\lambda x.\, x\) has types</p>
+<div class="pieces frames top">
+<div class="display piece frame">\[
+\begin{aligned}
+&\mathsf{bool} \to \mathsf{bool} \\
+&\phantom{(\mathsf{bool} \to \mathsf{bool}) \to (\mathsf{bool} \to \mathsf{bool})} \\
+&\phantom{(\mathsf{bool} \to \mathsf{bool} \to \mathsf{bool}) \to (\mathsf{bool} \to \mathsf{bool} \to \mathsf{bool})} \\
+&\phantom{\ \ \vdots}
+\end{aligned}
+\]</div>
+<div class="display piece frame">\[
+\begin{aligned}
+&\mathsf{bool} \to \mathsf{bool} \\
+&(\mathsf{bool} \to \mathsf{bool}) \to (\mathsf{bool} \to \mathsf{bool}) \\
+&\phantom{(\mathsf{bool} \to \mathsf{bool} \to \mathsf{bool}) \to (\mathsf{bool} \to \mathsf{bool} \to \mathsf{bool})} \\
+&\phantom{\ \ \vdots}
+\end{aligned}
+\]</div>
+<div class="display piece frame">\[
+\begin{aligned}
+&\mathsf{bool} \to \mathsf{bool} \\
+&(\mathsf{bool} \to \mathsf{bool}) \to (\mathsf{bool} \to \mathsf{bool}) \\
+&(\mathsf{bool} \to \mathsf{bool} \to \mathsf{bool}) \to (\mathsf{bool} \to \mathsf{bool} \to \mathsf{bool}) \\
+&\phantom{\ \ \vdots}
+\end{aligned}
+\]</div>
+<div class="display piece frame keep">\[
+\begin{aligned}
+&\mathsf{bool} \to \mathsf{bool} \\
+&(\mathsf{bool} \to \mathsf{bool}) \to (\mathsf{bool} \to \mathsf{bool}) \\
+&(\mathsf{bool} \to \mathsf{bool} \to \mathsf{bool}) \to (\mathsf{bool} \to \mathsf{bool} \to \mathsf{bool}) \\
+&\ \ \vdots
+\end{aligned}
+\]</div>
+</div>
+<p>The best one is \(\alpha \to \alpha\): if \(\vdash \lambda x.\, x : \tau'\), then \(\tau' = (\alpha \to \alpha)[S]\) for some \(S\).</p>
+<div class="thm"><p><span class="name">Definition.</span> The principal type of \(e\), if it exists, is a type \(\tau\) such that if \(\vdash e : \tau'\), then \(\tau' = \tau[S]\) for some \(S\). In that case \(\tau'\) is an instantiation of \(\tau\).</p></div>
+<div class="thm"><p><span class="name">Non-example.</span> \(\mathsf{bool} \to \mathsf{bool}\) is not principal for \(\lambda x.\, x\). The type \((\mathsf{bool} \to \mathsf{bool}) \to (\mathsf{bool} \to \mathsf{bool})\) is not an instantiation of it.</p></div>
+<div class="thm"><p><span class="name">Remark.</span> A principal type is unique up to renaming. \(\alpha \to \alpha\) and \(\beta \to \beta\) are instantiations of each other.</p></div>
+<div class="thm"><p><span class="name">Theorem (soundness).</span> If \(\Gamma \vdash e : \tau \mid C\) and \(S\) unifies \(C\), then \(\Gamma[S] \vdash e : \tau[S] \mid \emptyset\).</p></div>
+
+
+</div>
+<div id="slide-nav"><button class="prev" type="button" title="Previous slide (←)">◀</button><span class="count"></span><button class="next" type="button" title="Next slide (→)">▶</button></div>
+</div>
+</div>
+<script>
+window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, svg: { fontCache: 'global' } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.js"></script>
+<script>
+/* Slide mode.  The page is cut into slides at every h2 and h3 and at every
+   slide break (an <hr class="slide-break">).  Nothing moves: the elements
+   of the other slides are just hidden, so the Rocq blocks stay one
+   document and running a block still checks everything before it.
+   Within a slide, each element after the first appears on its own key
+   press, so a slide is revealed one piece at a time.  A folded block
+   marked "unfold" (<details class="unfold">) opens in slide mode, and
+   each .piece inside it counts as an element of its own, as do the
+   .piece parts of an element with class "pieces".  A section whose
+   h2 has class "one-slide" is a single long slide that scrolls, except
+   that an h3 with class "own-slide" still starts a slide of its own.
+   Keys: right arrow or Page Down for the next step or slide, left arrow
+   or Page Up to go back (what a presentation clicker sends), Escape to
+   leave.  The address ends in #slide-N, so a reload stays on the slide. */
+(function () {
+  const doc = document.getElementById('document');
+  const scroller = document.getElementById('code-wrapper');
+  const nav = document.getElementById('slide-nav');
+  const count = nav.querySelector('.count');
+  const context = document.getElementById('slide-context');
+  const button = document.getElementById('present-toggle');
+  const slides = [];
+  let cur = [], section = '', whole = false;
+  const close = () => { cur.steps = cur.length - 1; slides.push(cur); cur = []; };
+  const unfolds = [...doc.querySelectorAll(':scope > details.unfold')];
+  const rows = [...doc.querySelectorAll(':scope > .pieces')];
+  /* the boxes around pieces: shown on a slide when one of their pieces is */
+  const holders = [...unfolds, ...rows].flatMap(d => [d, ...d.querySelectorAll('.rules')]);
+  const units = [...doc.children].flatMap(el =>
+    el.matches('details.unfold, .pieces') ? [...el.querySelectorAll('.piece, hr.slide-break')] : [el]);
+  for (const el of units) {
+    if (el.classList.contains('topbar') || el.id === 'slide-context' || el.classList.contains('page-only')) continue;
+    /* a section whose h2 is marked "one-slide" stays one long slide */
+    if (el.tagName === 'H2') whole = el.classList.contains('one-slide');
+    const breaks = el.tagName === 'H2' || el.classList.contains('own-slide') ||
+      (!whole && (el.tagName === 'H3' || el.classList.contains('slide-break')));
+    if (breaks && cur.length) close();
+    if (el.tagName === 'H2') section = el.textContent;
+    if (!cur.length) cur.section = el.tagName === 'H2' ? '' : section;
+    if (el.classList.contains('slide-break')) continue;
+    el.dataset.step = cur.length;
+    cur.push(el);
+  }
+  if (cur.length) close();
+  let at = 0, shown = 0;
+  function label() {
+    const m = slides[at].steps;
+    const steps = m > 12 ? 'step ' + shown + ' of ' + m : '●'.repeat(shown) + '○'.repeat(m - shown);
+    count.textContent = (at + 1) + ' / ' + slides.length + (m ? '  ·  ' + steps : '');
+  }
+  /* frames (pieces of an element with class "frames") replace each other:
+     only the latest one revealed shows, in the same place */
+  const frameSets = [...doc.querySelectorAll(':scope > .frames')];
+  function reveal() {
+    for (const el of slides[at]) el.classList.toggle('off-step', Number(el.dataset.step) > shown);
+    /* the latest revealed piece is 'current': its step note shows, earlier ones hide */
+    for (const el of slides[at]) el.classList.toggle('current', Number(el.dataset.step) === shown);
+    for (const g of frameSets) {
+      const fs = [...g.children];
+      const last = fs.filter(f => !f.classList.contains('off-step') && !f.classList.contains('off-slide')).at(-1);
+      for (const f of fs) f.classList.toggle('off-frame', f !== last);
+    }
+    label();
+  }
+  /* show slide i with its first k steps revealed (all of them if k is 'all') */
+  function show(i, k) {
+    at = Math.max(0, Math.min(slides.length - 1, i));
+    shown = k === 'all' ? slides[at].steps : 0;
+    slides.forEach((els, n) => els.forEach(el => el.classList.toggle('off-slide', n !== at)));
+    for (const h of holders) h.classList.toggle('off-slide', !h.querySelector('.piece:not(.off-slide)'));
+    context.textContent = slides[at].section || '';
+    reveal();
+    history.replaceState(null, '', '#slide-' + (at + 1));
+    scroller.scrollTop = k === 'all' ? scroller.scrollHeight : 0;
+    /* editors that were hidden need to measure themselves again */
+    for (const el of slides[at])
+      for (const cm of el.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  /* in a long slide, bring the piece that just appeared or disappeared
+     to the middle of the screen */
+  const piece = k => slides[at].find(el => Number(el.dataset.step) === k);
+  const focusOn = el => { if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+  function next() {
+    if (shown < slides[at].steps) { shown++; reveal(); focusOn(piece(shown)); }
+    else if (at < slides.length - 1) show(at + 1, 0);
+  }
+  function prev() {
+    if (shown > 0) { const gone = piece(shown); shown--; reveal(); focusOn(gone); }
+    else if (at > 0) show(at - 1, 'all');
+  }
+  function start(i) {
+    for (const d of unfolds) { d.dataset.wasOpen = d.open; d.open = true; }
+    doc.classList.add('presenting'); nav.classList.add('on');
+    button.textContent = '✕ Stop presenting';
+    show(i, 0);
+  }
+  function stop() {
+    doc.classList.remove('presenting'); nav.classList.remove('on');
+    button.textContent = '▶ Present';
+    for (const els of slides) for (const el of els) el.classList.remove('off-slide', 'off-step');
+    for (const h of holders) h.classList.remove('off-slide');
+    for (const g of frameSets) for (const f of g.children) f.classList.remove('off-frame');
+    for (const d of unfolds) d.open = d.dataset.wasOpen === 'true';
+    history.replaceState(null, '', location.pathname + location.search);
+    const first = slides[at][0];
+    if (first) first.scrollIntoView();
+    for (const cm of doc.querySelectorAll('.CodeMirror')) if (cm.CodeMirror) cm.CodeMirror.refresh();
+  }
+  const presenting = () => doc.classList.contains('presenting');
+  button.addEventListener('click', () => presenting() ? stop() : start(at));
+  nav.querySelector('.prev').addEventListener('click', prev);
+  nav.querySelector('.next').addEventListener('click', next);
+  document.addEventListener('keydown', e => {
+    if (!presenting() || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest && e.target.closest('.CodeMirror, input, textarea, select')) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Escape') stop();
+  });
+  const m = location.hash.match(/^#slide-(\d+)$/);
+  if (m) start(Number(m[1]) - 1);
+})();
+</script>
+
+</body>
+</html>
